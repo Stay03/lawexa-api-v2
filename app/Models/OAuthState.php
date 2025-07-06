@@ -7,6 +7,8 @@ use Illuminate\Support\Str;
 
 class OAuthState extends Model
 {
+    protected $table = 'oauth_states';
+    
     protected $fillable = [
         'code',
         'token',
