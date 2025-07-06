@@ -49,17 +49,14 @@ class GoogleAuthController extends Controller
 
             $token = $user->createToken('google_auth_token')->plainTextToken;
 
-            return response()->json([
-                'message' => 'Google authentication successful',
-                'user' => $user,
-                'token' => $token
-            ]);
+            // Redirect to frontend with token
+            $frontendUrl = config('app.frontend_url', 'http://localhost:3000');
+            return redirect()->away($frontendUrl . '/auth/callback?token=' . $token . '&user=' . urlencode(json_encode($user)));
 
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Google authentication failed',
-                'error' => $e->getMessage()
-            ], 500);
+            // Redirect to frontend with error
+            $frontendUrl = config('app.frontend_url', 'http://localhost:3000');
+            return redirect()->away($frontendUrl . '/auth/callback?error=' . urlencode($e->getMessage()));
         }
     }
 }
