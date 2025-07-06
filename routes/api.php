@@ -13,6 +13,7 @@ Route::prefix('auth')->group(function () {
     
     Route::get('google', [GoogleAuthController::class, 'redirectToGoogle']);
     Route::get('google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
+    Route::post('google/exchange', [GoogleAuthController::class, 'exchangeCodeForToken']);
 });
 
 Route::middleware('auth:sanctum')->group(function () {
