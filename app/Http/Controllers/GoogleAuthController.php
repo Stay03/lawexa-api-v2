@@ -62,9 +62,15 @@ class GoogleAuthController extends Controller
             return redirect()->away($frontendUrl . '/auth/callback?code=' . $oauthState->code);
 
         } catch (\Exception $e) {
-            // Redirect to frontend with error
+            // Create temporary code for secure error exchange
+            $oauthState = OAuthState::createWithError('oauth_error', $e->getMessage());
+            
+            // Clean expired codes
+            OAuthState::cleanExpired();
+            
+            // Redirect to frontend with temporary code (consistent with success)
             $frontendUrl = config('app.frontend_url', 'http://localhost:3000');
-            return redirect()->away($frontendUrl . '/auth/callback?error=' . urlencode($e->getMessage()));
+            return redirect()->away($frontendUrl . '/auth/callback?code=' . $oauthState->code);
         }
     }
 
@@ -89,9 +95,25 @@ class GoogleAuthController extends Controller
             ], 400);
         }
 
-        // Return token and user data
+        // Check if this is an error code
+        if ($oauthState->is_error) {
+            $response = [
+                'message' => 'Google authentication failed',
+                'error' => true,
+                'error_code' => $oauthState->error_code,
+                'error_message' => $oauthState->error_message
+            ];
+            
+            // Delete the used code
+            $oauthState->delete();
+            
+            return response()->json($response, 400);
+        }
+
+        // Return token and user data for success
         $response = [
             'message' => 'Google authentication successful',
+            'error' => false,
             'token' => $oauthState->token,
             'user' => $oauthState->user_data
         ];

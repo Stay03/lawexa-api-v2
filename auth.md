@@ -11,7 +11,7 @@ The Google signup/login flow uses a **secure 3-step process** with temporary cod
 **Request:**
 ```http
 GET /api/auth/google HTTP/1.1
-Host: your-api-domain.com
+Host: rest.lawexa.com
 ```
 
 **Response:**
@@ -32,17 +32,14 @@ This endpoint is called by Google after user authorization. It:
 - Creates temporary 32-character code (expires in 10 minutes)
 - Redirects to frontend with temporary code
 
-**Google Callback URL:** `{API_URL}/api/auth/google/callback`
+**Google Callback URL:** `https://rest.lawexa.com/api/auth/google/callback`
 
-**Frontend Redirect:**
+**Frontend Redirect (Success & Error):**
 ```
-{FRONTEND_URL}/auth/callback?code={temp_code}
+https://app.lawexa.com/auth/callback?code={temp_code}
 ```
 
-**Error Redirect:**
-```
-{FRONTEND_URL}/auth/callback?error={error_message}
-```
+*Note: Both success and error cases now use the same redirect pattern with a temporary code for consistent handling and improved security.*
 
 ### 3. Exchange Code for Token
 **Endpoint:** `POST /api/auth/google/exchange`
@@ -50,7 +47,7 @@ This endpoint is called by Google after user authorization. It:
 **Request:**
 ```http
 POST /api/auth/google/exchange HTTP/1.1
-Host: your-api-domain.com
+Host: rest.lawexa.com
 Content-Type: application/json
 
 {
@@ -62,6 +59,7 @@ Content-Type: application/json
 ```json
 {
   "message": "Google authentication successful",
+  "error": false,
   "token": "your-api-token-here",
   "user": {
     "id": 1,
@@ -76,7 +74,17 @@ Content-Type: application/json
 }
 ```
 
-**Error Response:**
+**Error Response (OAuth Error):**
+```json
+{
+  "message": "Google authentication failed",
+  "error": true,
+  "error_code": "oauth_error",
+  "error_message": "Detailed error description"
+}
+```
+
+**Error Response (Invalid Code):**
 ```json
 {
   "message": "Invalid or expired code"
@@ -90,12 +98,12 @@ Content-Type: application/json
 3. **Backend handles callback**: Google redirects to `/api/auth/google/callback` which:
    - Gets user data from Google
    - Creates/updates user in database (GoogleAuthController.php:30-50)
-   - Generates API token
-   - Creates temporary 32-character code (expires in 10 minutes)
-   - Redirects to frontend: `{FRONTEND_URL}/auth/callback?code={temp_code}`
+   - On success: Generates API token and creates temporary code
+   - On error: Creates temporary error code with error details
+   - Always redirects to frontend: `https://app.lawexa.com/auth/callback?code={temp_code}`
 4. **Frontend exchanges code**: Call `POST /api/auth/google/exchange` with the code to get:
-   - API token for authenticated requests
-   - User data object
+   - Success: API token and user data object
+   - Error: Error details with error code and message
 
 ## Security Features
 
@@ -103,6 +111,8 @@ Content-Type: application/json
 - **Temporary codes**: 32-character codes expire in 10 minutes
 - **Automatic cleanup**: Expired codes are automatically removed
 - **Secure token exchange**: Prevents token exposure in URLs
+- **Secure error handling**: Error details stored securely, not exposed in URLs
+- **Consistent redirect pattern**: Both success and error cases use same URL pattern
 - **User matching**: Links existing accounts by email or Google ID
 
 ## User Data Structure
