@@ -10,21 +10,20 @@ class UserCollection extends ResourceCollection
     public function toArray(Request $request): array
     {
         return [
-            'data' => $this->collection->map(function ($user) {
-                return new UserResource($user);
-            }),
-        ];
-    }
-
-    public function with(Request $request): array
-    {
-        return [
+            'users' => $this->collection,
             'meta' => [
-                'total' => $this->resource->total(),
-                'count' => $this->resource->count(),
-                'per_page' => $this->resource->perPage(),
                 'current_page' => $this->resource->currentPage(),
-                'total_pages' => $this->resource->lastPage(),
+                'from' => $this->resource->firstItem(),
+                'last_page' => $this->resource->lastPage(),
+                'per_page' => $this->resource->perPage(),
+                'to' => $this->resource->lastItem(),
+                'total' => $this->resource->total(),
+            ],
+            'links' => [
+                'first' => $this->resource->url(1),
+                'last' => $this->resource->url($this->resource->lastPage()),
+                'prev' => $this->resource->previousPageUrl(),
+                'next' => $this->resource->nextPageUrl(),
             ],
         ];
     }

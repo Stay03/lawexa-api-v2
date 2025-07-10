@@ -1,14 +1,14 @@
 type: collection.insomnia.rest/5.0
 name: LawexaAPIV2
 meta:
-  id: wrk_480ff5846c9a422f812ea22c217ec334
-  created: 1751451855520
-  modified: 1751451855520
+  id: wrk_3424448e99fa45f291eab46192bc6dcf
+  created: 1751935123718
+  modified: 1751935123718
   description: ""
 collection:
   - name: Auth
     meta:
-      id: fld_402edb526e964aafb961f8786e0f75d3
+      id: fld_a5892b796bab4e51ad38b4e052b2aed1
       created: 1751451883131
       modified: 1751451883131
       sortKey: -1751451883131
@@ -17,44 +17,53 @@ collection:
       - url: "{{ _.host }}/api/auth/google"
         name: Auth with Google
         meta:
-          id: req_6561cee5f5974fec87f83507c80c185f
+          id: req_c0e5d6840bb447e0a13894fc75e85ddd
           created: 1751826959877
-          modified: 1751858264823
+          modified: 1752109741942
           isPrivate: false
-          description: |
+          description: >
             **Google OAuth Authentication**
-            
-            Initiates Google OAuth authentication flow. Returns a redirect URL that should be used to redirect users to Google's authentication page.
-            
+
+
+            Initiates Google OAuth authentication flow. Returns a redirect URL
+            that should be used to redirect users to Google's authentication
+            page.
+
+
             **Response:**
+
             ```json
+
             {
               "url": "https://accounts.google.com/oauth/authorize?..."
             }
+
             ```
-            
+
+
             **Flow:**
+
             1. Call this endpoint to get Google OAuth URL
+
             2. Redirect user to the returned URL
+
             3. User authenticates with Google
+
             4. Google redirects back to your callback URL with a temporary code
+
             5. Exchange the code for an access token using the callback endpoint
           sortKey: -1751826959877
         method: GET
         headers:
           - name: User-Agent
             value: insomnia/11.2.0
-            id: pair_5df59e38c33b4e899953fa5105a950e0
-          - id: pair_3f5e4ff331e7414ab9191fc8690218a3
-            name: accept
+          - name: accept
             value: application/json
-            description: ""
-            disabled: false
-          - id: pair_abe14b196de644a588b9d5e7c300995c
-            name: content-type
+          - name: content-type
             value: application/json
-            description: ""
-            disabled: false
+        scripts:
+          preRequest: ""
+          afterResponse: ""
         settings:
           renderRequestBody: true
           encodeUrl: true
@@ -66,17 +75,17 @@ collection:
       - url: "{{ _.host }}/api/auth/me"
         name: Me
         meta:
-          id: req_a96a74bda73f42b696097fbbe5ad9354
+          id: req_fd54e466d0bf48ea9ce56852a9f380dd
           created: 1751832263884
           modified: 1751858458888
           isPrivate: false
           description: |
             **Get Current User Profile**
-            
+
             Retrieves the authenticated user's profile information.
-            
+
             **Authentication:** Required (Bearer Token)
-            
+
             **Response:**
             ```json
             {
@@ -100,7 +109,9 @@ collection:
         headers:
           - name: Authorization
             value: Bearer {{ _.token }}
-            id: pair_b4f47c3fa65d4285b79e7b3ee54f8695
+        scripts:
+          preRequest: ""
+          afterResponse: ""
         settings:
           renderRequestBody: true
           encodeUrl: true
@@ -112,17 +123,21 @@ collection:
       - url: "{{ _.host }}/api/auth/register"
         name: Register
         meta:
-          id: req_d328ad69ed394244bebcfac66a1b9e27
+          id: req_7da95e6c3b344235ba77e60e3e754a6a
           created: 1751858065228
-          modified: 1751858267035
+          modified: 1752110979283
           isPrivate: false
-          description: |
+          description: >
             **User Registration**
-            
+
+
             Creates a new user account and returns an authentication token.
-            
+
+
             **Request Body:**
+
             ```json
+
             {
               "name": "John Doe",
               "email": "john@example.com",
@@ -130,17 +145,29 @@ collection:
               "password_confirmation": "password123",
               "role": "user"
             }
+
             ```
-            
+
+
             **Validation Rules:**
+
             - `name`: Required, string, max 255 characters
+
             - `email`: Required, valid email, max 255 characters, must be unique
-            - `password`: Required, string, min 8 characters, must match confirmation
+
+            - `password`: Required, string, min 8 characters, must match
+            confirmation
+
             - `password_confirmation`: Required, must match password
-            - `role`: Optional, must be one of: user, admin, researcher, superadmin (defaults to "user")
-            
+
+            - `role`: Optional, must be one of: user, admin, researcher,
+            superadmin (defaults to "user")
+
+
             **Success Response (201):**
+
             ```json
+
             {
               "status": "success",
               "message": "User registered successfully",
@@ -156,10 +183,14 @@ collection:
                 "token": "1|abc123def456..."
               }
             }
+
             ```
-            
+
+
             **Error Response (422):**
+
             ```json
+
             {
               "status": "error",
               "message": "Validation failed",
@@ -168,6 +199,7 @@ collection:
                 "password": ["The password must be at least 8 characters."]
               }
             }
+
             ```
           sortKey: -1751540939319
         method: POST
@@ -178,19 +210,19 @@ collection:
             	"name": "{% faker 'randomFullName' %}",
             	"email":"{% faker 'randomEmail' %}",
             	"password":"password123",
-            	"password_confirmation":"password123"
+            	"password_confirmation":"password123",
+            	"role":"admin"
             }
         headers:
           - name: Content-Type
             value: application/json
           - name: User-Agent
             value: insomnia/11.2.0
-            id: pair_5df59e38c33b4e899953fa5105a950e0
-          - id: pair_3f5e4ff331e7414ab9191fc8690218a3
-            name: accept
+          - name: accept
             value: application/json
-            description: ""
-            disabled: false
+        scripts:
+          preRequest: ""
+          afterResponse: ""
         settings:
           renderRequestBody: true
           encodeUrl: true
@@ -202,29 +234,41 @@ collection:
       - url: "{{ _.host }}/api/auth/login"
         name: Login
         meta:
-          id: req_login_auth_endpoint
+          id: req_64d6abada6eb48529797f56de4db94c9
           created: 1751858500000
-          modified: 1751858500000
+          modified: 1752111714501
           isPrivate: false
-          description: |
+          description: >
             **User Login**
-            
-            Authenticates a user with email and password, returning an access token.
-            
+
+
+            Authenticates a user with email and password, returning an access
+            token.
+
+
             **Request Body:**
+
             ```json
+
             {
               "email": "john@example.com",
               "password": "password123"
             }
+
             ```
-            
+
+
             **Validation Rules:**
+
             - `email`: Required, valid email format
+
             - `password`: Required, string
-            
+
+
             **Success Response (200):**
+
             ```json
+
             {
               "status": "success",
               "message": "Login successful",
@@ -240,24 +284,25 @@ collection:
                 "token": "1|abc123def456..."
               }
             }
+
             ```
-            
+
+
             **Error Response (401):**
+
             ```json
+
             {
               "status": "error",
               "message": "Invalid credentials"
             }
+
             ```
           sortKey: -1751540939419
         method: POST
         body:
           mimeType: application/json
-          text: |-
-            {
-            	"email": "admin@example.com",
-            	"password": "password123"
-            }
+          text: '{"email":"Bethel_Witting2@yahoo.com","password":"password123"}'
         headers:
           - name: Content-Type
             value: application/json
@@ -265,6 +310,9 @@ collection:
             value: insomnia/11.2.0
           - name: accept
             value: application/json
+        scripts:
+          preRequest: ""
+          afterResponse: ""
         settings:
           renderRequestBody: true
           encodeUrl: true
@@ -276,17 +324,17 @@ collection:
       - url: "{{ _.host }}/api/auth/logout"
         name: Logout
         meta:
-          id: req_logout_auth_endpoint
+          id: req_57ea06f6cfec4fc286afa5a67db28be6
           created: 1751858600000
-          modified: 1751858600000
+          modified: 1752109929315
           isPrivate: false
           description: |
             **User Logout**
-            
+
             Logs out the current user by invalidating their access token.
-            
+
             **Authentication:** Required (Bearer Token)
-            
+
             **Success Response (200):**
             ```json
             {
@@ -306,6 +354,9 @@ collection:
             value: insomnia/11.2.0
           - name: accept
             value: application/json
+        scripts:
+          preRequest: ""
+          afterResponse: ""
         settings:
           renderRequestBody: true
           encodeUrl: true
@@ -314,38 +365,53 @@ collection:
             send: true
             store: true
           rebuildPath: true
-      - url: "{{ _.host }}/api/auth/profile"
+      - url: "{{ _.host }}/api/user/profile"
         name: Update Profile
         meta:
-          id: req_update_profile_endpoint
+          id: req_debd8863fab74d75b2f6b2aee4beebd2
           created: 1751858700000
-          modified: 1751858700000
+          modified: 1752114232220
           isPrivate: false
-          description: |
+          description: >
             **Update User Profile**
-            
+
+
             Updates the authenticated user's profile information.
-            
+
+
             **Authentication:** Required (Bearer Token)
-            
+
+
             **Request Body:**
+
             ```json
+
             {
               "name": "John Updated",
               "email": "john.updated@example.com",
               "password": "newpassword123",
               "password_confirmation": "newpassword123"
             }
+
             ```
-            
+
+
             **Validation Rules:**
+
             - `name`: Optional, string, max 255 characters
+
             - `email`: Optional, valid email, max 255 characters, must be unique
-            - `password`: Optional, string, min 8 characters, must match confirmation
+
+            - `password`: Optional, string, min 8 characters, must match
+            confirmation
+
             - `password_confirmation`: Required if password is provided
-            
+
+
             **Success Response (200):**
+
             ```json
+
             {
               "status": "success",
               "message": "Profile updated successfully",
@@ -360,10 +426,14 @@ collection:
                 }
               }
             }
+
             ```
-            
+
+
             **Error Response (422):**
+
             ```json
+
             {
               "status": "error",
               "message": "Validation failed",
@@ -371,6 +441,7 @@ collection:
                 "email": ["The email has already been taken."]
               }
             }
+
             ```
           sortKey: -1751540939619
         method: PUT
@@ -378,8 +449,7 @@ collection:
           mimeType: application/json
           text: |-
             {
-            	"name": "{% faker 'randomFullName' %}",
-            	"email": "{% faker 'randomEmail' %}"
+            	"role":"superadmin"
             }
         headers:
           - name: Authorization
@@ -390,6 +460,9 @@ collection:
             value: insomnia/11.2.0
           - name: accept
             value: application/json
+        scripts:
+          preRequest: ""
+          afterResponse: ""
         settings:
           renderRequestBody: true
           encodeUrl: true
@@ -401,29 +474,45 @@ collection:
       - url: "{{ _.host }}/api/auth/google/callback"
         name: Google OAuth Callback
         meta:
-          id: req_google_callback_endpoint
+          id: req_30bd2e2deb274f6c8e6604807fb45a42
           created: 1751858800000
           modified: 1751858800000
           isPrivate: false
-          description: |
+          description: >
             **Google OAuth Callback**
-            
-            Handles the callback from Google OAuth service. This endpoint is called automatically by Google after user authentication.
-            
-            **Note:** This endpoint is typically not called directly by clients. It's used by Google's OAuth service to redirect users back to your application.
-            
+
+
+            Handles the callback from Google OAuth service. This endpoint is
+            called automatically by Google after user authentication.
+
+
+            **Note:** This endpoint is typically not called directly by clients.
+            It's used by Google's OAuth service to redirect users back to your
+            application.
+
+
             **Query Parameters:**
+
             - `code`: Authorization code from Google
+
             - `state`: State parameter for security
-            
+
+
             **Response:** Redirects to frontend with temporary code:
+
             ```
+
             {frontend_url}/auth/callback?code={temporary_code}
+
             ```
-            
+
+
             **Error Response:** Redirects to frontend with error code:
+
             ```
+
             {frontend_url}/auth/callback?code={error_code}
+
             ```
           sortKey: -1751540939719
         method: GET
@@ -432,6 +521,9 @@ collection:
             value: insomnia/11.2.0
           - name: accept
             value: application/json
+        scripts:
+          preRequest: ""
+          afterResponse: ""
         settings:
           renderRequestBody: true
           encodeUrl: true
@@ -443,27 +535,38 @@ collection:
       - url: "{{ _.host }}/api/auth/google/exchange"
         name: Exchange Code for Token
         meta:
-          id: req_exchange_code_endpoint
+          id: req_535186c8d21a4e02b77776d7d099dc20
           created: 1751858900000
-          modified: 1751858900000
+          modified: 1752109745584
           isPrivate: false
-          description: |
+          description: >
             **Exchange Code for Token**
-            
-            Exchanges the temporary code received from Google OAuth callback for an access token.
-            
+
+
+            Exchanges the temporary code received from Google OAuth callback for
+            an access token.
+
+
             **Request Body:**
+
             ```json
+
             {
               "code": "abc123def456789012345678901234567890"
             }
+
             ```
-            
+
+
             **Validation Rules:**
+
             - `code`: Required, string, exactly 32 characters
-            
+
+
             **Success Response (200):**
+
             ```json
+
             {
               "status": "success",
               "message": "Google authentication successful",
@@ -481,18 +584,26 @@ collection:
                 }
               }
             }
+
             ```
-            
+
+
             **Error Response (400):**
+
             ```json
+
             {
               "status": "error",
               "message": "Invalid or expired code"
             }
+
             ```
-            
+
+
             **Error Response (400) - OAuth Error:**
+
             ```json
+
             {
               "status": "error",
               "message": "Google authentication failed",
@@ -502,6 +613,7 @@ collection:
                 "details": "Google OAuth authentication failed"
               }
             }
+
             ```
           sortKey: -1751540939819
         method: POST
@@ -509,7 +621,7 @@ collection:
           mimeType: application/json
           text: |-
             {
-            	"code": "abc123def456789012345678901234567890"
+            	"code": "wl21YodydAIk82Zpnn2VMCoC4fJymZTg"
             }
         headers:
           - name: Content-Type
@@ -518,6 +630,9 @@ collection:
             value: insomnia/11.2.0
           - name: accept
             value: application/json
+        scripts:
+          preRequest: ""
+          afterResponse: ""
         settings:
           renderRequestBody: true
           encodeUrl: true
@@ -526,39 +641,213 @@ collection:
             send: true
             store: true
           rebuildPath: true
+    scripts:
+      afterResponse: ""
+      preRequest: ""
+  - name: User
+    meta:
+      id: fld_b6893c807cbc4f62be49c5f153c3bfe2
+      created: 1736516400000
+      modified: 1736516400000
+      sortKey: -1736516400000
+      description: "User management endpoints for admin and superadmin users"
+    children:
+      - url: "{{ _.host }}/api/admin/users/{{ _.user_id }}"
+        name: Edit User
+        meta:
+          id: req_e7f4e5d4c3b2a1f0e9d8c7b6a5f4e3d2
+          created: 1736516400000
+          modified: 1736516400000
+          isPrivate: false
+          description: >
+            **Edit User Details**
+
+
+            Allows admin and superadmin users to edit user details including name, email, role, and avatar.
+
+
+            **Authentication:** Required (Bearer Token) - Admin or Superadmin role
+
+
+            **Path Parameters:**
+
+            - `user_id`: The ID of the user to edit
+
+
+            **Request Body:**
+
+            ```json
+
+            {
+              "name": "Updated Name",
+              "email": "updated@example.com",
+              "role": "admin",
+              "avatar": "https://example.com/avatar.jpg"
+            }
+
+            ```
+
+
+            **Permission Rules:**
+
+            - **Admins:** Can only edit regular users (role: 'user') and can only assign 'user' role
+
+            - **Superadmins:** Can edit any user and assign any role (user, admin, researcher, superadmin)
+
+
+            **Validation Rules:**
+
+            - `name`: Optional, string, max 255 characters
+
+            - `email`: Optional, valid email, max 255 characters, must be unique
+
+            - `role`: Optional, must be one of: user, admin, researcher, superadmin
+
+            - `avatar`: Optional, nullable string, max 255 characters
+
+
+            **Success Response (200):**
+
+            ```json
+
+            {
+              "status": "success",
+              "message": "User updated successfully",
+              "data": {
+                "id": 1,
+                "name": "Updated Name",
+                "email": "updated@example.com",
+                "role": "admin",
+                "avatar": "https://example.com/avatar.jpg",
+                "google_id": null,
+                "email_verified_at": "2023-01-01T00:00:00.000000Z",
+                "created_at": "2023-01-01T00:00:00.000000Z",
+                "updated_at": "2023-01-01T12:00:00.000000Z"
+              }
+            }
+
+            ```
+
+
+            **Error Response (403):**
+
+            ```json
+
+            {
+              "status": "error",
+              "message": "Unauthorized. Only admins and superadmins can edit users."
+            }
+
+            ```
+
+
+            **Error Response (403) - Role Assignment:**
+
+            ```json
+
+            {
+              "status": "error",
+              "message": "Unauthorized. You cannot assign this role."
+            }
+
+            ```
+
+
+            **Error Response (403) - Admin Limitation:**
+
+            ```json
+
+            {
+              "status": "error",
+              "message": "Unauthorized. Admins can only edit regular users."
+            }
+
+            ```
+
+
+            **Error Response (422):**
+
+            ```json
+
+            {
+              "status": "error",
+              "message": "Validation failed",
+              "errors": {
+                "email": ["The email has already been taken."],
+                "role": ["The selected role is invalid."]
+              }
+            }
+
+            ```
+          sortKey: -1736516400000
+        method: PUT
+        body:
+          mimeType: application/json
+          text: |-
+            {
+            	"name": "Updated User Name",
+            	"email": "updated.user@example.com",
+            	"role": "admin",
+            	"avatar": "https://example.com/new-avatar.jpg"
+            }
+        headers:
+          - name: Authorization
+            value: Bearer {{ _.token }}
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/11.2.0
+          - name: accept
+            value: application/json
+        scripts:
+          preRequest: ""
+          afterResponse: ""
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+    scripts:
+      afterResponse: ""
+      preRequest: ""
 cookieJar:
   name: Default Jar
   meta:
-    id: jar_995cac110581c2ad502756f35def6c687b6902b4
+    id: jar_be302710455e4f688418d5e29428f0b8
     created: 1751451855527
     modified: 1751451855527
 environments:
   name: Base Environment
   meta:
-    id: env_995cac110581c2ad502756f35def6c687b6902b4
+    id: env_aa2036daf4eb425d82301414b8ca1b59
     created: 1751451855524
     modified: 1751451855524
     isPrivate: false
   subEnvironments:
     - name: Local
       meta:
-        id: env_ca60d9b7d8804415a0ed2ad6caa46022
+        id: env_f7a97a95d32d42fbb25d0579b9ace2df
         created: 1751451892234
-        modified: 1751858365057
+        modified: 1752114137063
         isPrivate: false
         sortKey: 1751451892234
       data:
         host: http://127.0.0.1:8000
-        token: 1|OHHjRRkfcQQybJa3zarmOZdmMhwQ9RfvHBVz3EwW173a5cb7
+        token: 7|twVxyhhfpfK3m5vEo3IQANYQEePf5jFNyjpAsM6d531ca79d
+        user_id: 1
       color: "#41c238"
     - name: Web
       meta:
-        id: env_4b47bd24c47642d9b408f2808eb92a33
+        id: env_a1490f7fb38f47268495db73631d809e
         created: 1751451906707
-        modified: 1751858337701
+        modified: 1752112583171
         isPrivate: false
         sortKey: 1751451906707
       data:
         host: https://rest.lawexa.com
-        token: 1|Omfx3vkXYLyvHYkGKLprbFRp4gxngd5WPHBjsInj17e8b3ff
+        token: 51|yYMUEHdTyrD0MT0L8p2vl0Fj1VJCYS0SSqcFEbO11fd09933
+        user_id: 1
       color: "#b91313"

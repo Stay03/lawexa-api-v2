@@ -30,5 +30,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('dashboard', [App\Http\Controllers\AdminController::class, 'dashboard']);
         Route::get('users', [App\Http\Controllers\AdminController::class, 'getUsers']);
         Route::get('stats', [App\Http\Controllers\AdminController::class, 'getUserStats']);
+        Route::put('users/{user}', [App\Http\Controllers\AdminController::class, 'editUser']);
     });
 });
