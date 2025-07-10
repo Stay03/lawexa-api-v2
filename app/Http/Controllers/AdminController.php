@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Http\Resources\UserCollection;
+use App\Http\Resources\AdminDashboardResource;
+use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -48,10 +51,15 @@ class AdminController extends Controller
                 break;
         }
 
-        return response()->json([
+        $dashboardData = new AdminDashboardResource([
             'role' => $user->role,
             'data' => $data
         ]);
+
+        return ApiResponse::resource(
+            $dashboardData,
+            'Dashboard data retrieved successfully'
+        );
     }
 
     public function getUsers(Request $request): JsonResponse
@@ -73,12 +81,12 @@ class AdminController extends Controller
         }
 
         $users = $query->paginate(10);
+        $userCollection = new UserCollection($users);
 
-        return response()->json([
-            'role' => $user->role,
-            'users' => $users,
-            'message' => "Users filtered by {$user->role} permissions"
-        ]);
+        return ApiResponse::collection(
+            $userCollection,
+            "Users filtered by {$user->role} permissions"
+        );
     }
 
     public function getUserStats(Request $request): JsonResponse
@@ -105,9 +113,9 @@ class AdminController extends Controller
             ];
         }
 
-        return response()->json([
+        return ApiResponse::success([
             'role' => $user->role,
             'stats' => $stats
-        ]);
+        ], 'User statistics retrieved successfully');
     }
 }

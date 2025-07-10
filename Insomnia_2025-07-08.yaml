@@ -1,0 +1,564 @@
+type: collection.insomnia.rest/5.0
+name: LawexaAPIV2
+meta:
+  id: wrk_480ff5846c9a422f812ea22c217ec334
+  created: 1751451855520
+  modified: 1751451855520
+  description: ""
+collection:
+  - name: Auth
+    meta:
+      id: fld_402edb526e964aafb961f8786e0f75d3
+      created: 1751451883131
+      modified: 1751451883131
+      sortKey: -1751451883131
+      description: ""
+    children:
+      - url: "{{ _.host }}/api/auth/google"
+        name: Auth with Google
+        meta:
+          id: req_6561cee5f5974fec87f83507c80c185f
+          created: 1751826959877
+          modified: 1751858264823
+          isPrivate: false
+          description: |
+            **Google OAuth Authentication**
+            
+            Initiates Google OAuth authentication flow. Returns a redirect URL that should be used to redirect users to Google's authentication page.
+            
+            **Response:**
+            ```json
+            {
+              "url": "https://accounts.google.com/oauth/authorize?..."
+            }
+            ```
+            
+            **Flow:**
+            1. Call this endpoint to get Google OAuth URL
+            2. Redirect user to the returned URL
+            3. User authenticates with Google
+            4. Google redirects back to your callback URL with a temporary code
+            5. Exchange the code for an access token using the callback endpoint
+          sortKey: -1751826959877
+        method: GET
+        headers:
+          - name: User-Agent
+            value: insomnia/11.2.0
+            id: pair_5df59e38c33b4e899953fa5105a950e0
+          - id: pair_3f5e4ff331e7414ab9191fc8690218a3
+            name: accept
+            value: application/json
+            description: ""
+            disabled: false
+          - id: pair_abe14b196de644a588b9d5e7c300995c
+            name: content-type
+            value: application/json
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.host }}/api/auth/me"
+        name: Me
+        meta:
+          id: req_a96a74bda73f42b696097fbbe5ad9354
+          created: 1751832263884
+          modified: 1751858458888
+          isPrivate: false
+          description: |
+            **Get Current User Profile**
+            
+            Retrieves the authenticated user's profile information.
+            
+            **Authentication:** Required (Bearer Token)
+            
+            **Response:**
+            ```json
+            {
+              "status": "success",
+              "message": "User profile retrieved successfully",
+              "data": {
+                "user": {
+                  "id": 1,
+                  "name": "John Doe",
+                  "email": "john@example.com",
+                  "role": "user",
+                  "avatar": "https://example.com/avatar.jpg",
+                  "created_at": "2023-01-01T00:00:00.000000Z",
+                  "updated_at": "2023-01-01T00:00:00.000000Z"
+                }
+              }
+            }
+            ```
+          sortKey: -1751540939219
+        method: GET
+        headers:
+          - name: Authorization
+            value: Bearer {{ _.token }}
+            id: pair_b4f47c3fa65d4285b79e7b3ee54f8695
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.host }}/api/auth/register"
+        name: Register
+        meta:
+          id: req_d328ad69ed394244bebcfac66a1b9e27
+          created: 1751858065228
+          modified: 1751858267035
+          isPrivate: false
+          description: |
+            **User Registration**
+            
+            Creates a new user account and returns an authentication token.
+            
+            **Request Body:**
+            ```json
+            {
+              "name": "John Doe",
+              "email": "john@example.com",
+              "password": "password123",
+              "password_confirmation": "password123",
+              "role": "user"
+            }
+            ```
+            
+            **Validation Rules:**
+            - `name`: Required, string, max 255 characters
+            - `email`: Required, valid email, max 255 characters, must be unique
+            - `password`: Required, string, min 8 characters, must match confirmation
+            - `password_confirmation`: Required, must match password
+            - `role`: Optional, must be one of: user, admin, researcher, superadmin (defaults to "user")
+            
+            **Success Response (201):**
+            ```json
+            {
+              "status": "success",
+              "message": "User registered successfully",
+              "data": {
+                "user": {
+                  "id": 1,
+                  "name": "John Doe",
+                  "email": "john@example.com",
+                  "role": "user",
+                  "created_at": "2023-01-01T00:00:00.000000Z",
+                  "updated_at": "2023-01-01T00:00:00.000000Z"
+                },
+                "token": "1|abc123def456..."
+              }
+            }
+            ```
+            
+            **Error Response (422):**
+            ```json
+            {
+              "status": "error",
+              "message": "Validation failed",
+              "errors": {
+                "email": ["The email has already been taken."],
+                "password": ["The password must be at least 8 characters."]
+              }
+            }
+            ```
+          sortKey: -1751540939319
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+            	"name": "{% faker 'randomFullName' %}",
+            	"email":"{% faker 'randomEmail' %}",
+            	"password":"password123",
+            	"password_confirmation":"password123"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/11.2.0
+            id: pair_5df59e38c33b4e899953fa5105a950e0
+          - id: pair_3f5e4ff331e7414ab9191fc8690218a3
+            name: accept
+            value: application/json
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.host }}/api/auth/login"
+        name: Login
+        meta:
+          id: req_login_auth_endpoint
+          created: 1751858500000
+          modified: 1751858500000
+          isPrivate: false
+          description: |
+            **User Login**
+            
+            Authenticates a user with email and password, returning an access token.
+            
+            **Request Body:**
+            ```json
+            {
+              "email": "john@example.com",
+              "password": "password123"
+            }
+            ```
+            
+            **Validation Rules:**
+            - `email`: Required, valid email format
+            - `password`: Required, string
+            
+            **Success Response (200):**
+            ```json
+            {
+              "status": "success",
+              "message": "Login successful",
+              "data": {
+                "user": {
+                  "id": 1,
+                  "name": "John Doe",
+                  "email": "john@example.com",
+                  "role": "user",
+                  "created_at": "2023-01-01T00:00:00.000000Z",
+                  "updated_at": "2023-01-01T00:00:00.000000Z"
+                },
+                "token": "1|abc123def456..."
+              }
+            }
+            ```
+            
+            **Error Response (401):**
+            ```json
+            {
+              "status": "error",
+              "message": "Invalid credentials"
+            }
+            ```
+          sortKey: -1751540939419
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+            	"email": "admin@example.com",
+            	"password": "password123"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/11.2.0
+          - name: accept
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.host }}/api/auth/logout"
+        name: Logout
+        meta:
+          id: req_logout_auth_endpoint
+          created: 1751858600000
+          modified: 1751858600000
+          isPrivate: false
+          description: |
+            **User Logout**
+            
+            Logs out the current user by invalidating their access token.
+            
+            **Authentication:** Required (Bearer Token)
+            
+            **Success Response (200):**
+            ```json
+            {
+              "status": "success",
+              "message": "Logged out successfully",
+              "data": null
+            }
+            ```
+          sortKey: -1751540939519
+        method: POST
+        headers:
+          - name: Authorization
+            value: Bearer {{ _.token }}
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/11.2.0
+          - name: accept
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.host }}/api/auth/profile"
+        name: Update Profile
+        meta:
+          id: req_update_profile_endpoint
+          created: 1751858700000
+          modified: 1751858700000
+          isPrivate: false
+          description: |
+            **Update User Profile**
+            
+            Updates the authenticated user's profile information.
+            
+            **Authentication:** Required (Bearer Token)
+            
+            **Request Body:**
+            ```json
+            {
+              "name": "John Updated",
+              "email": "john.updated@example.com",
+              "password": "newpassword123",
+              "password_confirmation": "newpassword123"
+            }
+            ```
+            
+            **Validation Rules:**
+            - `name`: Optional, string, max 255 characters
+            - `email`: Optional, valid email, max 255 characters, must be unique
+            - `password`: Optional, string, min 8 characters, must match confirmation
+            - `password_confirmation`: Required if password is provided
+            
+            **Success Response (200):**
+            ```json
+            {
+              "status": "success",
+              "message": "Profile updated successfully",
+              "data": {
+                "user": {
+                  "id": 1,
+                  "name": "John Updated",
+                  "email": "john.updated@example.com",
+                  "role": "user",
+                  "created_at": "2023-01-01T00:00:00.000000Z",
+                  "updated_at": "2023-01-01T12:00:00.000000Z"
+                }
+              }
+            }
+            ```
+            
+            **Error Response (422):**
+            ```json
+            {
+              "status": "error",
+              "message": "Validation failed",
+              "errors": {
+                "email": ["The email has already been taken."]
+              }
+            }
+            ```
+          sortKey: -1751540939619
+        method: PUT
+        body:
+          mimeType: application/json
+          text: |-
+            {
+            	"name": "{% faker 'randomFullName' %}",
+            	"email": "{% faker 'randomEmail' %}"
+            }
+        headers:
+          - name: Authorization
+            value: Bearer {{ _.token }}
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/11.2.0
+          - name: accept
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.host }}/api/auth/google/callback"
+        name: Google OAuth Callback
+        meta:
+          id: req_google_callback_endpoint
+          created: 1751858800000
+          modified: 1751858800000
+          isPrivate: false
+          description: |
+            **Google OAuth Callback**
+            
+            Handles the callback from Google OAuth service. This endpoint is called automatically by Google after user authentication.
+            
+            **Note:** This endpoint is typically not called directly by clients. It's used by Google's OAuth service to redirect users back to your application.
+            
+            **Query Parameters:**
+            - `code`: Authorization code from Google
+            - `state`: State parameter for security
+            
+            **Response:** Redirects to frontend with temporary code:
+            ```
+            {frontend_url}/auth/callback?code={temporary_code}
+            ```
+            
+            **Error Response:** Redirects to frontend with error code:
+            ```
+            {frontend_url}/auth/callback?code={error_code}
+            ```
+          sortKey: -1751540939719
+        method: GET
+        headers:
+          - name: User-Agent
+            value: insomnia/11.2.0
+          - name: accept
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.host }}/api/auth/google/exchange"
+        name: Exchange Code for Token
+        meta:
+          id: req_exchange_code_endpoint
+          created: 1751858900000
+          modified: 1751858900000
+          isPrivate: false
+          description: |
+            **Exchange Code for Token**
+            
+            Exchanges the temporary code received from Google OAuth callback for an access token.
+            
+            **Request Body:**
+            ```json
+            {
+              "code": "abc123def456789012345678901234567890"
+            }
+            ```
+            
+            **Validation Rules:**
+            - `code`: Required, string, exactly 32 characters
+            
+            **Success Response (200):**
+            ```json
+            {
+              "status": "success",
+              "message": "Google authentication successful",
+              "data": {
+                "token": "1|abc123def456...",
+                "user": {
+                  "id": 1,
+                  "name": "John Doe",
+                  "email": "john@example.com",
+                  "role": "user",
+                  "google_id": "1234567890",
+                  "avatar": "https://lh3.googleusercontent.com/...",
+                  "created_at": "2023-01-01T00:00:00.000000Z",
+                  "updated_at": "2023-01-01T00:00:00.000000Z"
+                }
+              }
+            }
+            ```
+            
+            **Error Response (400):**
+            ```json
+            {
+              "status": "error",
+              "message": "Invalid or expired code"
+            }
+            ```
+            
+            **Error Response (400) - OAuth Error:**
+            ```json
+            {
+              "status": "error",
+              "message": "Google authentication failed",
+              "data": {
+                "error_code": "oauth_error",
+                "error_message": "Authentication failed",
+                "details": "Google OAuth authentication failed"
+              }
+            }
+            ```
+          sortKey: -1751540939819
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+            	"code": "abc123def456789012345678901234567890"
+            }
+        headers:
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/11.2.0
+          - name: accept
+            value: application/json
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_995cac110581c2ad502756f35def6c687b6902b4
+    created: 1751451855527
+    modified: 1751451855527
+environments:
+  name: Base Environment
+  meta:
+    id: env_995cac110581c2ad502756f35def6c687b6902b4
+    created: 1751451855524
+    modified: 1751451855524
+    isPrivate: false
+  subEnvironments:
+    - name: Local
+      meta:
+        id: env_ca60d9b7d8804415a0ed2ad6caa46022
+        created: 1751451892234
+        modified: 1751858365057
+        isPrivate: false
+        sortKey: 1751451892234
+      data:
+        host: http://127.0.0.1:8000
+        token: 1|OHHjRRkfcQQybJa3zarmOZdmMhwQ9RfvHBVz3EwW173a5cb7
+      color: "#41c238"
+    - name: Web
+      meta:
+        id: env_4b47bd24c47642d9b408f2808eb92a33
+        created: 1751451906707
+        modified: 1751858337701
+        isPrivate: false
+        sortKey: 1751451906707
+      data:
+        host: https://rest.lawexa.com
+        token: 1|Omfx3vkXYLyvHYkGKLprbFRp4gxngd5WPHBjsInj17e8b3ff
+      color: "#b91313"

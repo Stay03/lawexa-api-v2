@@ -19,7 +19,9 @@ Route::prefix('auth')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('user')->group(function () {
         Route::get('profile', function (Request $request) {
-            return $request->user();
+            return \App\Http\Responses\ApiResponse::success([
+                'user' => new \App\Http\Resources\UserResource($request->user())
+            ], 'User profile retrieved successfully');
         });
         Route::put('profile', [AuthController::class, 'updateProfile']);
     });

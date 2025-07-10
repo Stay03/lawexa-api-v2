@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Http\Resources\UserResource;
+use App\Http\Responses\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -21,10 +23,7 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
+            return ApiResponse::validation($validator->errors());
         }
 
         $user = User::create([
@@ -36,11 +35,10 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        return response()->json([
-            'message' => 'User registered successfully',
-            'user' => $user,
+        return ApiResponse::created([
+            'user' => new UserResource($user),
             'token' => $token
-        ], 201);
+        ], 'User registered successfully');
     }
 
     public function login(Request $request): JsonResponse
@@ -51,42 +49,34 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
+            return ApiResponse::validation($validator->errors());
         }
 
-        if (!Auth::attempt($request->only('email', 'password'))) {
-            return response()->json([
-                'message' => 'Invalid credentials'
-            ], 401);
+        if (!Auth::guard('web')->attempt($request->only('email', 'password'))) {
+            return ApiResponse::unauthorized('Invalid credentials');
         }
 
         $user = User::where('email', $request->email)->first();
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        return response()->json([
-            'message' => 'Login successful',
-            'user' => $user,
+        return ApiResponse::success([
+            'user' => new UserResource($user),
             'token' => $token
-        ]);
+        ], 'Login successful');
     }
 
     public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()->delete();
 
-        return response()->json([
-            'message' => 'Logged out successfully'
-        ]);
+        return ApiResponse::success(null, 'Logged out successfully');
     }
 
     public function me(Request $request): JsonResponse
     {
-        return response()->json([
-            'user' => $request->user()
-        ]);
+        return ApiResponse::success([
+            'user' => new UserResource($request->user())
+        ], 'User profile retrieved successfully');
     }
 
     public function updateProfile(Request $request): JsonResponse
@@ -98,10 +88,7 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
+            return ApiResponse::validation($validator->errors());
         }
 
         $user = $request->user();
@@ -113,9 +100,8 @@ class AuthController extends Controller
 
         $user->update($updateData);
 
-        return response()->json([
-            'message' => 'Profile updated successfully',
-            'user' => $user->fresh()
-        ]);
+        return ApiResponse::success([
+            'user' => new UserResource($user->fresh())
+        ], 'Profile updated successfully');
     }
 }

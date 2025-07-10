@@ -83,44 +83,40 @@ class GoogleAuthController extends Controller
         $oauthState = OAuthState::where('code', $request->code)->first();
 
         if (!$oauthState) {
-            return response()->json([
-                'message' => 'Invalid or expired code'
-            ], 400);
+            return ApiResponse::error('Invalid or expired code', null, 400);
         }
 
         if ($oauthState->isExpired()) {
             $oauthState->delete();
-            return response()->json([
-                'message' => 'Code has expired'
-            ], 400);
+            return ApiResponse::error('Code has expired', null, 400);
         }
 
-        // Check if this is an error code
         if ($oauthState->is_error) {
-            $response = [
-                'message' => 'Google authentication failed',
-                'error' => true,
+            $errorResource = new ErrorResource([
                 'error_code' => $oauthState->error_code,
-                'error_message' => $oauthState->error_message
-            ];
+                'error_message' => $oauthState->error_message,
+                'details' => 'Google OAuth authentication failed'
+            ]);
             
-            // Delete the used code
             $oauthState->delete();
             
-            return response()->json($response, 400);
+            return ApiResponse::error(
+                'Google authentication failed',
+                $errorResource->toArray($request),
+                400
+            );
         }
 
-        // Return token and user data for success
+        $user = User::find($oauthState->user_data['id']);
+        $userResource = $user ? new UserResource($user) : $oauthState->user_data;
+
         $response = [
-            'message' => 'Google authentication successful',
-            'error' => false,
             'token' => $oauthState->token,
-            'user' => $oauthState->user_data
+            'user' => $userResource
         ];
 
-        // Delete the used code
         $oauthState->delete();
 
-        return response()->json($response);
+        return ApiResponse::success($response, 'Google authentication successful');
     }
 }
