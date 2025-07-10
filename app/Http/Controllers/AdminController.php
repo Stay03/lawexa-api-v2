@@ -246,7 +246,7 @@ class AdminController extends Controller
             $requestedRole = $validated['role'];
             
             $allowedRoles = match ($user->role) {
-                'admin' => ['user'],
+                'admin' => ['user', 'researcher'],
                 'superadmin' => ['user', 'admin', 'researcher', 'superadmin'],
                 default => []
             };

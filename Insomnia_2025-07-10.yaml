@@ -690,7 +690,7 @@ collection:
 
             **Permission Rules:**
 
-            - **Admins:** Can only edit regular users (role: 'user') and can only assign 'user' role
+            - **Admins:** Can only edit regular users (role: 'user') and can assign 'user' and 'researcher' roles
 
             - **Superadmins:** Can edit any user and assign any role (user, admin, researcher, superadmin)
 
