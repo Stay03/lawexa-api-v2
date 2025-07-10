@@ -852,7 +852,7 @@ collection:
 
             **Permission Rules:**
 
-            - **Admins:** Can only see regular users and researchers (role: 'user', 'researcher')
+            - **Admins:** Can see regular users, researchers, and other admins (role: 'user', 'researcher', 'admin')
 
             - **Researchers:** Can see regular users and admins (role: 'user', 'admin')
 

@@ -86,7 +86,7 @@ class AdminController extends Controller
         // Apply role-based access control
         switch ($user->role) {
             case 'admin':
-                $query->whereIn('role', ['user', 'researcher']);
+                $query->whereIn('role', ['user', 'researcher', 'admin']);
                 break;
                 
             case 'researcher':
@@ -113,7 +113,7 @@ class AdminController extends Controller
             
             // Check if user has permission to filter by this role
             $allowedRoles = match ($user->role) {
-                'admin' => ['user', 'researcher'],
+                'admin' => ['user', 'researcher', 'admin'],
                 'researcher' => ['user', 'admin'],
                 'superadmin' => ['user', 'admin', 'researcher', 'superadmin'],
                 default => []
@@ -285,14 +285,14 @@ class AdminController extends Controller
         }
 
         if ($user->isAdmin()) {
-            if ($targetUser->hasAnyRole(['admin', 'superadmin'])) {
-                return ApiResponse::error('Unauthorized. Admins can only view regular users and researchers.', 403);
+            if ($targetUser->hasAnyRole(['superadmin'])) {
+                return ApiResponse::error('Unauthorized. Admins can only view regular users, researchers, and other admins.', 403);
             }
         }
 
         if ($user->isResearcher()) {
-            if ($targetUser->hasAnyRole(['admin', 'researcher', 'superadmin'])) {
-                return ApiResponse::error('Unauthorized. Researchers can only view regular users.', 403);
+            if ($targetUser->hasAnyRole(['researcher', 'superadmin'])) {
+                return ApiResponse::error('Unauthorized. Researchers can only view regular users and admins.', 403);
             }
         }
 
