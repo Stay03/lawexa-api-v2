@@ -690,7 +690,7 @@ collection:
 
             **Permission Rules:**
 
-            - **Admins:** Can only edit regular users (role: 'user') and can assign 'user' and 'researcher' roles
+            - **Admins:** Can only edit regular users and researchers (role: 'user', 'researcher') and can assign 'user' and 'researcher' roles
 
             - **Superadmins:** Can edit any user and assign any role (user, admin, researcher, superadmin)
 
@@ -759,7 +759,7 @@ collection:
 
             {
               "status": "error",
-              "message": "Unauthorized. Admins can only edit regular users."
+              "message": "Unauthorized. Admins can only edit regular users and researchers."
             }
 
             ```
@@ -795,6 +795,247 @@ collection:
             value: Bearer {{ _.token }}
           - name: Content-Type
             value: application/json
+          - name: User-Agent
+            value: insomnia/11.2.0
+          - name: accept
+            value: application/json
+        scripts:
+          preRequest: ""
+          afterResponse: ""
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.host }}/api/admin/users?page=1&per_page=10&sort_by=created_at&sort_direction=desc"
+        name: Get Users
+        meta:
+          id: req_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6
+          created: 1736516600000
+          modified: 1736516600000
+          isPrivate: false
+          description: >
+            **Get Users List**
+
+
+            Retrieves a paginated list of users with advanced filtering, search, and sorting capabilities.
+
+
+            **Authentication:** Required (Bearer Token) - Admin, Researcher, or Superadmin role
+
+
+            **Query Parameters:**
+
+            - `search`: Optional, string, search by name or email
+
+            - `role`: Optional, filter by role (user, admin, researcher, superadmin)
+
+            - `verified`: Optional, boolean, filter by email verification status
+
+            - `oauth`: Optional, boolean, filter by OAuth users (Google)
+
+            - `created_from`: Optional, date, filter users created from this date
+
+            - `created_to`: Optional, date, filter users created up to this date
+
+            - `page`: Optional, integer, page number (default: 1)
+
+            - `per_page`: Optional, integer, items per page (max: 100, default: 10)
+
+            - `sort_by`: Optional, sort field (name, email, role, created_at, updated_at, email_verified_at)
+
+            - `sort_direction`: Optional, sort direction (asc, desc, default: desc)
+
+
+            **Permission Rules:**
+
+            - **Admins:** Can only see regular users and researchers (role: 'user', 'researcher')
+
+            - **Researchers:** Can see regular users and admins (role: 'user', 'admin')
+
+            - **Superadmins:** Can see all users (no restrictions)
+
+
+            **Success Response (200):**
+
+            ```json
+
+            {
+              "status": "success",
+              "message": "Users filtered by admin permissions",
+              "data": {
+                "current_page": 1,
+                "data": [
+                  {
+                    "id": 1,
+                    "name": "John Doe",
+                    "email": "john@example.com",
+                    "role": "user",
+                    "avatar": "https://example.com/avatar.jpg",
+                    "google_id": null,
+                    "email_verified_at": "2023-01-01T00:00:00.000000Z",
+                    "created_at": "2023-01-01T00:00:00.000000Z",
+                    "updated_at": "2023-01-01T00:00:00.000000Z"
+                  }
+                ],
+                "first_page_url": "http://localhost:8000/api/admin/users?page=1",
+                "from": 1,
+                "last_page": 1,
+                "last_page_url": "http://localhost:8000/api/admin/users?page=1",
+                "links": [],
+                "next_page_url": null,
+                "path": "http://localhost:8000/api/admin/users",
+                "per_page": 10,
+                "prev_page_url": null,
+                "to": 1,
+                "total": 1
+              }
+            }
+
+            ```
+
+
+            **Error Response (403):**
+
+            ```json
+
+            {
+              "status": "error",
+              "message": "Unauthorized. Only admins, researchers, and superadmins can view users."
+            }
+
+            ```
+
+
+            **Example Usage:**
+
+            - Basic list: `GET /api/admin/users`
+
+            - Search users: `GET /api/admin/users?search=john`
+
+            - Filter by role: `GET /api/admin/users?role=admin`
+
+            - Date range: `GET /api/admin/users?created_from=2023-01-01&created_to=2023-12-31`
+
+            - Pagination: `GET /api/admin/users?page=2&per_page=20`
+
+            - Sort by name: `GET /api/admin/users?sort_by=name&sort_direction=asc`
+          sortKey: -1736516600000
+        method: GET
+        headers:
+          - name: Authorization
+            value: Bearer {{ _.token }}
+          - name: User-Agent
+            value: insomnia/11.2.0
+          - name: accept
+            value: application/json
+        scripts:
+          preRequest: ""
+          afterResponse: ""
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.host }}/api/admin/users/{{ _.user_id }}"
+        name: View User
+        meta:
+          id: req_f8g5f6e5d4c3b2a1f0e9d8c7b6a5f4e3
+          created: 1736516500000
+          modified: 1736516500000
+          isPrivate: false
+          description: >
+            **View User Details**
+
+
+            Allows admin, researcher, and superadmin users to view detailed information about a specific user.
+
+
+            **Authentication:** Required (Bearer Token) - Admin, Researcher, or Superadmin role
+
+
+            **Path Parameters:**
+
+            - `user_id`: The ID of the user to view
+
+
+            **Permission Rules:**
+
+            - **Admins:** Can only view regular users and researchers (role: 'user', 'researcher')
+
+            - **Researchers:** Can only view regular users (role: 'user')
+
+            - **Superadmins:** Can view any user
+
+
+            **Success Response (200):**
+
+            ```json
+
+            {
+              "status": "success",
+              "message": "User details retrieved successfully",
+              "data": {
+                "id": 1,
+                "name": "John Doe",
+                "email": "john@example.com",
+                "role": "user",
+                "avatar": "https://example.com/avatar.jpg",
+                "google_id": "1234567890",
+                "email_verified_at": "2023-01-01T00:00:00.000000Z",
+                "created_at": "2023-01-01T00:00:00.000000Z",
+                "updated_at": "2023-01-01T00:00:00.000000Z"
+              }
+            }
+
+            ```
+
+
+            **Error Response (403):**
+
+            ```json
+
+            {
+              "status": "error",
+              "message": "Unauthorized. Only admins, researchers, and superadmins can view users."
+            }
+
+            ```
+
+
+            **Error Response (403) - Role Restriction:**
+
+            ```json
+
+            {
+              "status": "error",
+              "message": "Unauthorized. Admins can only view regular users and researchers."
+            }
+
+            ```
+
+
+            **Error Response (404):**
+
+            ```json
+
+            {
+              "status": "error",
+              "message": "User not found"
+            }
+
+            ```
+          sortKey: -1736516500000
+        method: GET
+        headers:
+          - name: Authorization
+            value: Bearer {{ _.token }}
           - name: User-Agent
             value: insomnia/11.2.0
           - name: accept

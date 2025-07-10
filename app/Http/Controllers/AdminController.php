@@ -86,7 +86,7 @@ class AdminController extends Controller
         // Apply role-based access control
         switch ($user->role) {
             case 'admin':
-                $query->where('role', 'user');
+                $query->whereIn('role', ['user', 'researcher']);
                 break;
                 
             case 'researcher':
@@ -113,7 +113,7 @@ class AdminController extends Controller
             
             // Check if user has permission to filter by this role
             $allowedRoles = match ($user->role) {
-                'admin' => ['user'],
+                'admin' => ['user', 'researcher'],
                 'researcher' => ['user', 'admin'],
                 'superadmin' => ['user', 'admin', 'researcher', 'superadmin'],
                 default => []
@@ -257,8 +257,8 @@ class AdminController extends Controller
         }
 
         if ($user->isAdmin()) {
-            if ($targetUser->hasAnyRole(['admin', 'researcher', 'superadmin'])) {
-                return ApiResponse::error('Unauthorized. Admins can only edit regular users.', 403);
+            if ($targetUser->hasAnyRole(['admin', 'superadmin'])) {
+                return ApiResponse::error('Unauthorized. Admins can only edit regular users and researchers.', 403);
             }
         }
 
@@ -267,6 +267,38 @@ class AdminController extends Controller
         return ApiResponse::resource(
             new UserResource($targetUser),
             'User updated successfully'
+        );
+    }
+
+    public function getUser(Request $request, $userId): JsonResponse
+    {
+        $user = $request->user();
+        
+        if (!$user->hasAnyRole(['admin', 'researcher', 'superadmin'])) {
+            return ApiResponse::error('Unauthorized. Only admins, researchers, and superadmins can view users.', 403);
+        }
+
+        // Find the target user
+        $targetUser = User::find($userId);
+        if (!$targetUser) {
+            return ApiResponse::error('User not found', 404);
+        }
+
+        if ($user->isAdmin()) {
+            if ($targetUser->hasAnyRole(['admin', 'superadmin'])) {
+                return ApiResponse::error('Unauthorized. Admins can only view regular users and researchers.', 403);
+            }
+        }
+
+        if ($user->isResearcher()) {
+            if ($targetUser->hasAnyRole(['admin', 'researcher', 'superadmin'])) {
+                return ApiResponse::error('Unauthorized. Researchers can only view regular users.', 403);
+            }
+        }
+
+        return ApiResponse::resource(
+            new UserResource($targetUser),
+            'User details retrieved successfully'
         );
     }
 }
