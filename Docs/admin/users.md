@@ -25,8 +25,8 @@ Authorization: Bearer {token}
 |--------|-------|------------|------------|
 | View users with role 'user' | ✅ | ✅ | ✅ |
 | View users with role 'admin' | ✅ | ✅ | ✅ |
-| View users with role 'researcher' | ✅ | ❌ | ✅ |
-| View users with role 'superadmin' | ❌ | ❌ | ✅ |
+| View users with role 'researcher' | ✅ | ✅ | ✅ |
+| View users with role 'superadmin' | ✅ | ✅ | ✅ |
 | Edit users with role 'user' | ✅ | ❌ | ✅ |
 | Edit users with role 'admin' | ❌ | ❌ | ✅ |
 | Edit users with role 'researcher' | ✅ | ❌ | ✅ |
@@ -176,7 +176,7 @@ GET /admin/users/123
 ```json
 {
   "status": "error",
-  "message": "Unauthorized. Admins can only view regular users, researchers, and other admins."
+  "message": "Unauthorized. Only admins, researchers, and superadmins can view users."
 }
 ```
 
@@ -216,10 +216,15 @@ Updates user information. Only admins and superadmins can edit users.
 
 #### Permission Constraints
 
+**All user roles can:**
+- View any user regardless of role
+
 **Admin users can:**
-- View users with role 'user', 'researcher', and 'admin'
 - Only edit users with role 'user' and 'researcher'
 - Only assign roles: 'user', 'researcher'
+
+**Researcher users can:**
+- View only (no editing permissions)
 
 **Superadmin users can:**
 - Edit any user

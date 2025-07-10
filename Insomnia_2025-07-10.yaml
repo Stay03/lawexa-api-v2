@@ -852,11 +852,13 @@ collection:
 
             **Permission Rules:**
 
-            - **Admins:** Can see regular users, researchers, and other admins (role: 'user', 'researcher', 'admin')
+            - **All user roles:** Can see all users regardless of role (no viewing restrictions)
 
-            - **Researchers:** Can see regular users and admins (role: 'user', 'admin')
+            - **Admins:** Can view all users, edit users with role 'user' and 'researcher'
 
-            - **Superadmins:** Can see all users (no restrictions)
+            - **Researchers:** Can view all users (no editing permissions)
+
+            - **Superadmins:** Can view and edit all users (no restrictions)
 
 
             **Success Response (200):**

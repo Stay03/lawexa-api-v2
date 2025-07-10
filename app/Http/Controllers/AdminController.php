@@ -86,15 +86,9 @@ class AdminController extends Controller
         // Apply role-based access control
         switch ($user->role) {
             case 'admin':
-                $query->whereIn('role', ['user', 'researcher', 'admin']);
-                break;
-                
             case 'researcher':
-                $query->whereIn('role', ['user', 'admin']);
-                break;
-                
             case 'superadmin':
-                // No restrictions for superadmin
+                // No restrictions - all roles can view all users
                 break;
         }
 
@@ -113,8 +107,8 @@ class AdminController extends Controller
             
             // Check if user has permission to filter by this role
             $allowedRoles = match ($user->role) {
-                'admin' => ['user', 'researcher', 'admin'],
-                'researcher' => ['user', 'admin'],
+                'admin' => ['user', 'researcher', 'admin', 'superadmin'],
+                'researcher' => ['user', 'admin', 'researcher', 'superadmin'],
                 'superadmin' => ['user', 'admin', 'researcher', 'superadmin'],
                 default => []
             };
@@ -284,17 +278,7 @@ class AdminController extends Controller
             return ApiResponse::error('User not found', 404);
         }
 
-        if ($user->isAdmin()) {
-            if ($targetUser->hasAnyRole(['superadmin'])) {
-                return ApiResponse::error('Unauthorized. Admins can only view regular users, researchers, and other admins.', 403);
-            }
-        }
-
-        if ($user->isResearcher()) {
-            if ($targetUser->hasAnyRole(['researcher', 'superadmin'])) {
-                return ApiResponse::error('Unauthorized. Researchers can only view regular users and admins.', 403);
-            }
-        }
+        // All roles can view all users - no restrictions needed
 
         return ApiResponse::resource(
             new UserResource($targetUser),
