@@ -286,7 +286,7 @@ class AdminController extends Controller
         );
     }
 
-    public function deleteUser(Request $request, User $targetUser): JsonResponse
+    public function deleteUser(Request $request, $userId): JsonResponse
     {
         $user = $request->user();
         
@@ -294,13 +294,28 @@ class AdminController extends Controller
             return ApiResponse::error('Unauthorized. Only superadmins can delete users.', 403);
         }
 
+        // Find the user to delete
+        $targetUser = User::find($userId);
+        if (!$targetUser) {
+            return ApiResponse::error('User not found.', 404);
+        }
+
         if ($user->id === $targetUser->id) {
             return ApiResponse::error('Cannot delete your own account.', 400);
         }
 
         // Capture user data before deletion
-        $deletedUser = new UserResource($targetUser);
-        $deletedUserData = $deletedUser->toArray($request);
+        $deletedUserData = [
+            'id' => $targetUser->id,
+            'name' => $targetUser->name,
+            'email' => $targetUser->email,
+            'role' => $targetUser->role,
+            'avatar' => $targetUser->avatar,
+            'google_id' => $targetUser->google_id,
+            'email_verified_at' => $targetUser->email_verified_at?->toISOString(),
+            'created_at' => $targetUser->created_at?->toISOString(),
+            'updated_at' => $targetUser->updated_at?->toISOString(),
+        ];
         
         // Delete user tokens and user
         $targetUser->tokens()->delete();
