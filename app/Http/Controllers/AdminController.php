@@ -298,12 +298,16 @@ class AdminController extends Controller
             return ApiResponse::error('Cannot delete your own account.', 400);
         }
 
+        // Capture user data before deletion
         $deletedUser = new UserResource($targetUser);
+        $deletedUserData = $deletedUser->toArray($request);
+        
+        // Delete user tokens and user
         $targetUser->tokens()->delete();
         $targetUser->delete();
 
         return ApiResponse::success(
-            $deletedUser->toArray($request),
+            $deletedUserData,
             'User deleted successfully'
         );
     }

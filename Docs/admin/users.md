@@ -31,6 +31,7 @@ Authorization: Bearer {token}
 | Edit users with role 'admin' | ❌ | ❌ | ✅ |
 | Edit users with role 'researcher' | ✅ | ❌ | ✅ |
 | Edit users with role 'superadmin' | ❌ | ❌ | ✅ |
+| Delete users (any role) | ❌ | ❌ | ✅ |
 
 ### Role Assignment Permissions
 
@@ -382,11 +383,90 @@ GET /admin/users?search=admin&role=admin&verified=true&sort_by=created_at&sort_d
 
 ---
 
+### 4. Delete User
+
+**DELETE** `/admin/users/{id}`
+
+Permanently deletes a user account. Only superadmins can delete users.
+
+#### Required Permissions
+- superadmin only
+
+#### Path Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | integer | Yes | User ID |
+
+#### Permission Constraints
+
+**Only superadmin users can:**
+- Delete any user account
+- Cannot delete their own account (self-deletion prevention)
+
+#### Security Features
+- Automatically revokes all API tokens for the deleted user
+- Prevents accidental self-deletion
+- Returns deleted user data for audit purposes
+
+#### Example Request
+```
+DELETE /admin/users/123
+```
+
+#### Success Response (200)
+```json
+{
+  "success": true,
+  "message": "User deleted successfully",
+  "data": {
+    "id": 123,
+    "name": "John Doe",
+    "email": "john@example.com",
+    "role": "user",
+    "avatar": null,
+    "google_id": null,
+    "email_verified_at": "2023-01-01T00:00:00.000000Z",
+    "created_at": "2023-01-01T00:00:00.000000Z",
+    "updated_at": "2023-01-01T00:00:00.000000Z"
+  }
+}
+```
+
+#### Error Responses
+
+**400 Bad Request - Self Deletion**
+```json
+{
+  "success": false,
+  "message": "You cannot delete your own account"
+}
+```
+
+**403 Unauthorized - Insufficient Permissions**
+```json
+{
+  "success": false,
+  "message": "Unauthorized. Only superadmins can delete users."
+}
+```
+
+**404 Not Found**
+```json
+{
+  "success": false,
+  "message": "User not found"
+}
+```
+
+---
+
 ## HTTP Status Codes
 
 | Code | Description |
 |------|-------------|
 | 200 | Success |
+| 400 | Bad Request (e.g., self-deletion attempt) |
 | 401 | Unauthenticated (invalid/missing token) |
 | 403 | Unauthorized (insufficient permissions) |
 | 404 | Resource not found |

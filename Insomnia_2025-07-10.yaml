@@ -1053,6 +1053,134 @@ collection:
             send: true
             store: true
           rebuildPath: true
+      - url: "{{ _.host }}/api/admin/users/{{ _.user_id }}"
+        name: Delete User
+        meta:
+          id: req_d3l3t3u5er1d2c3b4a5f6e7g8h9i0j1k2
+          created: 1736516700000
+          modified: 1736516700000
+          isPrivate: false
+          description: >
+            **Delete User**
+
+
+            Permanently deletes a user account from the system. Only superadmins can perform this action.
+
+
+            **Authentication:** Required (Bearer Token) - Superadmin role only
+
+
+            **Path Parameters:**
+
+            - `user_id`: The ID of the user to delete
+
+
+            **Permission Rules:**
+
+            - **Superadmins:** Can delete any user except themselves (self-deletion prevention)
+
+            - **Admins/Researchers:** Cannot delete users (403 Forbidden)
+
+
+            **Security Features:**
+
+            - Automatically revokes all API tokens for the deleted user
+
+            - Prevents accidental self-deletion
+
+            - Returns deleted user data for audit purposes
+
+            - Permanently removes user from database
+
+
+            **Success Response (200):**
+
+            ```json
+
+            {
+              "success": true,
+              "message": "User deleted successfully",
+              "data": {
+                "id": 123,
+                "name": "John Doe",
+                "email": "john@example.com",
+                "role": "user",
+                "avatar": null,
+                "google_id": null,
+                "email_verified_at": "2023-01-01T00:00:00.000000Z",
+                "created_at": "2023-01-01T00:00:00.000000Z",
+                "updated_at": "2023-01-01T00:00:00.000000Z"
+              }
+            }
+
+            ```
+
+
+            **Error Response (400) - Self Deletion:**
+
+            ```json
+
+            {
+              "success": false,
+              "message": "You cannot delete your own account"
+            }
+
+            ```
+
+
+            **Error Response (403) - Insufficient Permissions:**
+
+            ```json
+
+            {
+              "success": false,
+              "message": "Unauthorized. Only superadmins can delete users."
+            }
+
+            ```
+
+
+            **Error Response (404) - User Not Found:**
+
+            ```json
+
+            {
+              "success": false,
+              "message": "User not found"
+            }
+
+            ```
+
+
+            **Important Notes:**
+
+            - This action is irreversible
+
+            - All user data including tokens will be permanently removed
+
+            - Use with extreme caution
+
+            - Audit logs should be maintained for compliance
+          sortKey: -1736516700000
+        method: DELETE
+        headers:
+          - name: Authorization
+            value: Bearer {{ _.token }}
+          - name: User-Agent
+            value: insomnia/11.2.0
+          - name: accept
+            value: application/json
+        scripts:
+          preRequest: ""
+          afterResponse: ""
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
     scripts:
       afterResponse: ""
       preRequest: ""
