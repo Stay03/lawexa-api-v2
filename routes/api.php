@@ -32,5 +32,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('users/{user}', [App\Http\Controllers\AdminController::class, 'getUser']);
         Route::get('stats', [App\Http\Controllers\AdminController::class, 'getUserStats']);
         Route::put('users/{user}', [App\Http\Controllers\AdminController::class, 'editUser']);
+        Route::delete('users/{user}', [App\Http\Controllers\AdminController::class, 'deleteUser']);
     });
 });

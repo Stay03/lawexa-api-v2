@@ -48,7 +48,8 @@ class GoogleAuthController extends Controller
                     'google_id' => $googleUser->id,
                     'avatar' => $googleUser->avatar,
                     'password' => Hash::make(Str::random(16)),
-                    'role' => 'user'
+                    'role' => 'user',
+                    'email_verified_at' => now()
                 ]);
             }
 

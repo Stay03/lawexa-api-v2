@@ -285,4 +285,26 @@ class AdminController extends Controller
             'User details retrieved successfully'
         );
     }
+
+    public function deleteUser(Request $request, User $targetUser): JsonResponse
+    {
+        $user = $request->user();
+        
+        if (!$user->isSuperAdmin()) {
+            return ApiResponse::error('Unauthorized. Only superadmins can delete users.', 403);
+        }
+
+        if ($user->id === $targetUser->id) {
+            return ApiResponse::error('Cannot delete your own account.', 400);
+        }
+
+        $deletedUser = new UserResource($targetUser);
+        $targetUser->tokens()->delete();
+        $targetUser->delete();
+
+        return ApiResponse::success(
+            $deletedUser->toArray($request),
+            'User deleted successfully'
+        );
+    }
 }
