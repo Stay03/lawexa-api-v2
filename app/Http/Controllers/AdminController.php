@@ -259,48 +259,39 @@ class AdminController extends Controller
         $targetUser->update($validated);
 
         return ApiResponse::resource(
-            new UserResource($targetUser),
+            new UserResource($targetUser->fresh()->load(['activeSubscription', 'subscriptions'])),
             'User updated successfully'
         );
     }
 
-    public function getUser(Request $request, $userId): JsonResponse
+    public function getUser(Request $request, User $user): JsonResponse
     {
-        $user = $request->user();
+        $currentUser = $request->user();
         
-        if (!$user->hasAnyRole(['admin', 'researcher', 'superadmin'])) {
+        if (!$currentUser->hasAnyRole(['admin', 'researcher', 'superadmin'])) {
             return ApiResponse::error('Unauthorized. Only admins, researchers, and superadmins can view users.', 403);
         }
 
-        // Find the target user
-        $targetUser = User::find($userId);
-        if (!$targetUser) {
-            return ApiResponse::error('User not found', 404);
-        }
+        // Load subscription relationships
+        $user->load(['activeSubscription', 'subscriptions']);
 
         // All roles can view all users - no restrictions needed
 
         return ApiResponse::resource(
-            new UserResource($targetUser),
+            new UserResource($user),
             'User details retrieved successfully'
         );
     }
 
-    public function deleteUser(Request $request, $userId): JsonResponse
+    public function deleteUser(Request $request, User $targetUser): JsonResponse
     {
-        $user = $request->user();
+        $currentUser = $request->user();
         
-        if (!$user->isSuperAdmin()) {
+        if (!$currentUser->isSuperAdmin()) {
             return ApiResponse::error('Unauthorized. Only superadmins can delete users.', 403);
         }
 
-        // Find the user to delete
-        $targetUser = User::find($userId);
-        if (!$targetUser) {
-            return ApiResponse::error('User not found.', 404);
-        }
-
-        if ($user->id === $targetUser->id) {
+        if ($currentUser->id === $targetUser->id) {
             return ApiResponse::error('Cannot delete your own account.', 400);
         }
 

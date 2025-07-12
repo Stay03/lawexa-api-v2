@@ -20,8 +20,14 @@ class UserResource extends JsonResource
             'subscription_status' => $this->subscription_status,
             'subscription_expiry' => $this->subscription_expiry,
             'has_active_subscription' => $this->hasActiveSubscription(),
-            'active_subscription' => new SubscriptionResource($this->whenLoaded('activeSubscription')),
-            'subscriptions' => SubscriptionResource::collection($this->whenLoaded('subscriptions')),
+            'active_subscription' => $this->when(
+                $this->relationLoaded('activeSubscription') && $this->activeSubscription, 
+                fn() => new SubscriptionResource($this->activeSubscription)
+            ),
+            'subscriptions' => $this->when(
+                $this->relationLoaded('subscriptions') && $this->subscriptions, 
+                fn() => SubscriptionResource::collection($this->subscriptions)
+            ),
             'email_verified_at' => $this->email_verified_at?->toISOString(),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),

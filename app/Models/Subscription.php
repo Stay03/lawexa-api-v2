@@ -51,13 +51,13 @@ class Subscription extends Model
     public function isActive(): bool
     {
         return $this->status === 'active' && 
-               $this->next_payment_date && 
+               $this->next_payment_date !== null && 
                $this->next_payment_date->isFuture();
     }
 
     public function isExpired(): bool
     {
-        return $this->next_payment_date && 
+        return $this->next_payment_date !== null && 
                $this->next_payment_date->isPast() && 
                $this->status !== 'completed';
     }

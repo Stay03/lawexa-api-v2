@@ -36,7 +36,7 @@ class AuthController extends Controller
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return ApiResponse::created([
-            'user' => new UserResource($user),
+            'user' => new UserResource($user->load(['activeSubscription', 'subscriptions'])),
             'token' => $token
         ], 'User registered successfully');
     }
@@ -56,7 +56,7 @@ class AuthController extends Controller
             return ApiResponse::unauthorized('Invalid credentials');
         }
 
-        $user = User::where('email', $request->email)->first();
+        $user = User::with(['activeSubscription', 'subscriptions'])->where('email', $request->email)->first();
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return ApiResponse::success([
@@ -75,7 +75,7 @@ class AuthController extends Controller
     public function me(Request $request): JsonResponse
     {
         return ApiResponse::success([
-            'user' => new UserResource($request->user())
+            'user' => new UserResource($request->user()->load(['activeSubscription', 'subscriptions']))
         ], 'User profile retrieved successfully');
     }
 
@@ -101,7 +101,7 @@ class AuthController extends Controller
         $user->update($updateData);
 
         return ApiResponse::success([
-            'user' => new UserResource($user->fresh())
+            'user' => new UserResource($user->fresh()->load(['activeSubscription', 'subscriptions']))
         ], 'Profile updated successfully');
     }
 }

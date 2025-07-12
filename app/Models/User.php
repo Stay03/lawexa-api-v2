@@ -100,8 +100,8 @@ class User extends Authenticatable
 
     public function hasActiveSubscription(): bool
     {
-        return $this->activeSubscription && 
-               $this->activeSubscription->isActive();
+        $activeSubscription = $this->activeSubscription;
+        return $activeSubscription && $activeSubscription->isActive();
     }
 
     public function getSubscriptionStatusAttribute(): string

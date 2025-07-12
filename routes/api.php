@@ -29,8 +29,9 @@ Route::get('plans/{plan}', [PlanController::class, 'show']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('user')->group(function () {
         Route::get('profile', function (Request $request) {
+            $user = $request->user()->load(['activeSubscription', 'subscriptions']);
             return \App\Http\Responses\ApiResponse::success([
-                'user' => new \App\Http\Resources\UserResource($request->user())
+                'user' => new \App\Http\Resources\UserResource($user)
             ], 'User profile retrieved successfully');
         });
         Route::put('profile', [AuthController::class, 'updateProfile']);
@@ -58,8 +59,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('users/{user}', [App\Http\Controllers\AdminController::class, 'editUser']);
         Route::delete('users/{user}', [App\Http\Controllers\AdminController::class, 'deleteUser']);
         
-        // Admin plan management routes
-        Route::prefix('plans')->group(function () {
+        // Admin plan management routes (admin and superadmin only)
+        Route::middleware('role:admin,superadmin')->prefix('plans')->group(function () {
             Route::post('/', [PlanController::class, 'store']);
             Route::put('{plan}', [PlanController::class, 'update']);
             Route::delete('{plan}', [PlanController::class, 'destroy']);

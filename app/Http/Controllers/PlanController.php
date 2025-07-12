@@ -27,6 +27,12 @@ class PlanController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $user = $request->user();
+        
+        if (!$user->hasAnyRole(['admin', 'superadmin'])) {
+            return ApiResponse::error('Unauthorized. Only admins and superadmins can create plans.', 403);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -59,6 +65,12 @@ class PlanController extends Controller
 
     public function update(Request $request, Plan $plan): JsonResponse
     {
+        $user = $request->user();
+        
+        if (!$user->hasAnyRole(['admin', 'superadmin'])) {
+            return ApiResponse::error('Unauthorized. Only admins and superadmins can update plans.', 403);
+        }
+
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
@@ -81,8 +93,14 @@ class PlanController extends Controller
         }
     }
 
-    public function destroy(Plan $plan): JsonResponse
+    public function destroy(Request $request, Plan $plan): JsonResponse
     {
+        $user = $request->user();
+        
+        if (!$user->hasAnyRole(['admin', 'superadmin'])) {
+            return ApiResponse::error('Unauthorized. Only admins and superadmins can delete plans.', 403);
+        }
+
         if ($plan->activeSubscriptions()->exists()) {
             return ApiResponse::error('Cannot delete plan with active subscriptions', 400);
         }
@@ -96,8 +114,14 @@ class PlanController extends Controller
         }
     }
 
-    public function activate(Plan $plan): JsonResponse
+    public function activate(Request $request, Plan $plan): JsonResponse
     {
+        $user = $request->user();
+        
+        if (!$user->hasAnyRole(['admin', 'superadmin'])) {
+            return ApiResponse::error('Unauthorized. Only admins and superadmins can activate plans.', 403);
+        }
+
         try {
             $activatedPlan = $this->planService->activatePlan($plan);
             
@@ -109,8 +133,14 @@ class PlanController extends Controller
         }
     }
 
-    public function sync(Plan $plan): JsonResponse
+    public function sync(Request $request, Plan $plan): JsonResponse
     {
+        $user = $request->user();
+        
+        if (!$user->hasAnyRole(['admin', 'superadmin'])) {
+            return ApiResponse::error('Unauthorized. Only admins and superadmins can sync plans.', 403);
+        }
+
         try {
             $syncedPlan = $this->planService->syncWithPaystack($plan);
             
