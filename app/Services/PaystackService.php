@@ -235,14 +235,53 @@ class PaystackService
 
     private function handleSubscriptionCreated(array $data): void
     {
-        $subscription = Subscription::where('subscription_code', $data['subscription_code'])->first();
-        if ($subscription) {
-            $subscription->update([
+        // Update user's customer code if not set
+        $customerCode = $data['customer']['customer_code'];
+        $customerEmail = $data['customer']['email'];
+        
+        $user = User::where('email', $customerEmail)->first();
+        if ($user && !$user->customer_code) {
+            $user->update(['customer_code' => $customerCode]);
+        }
+        
+        if (!$user) {
+            Log::warning('User not found for subscription webhook', ['email' => $customerEmail]);
+            return;
+        }
+
+        // Find the plan by plan_code
+        $plan = Plan::where('plan_code', $data['plan']['plan_code'])->first();
+        if (!$plan) {
+            Log::warning('Plan not found for subscription webhook', ['plan_code' => $data['plan']['plan_code']]);
+            return;
+        }
+
+        // Create or update subscription
+        $subscription = Subscription::updateOrCreate(
+            ['subscription_code' => $data['subscription_code']],
+            [
+                'user_id' => $user->id,
+                'plan_id' => $plan->id,
+                'email_token' => $data['email_token'] ?? null,
                 'status' => $data['status'],
+                'quantity' => $data['quantity'] ?? 1,
+                'amount' => $data['amount'],
+                'currency' => $plan->currency,
+                'start_date' => $data['createdAt'] ?? now(),
                 'next_payment_date' => $data['next_payment_date'] ?? null,
                 'cron_expression' => $data['cron_expression'] ?? null,
-            ]);
-        }
+                'authorization_code' => $data['authorization']['authorization_code'] ?? null,
+                'authorization_data' => $data['authorization'] ?? null,
+                'invoice_limit' => $data['invoice_limit'] ?? 0,
+                'metadata' => $data,
+            ]
+        );
+
+        Log::info('Subscription created/updated', [
+            'user_id' => $user->id,
+            'subscription_code' => $data['subscription_code'],
+            'plan_code' => $data['plan']['plan_code']
+        ]);
     }
 
     private function handleSubscriptionDisabled(array $data): void
@@ -325,13 +364,51 @@ class PaystackService
 
     private function handleChargeSuccess(array $data): void
     {
+        // Update user's customer code if not set
+        if (isset($data['customer']['customer_code']) && isset($data['customer']['email'])) {
+            $user = User::where('email', $data['customer']['email'])->first();
+            if ($user && !$user->customer_code) {
+                $user->update(['customer_code' => $data['customer']['customer_code']]);
+                Log::info('Updated user customer code', [
+                    'user_id' => $user->id,
+                    'customer_code' => $data['customer']['customer_code']
+                ]);
+            }
+        }
+
+        // Handle subscription-related charges
         if (isset($data['plan']) && !empty($data['plan'])) {
             $subscription = Subscription::where('authorization_code', $data['authorization']['authorization_code'])
-                ->where('status', 'active')
                 ->first();
                 
             if ($subscription) {
                 $subscription->update(['status' => 'active']);
+                Log::info('Updated subscription status to active', [
+                    'subscription_id' => $subscription->id,
+                    'reference' => $data['reference']
+                ]);
+            }
+        }
+
+        // Create invoice record for the successful charge
+        if (isset($data['plan']) && !empty($data['plan'])) {
+            $subscription = Subscription::where('authorization_code', $data['authorization']['authorization_code'])->first();
+            
+            if ($subscription) {
+                SubscriptionInvoice::updateOrCreate(
+                    ['transaction_reference' => $data['reference']],
+                    [
+                        'subscription_id' => $subscription->id,
+                        'amount' => $data['amount'],
+                        'currency' => $data['currency'] ?? 'NGN',
+                        'status' => 'paid',
+                        'paid' => true,
+                        'paid_at' => $data['paid_at'] ?? $data['paidAt'] ?? now(),
+                        'description' => 'Subscription payment',
+                        'authorization_data' => $data['authorization'] ?? null,
+                        'metadata' => $data,
+                    ]
+                );
             }
         }
     }
