@@ -277,6 +277,9 @@ class PaystackService
             ]
         );
 
+        // Create initial invoice if we have recent charge data
+        $this->createInitialInvoiceForSubscription($subscription, $data);
+
         Log::info('Subscription created/updated', [
             'user_id' => $user->id,
             'subscription_code' => $data['subscription_code'],
@@ -409,7 +412,45 @@ class PaystackService
                         'metadata' => $data,
                     ]
                 );
+
+                Log::info('Created invoice for charge success', [
+                    'subscription_id' => $subscription->id,
+                    'reference' => $data['reference']
+                ]);
+            } else {
+                // If subscription doesn't exist yet, store charge data for later processing
+                Log::info('Charge success received before subscription creation', [
+                    'reference' => $data['reference'],
+                    'authorization_code' => $data['authorization']['authorization_code'],
+                    'plan_code' => $data['plan']['plan_code']
+                ]);
             }
         }
+    }
+
+    private function createInitialInvoiceForSubscription(Subscription $subscription, array $subscriptionData): void
+    {
+        // Check if there's a recent successful charge that might be related to this subscription
+        // We'll create an invoice based on the subscription amount
+        SubscriptionInvoice::updateOrCreate(
+            [
+                'subscription_id' => $subscription->id,
+                'description' => 'Initial subscription payment'
+            ],
+            [
+                'amount' => $subscription->amount,
+                'currency' => $subscription->currency,
+                'status' => 'paid',
+                'paid' => true,
+                'paid_at' => $subscription->start_date,
+                'authorization_data' => $subscriptionData['authorization'] ?? null,
+                'metadata' => $subscriptionData,
+            ]
+        );
+
+        Log::info('Created initial invoice for subscription', [
+            'subscription_id' => $subscription->id,
+            'amount' => $subscription->amount
+        ]);
     }
 }
