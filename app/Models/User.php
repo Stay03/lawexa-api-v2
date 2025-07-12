@@ -4,6 +4,8 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -25,6 +27,7 @@ class User extends Authenticatable
         'google_id',
         'avatar',
         'role',
+        'customer_code',
     ];
 
     /**
@@ -83,5 +86,45 @@ class User extends Authenticatable
     public function hasAdminAccess(): bool
     {
         return in_array($this->role, ['admin', 'researcher', 'superadmin']);
+    }
+
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
+    public function activeSubscription(): HasOne
+    {
+        return $this->hasOne(Subscription::class)->where('status', 'active')->latest();
+    }
+
+    public function hasActiveSubscription(): bool
+    {
+        return $this->activeSubscription && 
+               $this->activeSubscription->isActive();
+    }
+
+    public function getSubscriptionStatusAttribute(): string
+    {
+        if ($this->hasActiveSubscription()) {
+            return 'active';
+        }
+
+        $latestSubscription = $this->subscriptions()->latest()->first();
+        
+        if (!$latestSubscription) {
+            return 'inactive';
+        }
+
+        if ($latestSubscription->isExpired()) {
+            return 'expired';
+        }
+
+        return $latestSubscription->status;
+    }
+
+    public function getSubscriptionExpiryAttribute()
+    {
+        return $this->activeSubscription?->next_payment_date;
     }
 }
