@@ -398,15 +398,24 @@ class PaystackService
             $subscription = Subscription::where('authorization_code', $data['authorization']['authorization_code'])->first();
             
             if ($subscription) {
+                // Generate a unique invoice code and calculate billing period
+                $invoiceCode = 'INV_' . strtoupper(uniqid()) . '_' . $subscription->id;
+                $interval = $data['plan']['interval'] ?? 'monthly';
+                $periodStart = now();
+                $periodEnd = $this->calculatePeriodEnd($periodStart, $interval);
+                
                 SubscriptionInvoice::updateOrCreate(
                     ['transaction_reference' => $data['reference']],
                     [
                         'subscription_id' => $subscription->id,
+                        'invoice_code' => $invoiceCode,
                         'amount' => $data['amount'],
                         'currency' => $data['currency'] ?? 'NGN',
                         'status' => 'paid',
                         'paid' => true,
                         'paid_at' => $data['paid_at'] ?? $data['paidAt'] ?? now(),
+                        'period_start' => $periodStart,
+                        'period_end' => $periodEnd,
                         'description' => 'Subscription payment',
                         'authorization_data' => $data['authorization'] ?? null,
                         'metadata' => $data,
@@ -430,19 +439,26 @@ class PaystackService
 
     private function createInitialInvoiceForSubscription(Subscription $subscription, array $subscriptionData): void
     {
-        // Check if there's a recent successful charge that might be related to this subscription
-        // We'll create an invoice based on the subscription amount
+        // Generate invoice code and calculate billing period
+        $invoiceCode = 'INV_' . strtoupper(uniqid()) . '_' . $subscription->id;
+        $interval = $subscriptionData['plan']['interval'] ?? 'monthly';
+        $periodStart = now();
+        $periodEnd = $this->calculatePeriodEnd($periodStart, $interval);
+        
         SubscriptionInvoice::updateOrCreate(
             [
                 'subscription_id' => $subscription->id,
                 'description' => 'Initial subscription payment'
             ],
             [
+                'invoice_code' => $invoiceCode,
                 'amount' => $subscription->amount,
                 'currency' => $subscription->currency,
                 'status' => 'paid',
                 'paid' => true,
                 'paid_at' => $subscription->start_date,
+                'period_start' => $periodStart,
+                'period_end' => $periodEnd,
                 'authorization_data' => $subscriptionData['authorization'] ?? null,
                 'metadata' => $subscriptionData,
             ]
@@ -450,7 +466,22 @@ class PaystackService
 
         Log::info('Created initial invoice for subscription', [
             'subscription_id' => $subscription->id,
-            'amount' => $subscription->amount
+            'amount' => $subscription->amount,
+            'interval' => $interval
         ]);
+    }
+
+    private function calculatePeriodEnd(\Carbon\Carbon $periodStart, string $interval): \Carbon\Carbon
+    {
+        return match($interval) {
+            'hourly' => $periodStart->copy()->addHour(),
+            'daily' => $periodStart->copy()->addDay(),
+            'weekly' => $periodStart->copy()->addWeek(),
+            'monthly' => $periodStart->copy()->addMonth(),
+            'quarterly' => $periodStart->copy()->addQuarter(),
+            'biannually' => $periodStart->copy()->addMonths(6),
+            'annually' => $periodStart->copy()->addYear(),
+            default => $periodStart->copy()->addMonth(), // fallback to monthly
+        };
     }
 }
