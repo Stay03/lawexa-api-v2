@@ -75,7 +75,7 @@ class AuthController extends Controller
     public function me(Request $request): JsonResponse
     {
         return ApiResponse::success([
-            'user' => new UserResource($request->user()->load(['activeSubscription', 'subscriptions']))
+            'user' => new UserResource($request->user()->load(['activeSubscription.plan', 'subscriptions']))
         ], 'User profile retrieved successfully');
     }
 

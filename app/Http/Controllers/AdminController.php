@@ -152,7 +152,7 @@ class AdminController extends Controller
 
         // Apply pagination
         $perPage = $validated['per_page'] ?? 10;
-        $users = $query->paginate($perPage);
+        $users = $query->with(['activeSubscription.plan', 'subscriptions'])->paginate($perPage);
 
         // Build response message with applied filters
         $appliedFilters = [];
@@ -259,7 +259,7 @@ class AdminController extends Controller
         $targetUser->update($validated);
 
         return ApiResponse::resource(
-            new UserResource($targetUser->fresh()->load(['activeSubscription', 'subscriptions'])),
+            new UserResource($targetUser->fresh()->load(['activeSubscription.plan', 'subscriptions'])),
             'User updated successfully'
         );
     }
@@ -273,7 +273,7 @@ class AdminController extends Controller
         }
 
         // Load subscription relationships
-        $user->load(['activeSubscription', 'subscriptions']);
+        $user->load(['activeSubscription.plan', 'subscriptions']);
 
         // All roles can view all users - no restrictions needed
 

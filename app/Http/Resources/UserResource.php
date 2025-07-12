@@ -20,6 +20,26 @@ class UserResource extends JsonResource
             'subscription_status' => $this->subscription_status,
             'subscription_expiry' => $this->subscription_expiry,
             'has_active_subscription' => $this->hasActiveSubscription(),
+            'plan' => $this->when(
+                $this->relationLoaded('activeSubscription') && $this->activeSubscription && $this->activeSubscription->plan,
+                fn() => $this->activeSubscription->plan->name
+            ),
+            'plan_code' => $this->when(
+                $this->relationLoaded('activeSubscription') && $this->activeSubscription && $this->activeSubscription->plan,
+                fn() => $this->activeSubscription->plan->plan_code
+            ),
+            'formatted_amount' => $this->when(
+                $this->relationLoaded('activeSubscription') && $this->activeSubscription && $this->activeSubscription->plan,
+                fn() => $this->activeSubscription->plan->formatted_amount
+            ),
+            'amount' => $this->when(
+                $this->relationLoaded('activeSubscription') && $this->activeSubscription && $this->activeSubscription->plan,
+                fn() => $this->activeSubscription->plan->amount
+            ),
+            'interval' => $this->when(
+                $this->relationLoaded('activeSubscription') && $this->activeSubscription && $this->activeSubscription->plan,
+                fn() => $this->activeSubscription->plan->interval
+            ),
             'active_subscription' => $this->when(
                 $this->relationLoaded('activeSubscription') && $this->activeSubscription, 
                 fn() => new SubscriptionResource($this->activeSubscription)
