@@ -186,6 +186,7 @@ class SubscriptionMetricsService
                 'plan_name' => $plan->name,
                 'subscriber_count' => $plan->subscriber_count,
                 'growth_rate' => $growthRate,
+                'interval' => $plan->interval,
             ];
         })->toArray();
     }
