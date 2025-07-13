@@ -42,12 +42,24 @@ class SubscriptionService
         return $this->paystackService->initializeTransaction($transactionData);
     }
 
-    public function getUserSubscriptions(User $user): Collection
+    public function getUserSubscriptions(User $user, array $filters = []): \Illuminate\Pagination\LengthAwarePaginator
     {
-        return $user->subscriptions()
-            ->with(['plan'])
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $query = $user->subscriptions()->with(['plan']);
+
+        // Apply status filter
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        // Apply sorting
+        $sortBy = $filters['sort_by'] ?? 'created_at';
+        $sortDirection = $filters['sort_direction'] ?? 'desc';
+        $query->orderBy($sortBy, $sortDirection);
+
+        // Apply pagination
+        $perPage = $filters['per_page'] ?? 10;
+        
+        return $query->paginate($perPage);
     }
 
     public function getSubscription(int $subscriptionId, ?int $userId = null): Subscription
@@ -168,5 +180,56 @@ class SubscriptionService
         return Subscription::whereIn('status', ['attention', 'cancelled'])
             ->with(['user', 'plan'])
             ->get();
+    }
+
+    public function getAllSubscriptions(array $filters = []): \Illuminate\Pagination\LengthAwarePaginator
+    {
+        $query = Subscription::with(['user', 'plan']);
+
+        // Apply search filter (user email or name)
+        if (!empty($filters['search'])) {
+            $searchTerm = $filters['search'];
+            $query->whereHas('user', function ($q) use ($searchTerm) {
+                $q->where('name', 'like', "%{$searchTerm}%")
+                  ->orWhere('email', 'like', "%{$searchTerm}%");
+            });
+        }
+
+        // Apply status filter
+        if (!empty($filters['status'])) {
+            $query->where('status', $filters['status']);
+        }
+
+        // Apply plan filter
+        if (!empty($filters['plan_id'])) {
+            $query->where('plan_id', $filters['plan_id']);
+        }
+
+        // Apply date range filters
+        if (!empty($filters['created_from'])) {
+            $query->whereDate('created_at', '>=', $filters['created_from']);
+        }
+
+        if (!empty($filters['created_to'])) {
+            $query->whereDate('created_at', '<=', $filters['created_to']);
+        }
+
+        if (!empty($filters['next_payment_from'])) {
+            $query->whereDate('next_payment_date', '>=', $filters['next_payment_from']);
+        }
+
+        if (!empty($filters['next_payment_to'])) {
+            $query->whereDate('next_payment_date', '<=', $filters['next_payment_to']);
+        }
+
+        // Apply sorting
+        $sortBy = $filters['sort_by'] ?? 'created_at';
+        $sortDirection = $filters['sort_direction'] ?? 'desc';
+        $query->orderBy($sortBy, $sortDirection);
+
+        // Apply pagination
+        $perPage = $filters['per_page'] ?? 10;
+        
+        return $query->paginate($perPage);
     }
 }

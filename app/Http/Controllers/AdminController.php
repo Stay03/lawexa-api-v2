@@ -6,7 +6,9 @@ use App\Models\User;
 use App\Http\Resources\UserCollection;
 use App\Http\Resources\UserResource;
 use App\Http\Resources\AdminDashboardResource;
+use App\Http\Resources\SubscriptionCollection;
 use App\Http\Responses\ApiResponse;
+use App\Services\SubscriptionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -315,6 +317,77 @@ class AdminController extends Controller
         return ApiResponse::success(
             $deletedUserData,
             'User deleted successfully'
+        );
+    }
+
+    public function getSubscriptions(Request $request, SubscriptionService $subscriptionService): JsonResponse
+    {
+        $user = $request->user();
+        
+        // Validate query parameters
+        $validated = $request->validate([
+            'search' => 'sometimes|string|max:255',
+            'status' => 'sometimes|string|in:active,attention,completed,cancelled,non-renewing',
+            'plan_id' => 'sometimes|integer|exists:plans,id',
+            'created_from' => 'sometimes|date',
+            'created_to' => 'sometimes|date|after_or_equal:created_from',
+            'next_payment_from' => 'sometimes|date',
+            'next_payment_to' => 'sometimes|date|after_or_equal:next_payment_from',
+            'page' => 'sometimes|integer|min:1',
+            'per_page' => 'sometimes|integer|min:1|max:100',
+            'sort_by' => 'sometimes|string|in:created_at,updated_at,next_payment_date,amount,status',
+            'sort_direction' => 'sometimes|string|in:asc,desc',
+        ]);
+
+        // Apply role-based access control
+        if (!$user->hasAnyRole(['admin', 'researcher', 'superadmin'])) {
+            return ApiResponse::error('Unauthorized. Only admins, researchers, and superadmins can view subscriptions.', 403);
+        }
+
+        // Get subscriptions with filters
+        $subscriptions = $subscriptionService->getAllSubscriptions($validated);
+
+        // Build response message with applied filters
+        $appliedFilters = [];
+        if (!empty($validated['search'])) {
+            $appliedFilters[] = "search: '{$validated['search']}'";
+        }
+        if (!empty($validated['status'])) {
+            $appliedFilters[] = "status: {$validated['status']}";
+        }
+        if (!empty($validated['plan_id'])) {
+            $appliedFilters[] = "plan_id: {$validated['plan_id']}";
+        }
+        if (!empty($validated['created_from']) || !empty($validated['created_to'])) {
+            $dateRange = [];
+            if (!empty($validated['created_from'])) {
+                $dateRange[] = "from: {$validated['created_from']}";
+            }
+            if (!empty($validated['created_to'])) {
+                $dateRange[] = "to: {$validated['created_to']}";
+            }
+            $appliedFilters[] = "created " . implode(', ', $dateRange);
+        }
+        if (!empty($validated['next_payment_from']) || !empty($validated['next_payment_to'])) {
+            $paymentDateRange = [];
+            if (!empty($validated['next_payment_from'])) {
+                $paymentDateRange[] = "from: {$validated['next_payment_from']}";
+            }
+            if (!empty($validated['next_payment_to'])) {
+                $paymentDateRange[] = "to: {$validated['next_payment_to']}";
+            }
+            $appliedFilters[] = "next_payment " . implode(', ', $paymentDateRange);
+        }
+
+        $filterMessage = empty($appliedFilters) 
+            ? "Subscriptions filtered by {$user->role} permissions" 
+            : "Subscriptions filtered by {$user->role} permissions with " . implode(', ', $appliedFilters);
+
+        $subscriptionCollection = new SubscriptionCollection($subscriptions);
+        
+        return ApiResponse::success(
+            $subscriptionCollection->toArray($request),
+            $filterMessage
         );
     }
 }

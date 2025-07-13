@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\SubscriptionResource;
+use App\Http\Resources\SubscriptionCollection;
 use App\Http\Resources\SubscriptionInvoiceResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Plan;
@@ -20,11 +21,23 @@ class SubscriptionController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        $subscriptions = $this->subscriptionService->getUserSubscriptions($user);
         
-        return ApiResponse::success([
-            'subscriptions' => SubscriptionResource::collection($subscriptions)
-        ], 'Subscriptions retrieved successfully');
+        // Validate query parameters
+        $validated = $request->validate([
+            'status' => 'sometimes|string|in:active,attention,completed,cancelled,non-renewing',
+            'page' => 'sometimes|integer|min:1',
+            'per_page' => 'sometimes|integer|min:1|max:100',
+            'sort_by' => 'sometimes|string|in:created_at,updated_at,next_payment_date,amount,status',
+            'sort_direction' => 'sometimes|string|in:asc,desc',
+        ]);
+        
+        $subscriptions = $this->subscriptionService->getUserSubscriptions($user, $validated);
+        $subscriptionCollection = new SubscriptionCollection($subscriptions);
+        
+        return ApiResponse::success(
+            $subscriptionCollection->toArray($request),
+            'Subscriptions retrieved successfully'
+        );
     }
 
     public function store(Request $request): JsonResponse
@@ -77,8 +90,8 @@ class SubscriptionController extends Controller
     {
         $user = $request->user();
         
-        if ($subscription->user_id !== $user->id && !$user->hasAdminAccess()) {
-            return ApiResponse::error('Unauthorized', 403);
+        if ($subscription->user_id !== $user->id) {
+            return ApiResponse::error('Unauthorized. You can only view your own subscriptions.', 403);
         }
         
         $subscription->load(['plan', 'invoices']);
@@ -92,8 +105,8 @@ class SubscriptionController extends Controller
     {
         $user = $request->user();
         
-        if ($subscription->user_id !== $user->id && !$user->hasAdminAccess()) {
-            return ApiResponse::error('Unauthorized', 403);
+        if ($subscription->user_id !== $user->id) {
+            return ApiResponse::error('Unauthorized. You can only cancel your own subscriptions.', 403);
         }
 
         try {
@@ -111,8 +124,8 @@ class SubscriptionController extends Controller
     {
         $user = $request->user();
         
-        if ($subscription->user_id !== $user->id && !$user->hasAdminAccess()) {
-            return ApiResponse::error('Unauthorized', 403);
+        if ($subscription->user_id !== $user->id) {
+            return ApiResponse::error('Unauthorized. You can only reactivate your own subscriptions.', 403);
         }
 
         try {
@@ -130,8 +143,8 @@ class SubscriptionController extends Controller
     {
         $user = $request->user();
         
-        if ($subscription->user_id !== $user->id && !$user->hasAdminAccess()) {
-            return ApiResponse::error('Unauthorized', 403);
+        if ($subscription->user_id !== $user->id) {
+            return ApiResponse::error('Unauthorized. You can only view invoices for your own subscriptions.', 403);
         }
         
         $invoices = $this->subscriptionService->getSubscriptionInvoices($subscription);
@@ -206,8 +219,8 @@ class SubscriptionController extends Controller
     {
         $user = $request->user();
         
-        if ($subscription->user_id !== $user->id && !$user->hasAdminAccess()) {
-            return ApiResponse::error('Unauthorized', 403);
+        if ($subscription->user_id !== $user->id) {
+            return ApiResponse::error('Unauthorized. You can only sync your own subscriptions.', 403);
         }
 
         try {

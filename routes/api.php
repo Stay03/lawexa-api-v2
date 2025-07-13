@@ -6,6 +6,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GoogleAuthController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\SubscriptionController;
+use App\Http\Controllers\AdminSubscriptionController;
 use App\Http\Controllers\PaystackWebhookController;
 
 Route::prefix('auth')->group(function () {
@@ -58,6 +59,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('stats', [App\Http\Controllers\AdminController::class, 'getUserStats']);
         Route::put('users/{user}', [App\Http\Controllers\AdminController::class, 'editUser']);
         Route::delete('users/{user}', [App\Http\Controllers\AdminController::class, 'deleteUser']);
+        Route::get('subscriptions', [App\Http\Controllers\AdminController::class, 'getSubscriptions']);
+        
+        // Admin subscription management routes
+        Route::prefix('subscriptions')->group(function () {
+            Route::get('{subscription}', [AdminSubscriptionController::class, 'show']);
+            Route::get('{subscription}/invoices', [AdminSubscriptionController::class, 'invoices']);
+            Route::post('{subscription}/cancel', [AdminSubscriptionController::class, 'cancel'])->middleware('role:admin,superadmin');
+            Route::post('{subscription}/reactivate', [AdminSubscriptionController::class, 'reactivate'])->middleware('role:admin,superadmin');
+            Route::post('{subscription}/sync', [AdminSubscriptionController::class, 'sync'])->middleware('role:admin,superadmin');
+        });
         
         // Admin plan management routes (admin and superadmin only)
         Route::middleware('role:admin,superadmin')->prefix('plans')->group(function () {
