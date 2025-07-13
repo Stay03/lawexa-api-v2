@@ -63,6 +63,7 @@ Route::middleware('auth:sanctum')->group(function () {
         
         // Admin subscription management routes
         Route::prefix('subscriptions')->group(function () {
+            Route::get('dashboard-metrics', [App\Http\Controllers\AdminController::class, 'dashboardMetrics']);
             Route::get('{subscription}', [AdminSubscriptionController::class, 'show']);
             Route::get('{subscription}/invoices', [AdminSubscriptionController::class, 'invoices']);
             Route::post('{subscription}/cancel', [AdminSubscriptionController::class, 'cancel'])->middleware('role:admin,superadmin');

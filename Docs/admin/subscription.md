@@ -22,15 +22,16 @@ Authorization: Bearer {token}
 
 ### Admin Access
 - **View All Subscriptions** - admin, researcher, or superadmin
+- **View Dashboard Metrics** - admin, researcher, or superadmin
 - **Cancel Any Subscription** - admin or superadmin only
 - **Reactivate Any Subscription** - admin or superadmin only
 - **Sync Subscriptions** - admin or superadmin only
 - **View Subscription Invoices** - admin, researcher, or superadmin
 
 ### Role Restrictions
-- **Researchers** - Can only view subscription details and invoices (no modification)
-- **Admins** - Can view, cancel, reactivate, and sync subscriptions
-- **Superadmins** - Full access to all subscription operations
+- **Researchers** - Can only view subscription details, dashboard metrics, and invoices (no modification)
+- **Admins** - Can view, cancel, reactivate, and sync subscriptions, plus view dashboard metrics
+- **Superadmins** - Full access to all subscription operations including dashboard metrics
 
 ---
 
@@ -803,7 +804,159 @@ POST /subscriptions/1/sync
 
 ## Admin Endpoints
 
-### 1. Get Subscription Details (Admin)
+### 1. Get Dashboard Metrics
+
+**GET** `/admin/subscriptions/dashboard-metrics`
+
+Retrieves comprehensive subscription analytics and business metrics with support for different time periods.
+
+#### Required Permissions
+- admin, researcher, or superadmin
+
+#### Query Parameters
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `period` | string | No | monthly | Time period: `daily`, `weekly`, `monthly`, `quarterly`, `biannually`, `annually` |
+
+#### Example Requests
+```
+GET /admin/subscriptions/dashboard-metrics
+GET /admin/subscriptions/dashboard-metrics?period=quarterly
+GET /admin/subscriptions/dashboard-metrics?period=annually
+```
+
+#### Success Response (200)
+```json
+{
+  "success": true,
+  "data": {
+    "financial_overview": {
+      "monthly_recurring_revenue": 450000,
+      "revenue_growth_rate": 12.5
+    },
+    "subscription_counts": {
+      "total": 234,
+      "active": 189,
+      "attention": 12,
+      "cancelled": 28,
+      "completed": 5,
+      "non_renewing": 15
+    },
+    "payment_health": {
+      "overdue_count": 8,
+      "success_rate": 94.2,
+      "renewals_next_7_days": 23,
+      "renewals_next_30_days": 87
+    },
+    "business_metrics": {
+      "churn_rate": 3.2,
+      "subscriber_growth_rate": 8.7
+    },
+    "plan_performance": [
+      {
+        "plan_name": "Premium",
+        "subscriber_count": 78,
+        "growth_rate": 15.2
+      },
+      {
+        "plan_name": "Basic",
+        "subscriber_count": 145,
+        "growth_rate": 8.1
+      },
+      {
+        "plan_name": "Enterprise",
+        "subscriber_count": 23,
+        "growth_rate": 22.3
+      }
+    ]
+  },
+  "meta": {
+    "last_updated": "2024-01-15T10:30:00Z",
+    "period": "last_30_days"
+  }
+}
+```
+
+#### Period-Based Response Variations
+
+When using different periods, the revenue key name changes:
+
+| Period | Revenue Key | Period Label |
+|--------|-------------|--------------|
+| `daily` | `daily_recurring_revenue` | `last_24_hours` |
+| `weekly` | `weekly_recurring_revenue` | `last_7_days` |
+| `monthly` | `monthly_recurring_revenue` | `last_30_days` |
+| `quarterly` | `quarterly_recurring_revenue` | `last_90_days` |
+| `biannually` | `biannual_recurring_revenue` | `last_6_months` |
+| `annually` | `annual_recurring_revenue` | `last_12_months` |
+
+#### Example Quarterly Response
+```json
+{
+  "success": true,
+  "data": {
+    "financial_overview": {
+      "quarterly_recurring_revenue": 1350000,
+      "revenue_growth_rate": 22.8
+    },
+    // ... other metrics
+  },
+  "meta": {
+    "last_updated": "2024-01-15T10:30:00Z",
+    "period": "last_90_days"
+  }
+}
+```
+
+#### Error Responses
+
+**403 Unauthorized**
+```json
+{
+  "status": "error",
+  "message": "Unauthorized. Only admins, researchers, and superadmins can view metrics."
+}
+```
+
+**422 Validation Error**
+```json
+{
+  "status": "error",
+  "message": "Validation failed",
+  "errors": {
+    "period": ["The selected period is invalid."]
+  }
+}
+```
+
+#### Metrics Explanation
+
+**Financial Overview:**
+- `*_recurring_revenue`: Sum of active subscription amounts for the period (in kobo/cents)
+- `revenue_growth_rate`: Percentage change compared to previous period
+
+**Subscription Counts:**
+- `total`: All subscriptions across all statuses
+- `active`: Currently active and billing subscriptions
+- `attention`: Subscriptions requiring action (payment issues)
+- Historical counts for business calculations
+
+**Payment Health:**
+- `overdue_count`: Subscriptions with past-due payments
+- `success_rate`: Payment success percentage for current period
+- `renewals_next_*_days`: Upcoming renewal counts
+
+**Business Metrics:**
+- `churn_rate`: Percentage of subscriptions cancelled in period
+- `subscriber_growth_rate`: Net subscriber growth percentage
+
+**Plan Performance:**
+- Per-plan active subscriber counts and growth rates
+
+---
+
+### 2. Get Subscription Details (Admin)
 
 **GET** `/admin/subscriptions/{subscription}`
 
@@ -1223,6 +1376,21 @@ POST /admin/subscriptions/1/sync
 ---
 
 ## Common Use Cases
+
+### Get Dashboard Metrics (Default Monthly)
+```
+GET /admin/subscriptions/dashboard-metrics
+```
+
+### Get Quarterly Business Metrics
+```
+GET /admin/subscriptions/dashboard-metrics?period=quarterly
+```
+
+### Get Annual Performance Overview
+```
+GET /admin/subscriptions/dashboard-metrics?period=annually
+```
 
 ### Subscribe to Plan
 ```json

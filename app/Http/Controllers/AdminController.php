@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\User;
-use App\Http\Resources\UserCollection;
-use App\Http\Resources\UserResource;
 use App\Http\Resources\AdminDashboardResource;
 use App\Http\Resources\SubscriptionCollection;
+use App\Http\Resources\UserCollection;
+use App\Http\Resources\UserResource;
 use App\Http\Responses\ApiResponse;
+use App\Models\User;
+use App\Services\SubscriptionMetricsService;
 use App\Services\SubscriptionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,20 +25,20 @@ class AdminController extends Controller
                 $data = [
                     'total_users' => User::where('role', 'user')->count(),
                     'message' => 'Admin dashboard - basic user management data',
-                    'permissions' => ['view_users', 'manage_basic_settings']
+                    'permissions' => ['view_users', 'manage_basic_settings'],
                 ];
                 break;
-                
+
             case 'researcher':
                 $data = [
                     'total_users' => User::count(),
                     'user_breakdown' => User::selectRaw('role, count(*) as count')
                         ->groupBy('role')->get(),
                     'message' => 'Researcher dashboard - extended analytics data',
-                    'permissions' => ['view_all_users', 'export_data', 'view_analytics']
+                    'permissions' => ['view_all_users', 'export_data', 'view_analytics'],
                 ];
                 break;
-                
+
             case 'superadmin':
                 $data = [
                     'total_users' => User::count(),
@@ -46,17 +47,17 @@ class AdminController extends Controller
                     'recent_users' => User::latest()->take(10)->get(),
                     'system_stats' => [
                         'total_tokens' => $user->tokens()->count(),
-                        'active_sessions' => User::whereNotNull('email_verified_at')->count()
+                        'active_sessions' => User::whereNotNull('email_verified_at')->count(),
                     ],
                     'message' => 'Superadmin dashboard - full system access',
-                    'permissions' => ['full_access', 'user_management', 'system_config']
+                    'permissions' => ['full_access', 'user_management', 'system_config'],
                 ];
                 break;
         }
 
         $dashboardData = new AdminDashboardResource([
             'role' => $user->role,
-            'data' => $data
+            'data' => $data,
         ]);
 
         return ApiResponse::resource(
@@ -68,7 +69,7 @@ class AdminController extends Controller
     public function getUsers(Request $request): JsonResponse
     {
         $user = $request->user();
-        
+
         // Validate query parameters
         $validated = $request->validate([
             'search' => 'sometimes|string|max:255',
@@ -95,18 +96,18 @@ class AdminController extends Controller
         }
 
         // Apply search filter
-        if (!empty($validated['search'])) {
+        if (! empty($validated['search'])) {
             $searchTerm = $validated['search'];
             $query->where(function ($q) use ($searchTerm) {
                 $q->where('name', 'like', "%{$searchTerm}%")
-                  ->orWhere('email', 'like', "%{$searchTerm}%");
+                    ->orWhere('email', 'like', "%{$searchTerm}%");
             });
         }
 
         // Apply role filter (if user has permission to see that role)
-        if (!empty($validated['role'])) {
+        if (! empty($validated['role'])) {
             $requestedRole = $validated['role'];
-            
+
             // Check if user has permission to filter by this role
             $allowedRoles = match ($user->role) {
                 'admin' => ['user', 'researcher', 'admin', 'superadmin'],
@@ -114,7 +115,7 @@ class AdminController extends Controller
                 'superadmin' => ['user', 'admin', 'researcher', 'superadmin'],
                 default => []
             };
-            
+
             if (in_array($requestedRole, $allowedRoles)) {
                 $query->where('role', $requestedRole);
             }
@@ -139,11 +140,11 @@ class AdminController extends Controller
         }
 
         // Apply date range filters
-        if (!empty($validated['created_from'])) {
+        if (! empty($validated['created_from'])) {
             $query->whereDate('created_at', '>=', $validated['created_from']);
         }
 
-        if (!empty($validated['created_to'])) {
+        if (! empty($validated['created_to'])) {
             $query->whereDate('created_at', '<=', $validated['created_to']);
         }
 
@@ -158,35 +159,35 @@ class AdminController extends Controller
 
         // Build response message with applied filters
         $appliedFilters = [];
-        if (!empty($validated['search'])) {
+        if (! empty($validated['search'])) {
             $appliedFilters[] = "search: '{$validated['search']}'";
         }
-        if (!empty($validated['role'])) {
+        if (! empty($validated['role'])) {
             $appliedFilters[] = "role: {$validated['role']}";
         }
         if (isset($validated['verified'])) {
-            $appliedFilters[] = "verified: " . ($validated['verified'] ? 'true' : 'false');
+            $appliedFilters[] = 'verified: '.($validated['verified'] ? 'true' : 'false');
         }
         if (isset($validated['oauth'])) {
-            $appliedFilters[] = "oauth: " . ($validated['oauth'] ? 'true' : 'false');
+            $appliedFilters[] = 'oauth: '.($validated['oauth'] ? 'true' : 'false');
         }
-        if (!empty($validated['created_from']) || !empty($validated['created_to'])) {
+        if (! empty($validated['created_from']) || ! empty($validated['created_to'])) {
             $dateRange = [];
-            if (!empty($validated['created_from'])) {
+            if (! empty($validated['created_from'])) {
                 $dateRange[] = "from: {$validated['created_from']}";
             }
-            if (!empty($validated['created_to'])) {
+            if (! empty($validated['created_to'])) {
                 $dateRange[] = "to: {$validated['created_to']}";
             }
-            $appliedFilters[] = "created " . implode(', ', $dateRange);
+            $appliedFilters[] = 'created '.implode(', ', $dateRange);
         }
 
-        $filterMessage = empty($appliedFilters) 
-            ? "Users filtered by {$user->role} permissions" 
-            : "Users filtered by {$user->role} permissions with " . implode(', ', $appliedFilters);
+        $filterMessage = empty($appliedFilters)
+            ? "Users filtered by {$user->role} permissions"
+            : "Users filtered by {$user->role} permissions with ".implode(', ', $appliedFilters);
 
         $userCollection = new UserCollection($users);
-        
+
         return ApiResponse::success(
             $userCollection->toArray($request),
             $filterMessage
@@ -213,41 +214,41 @@ class AdminController extends Controller
         } else {
             $stats = [
                 'basic_user_count' => User::where('role', 'user')->count(),
-                'message' => 'Admin access - limited statistics'
+                'message' => 'Admin access - limited statistics',
             ];
         }
 
         return ApiResponse::success([
             'role' => $user->role,
-            'stats' => $stats
+            'stats' => $stats,
         ], 'User statistics retrieved successfully');
     }
 
     public function editUser(Request $request, User $targetUser): JsonResponse
     {
         $user = $request->user();
-        
-        if (!$user->hasAnyRole(['admin', 'superadmin'])) {
+
+        if (! $user->hasAnyRole(['admin', 'superadmin'])) {
             return ApiResponse::error('Unauthorized. Only admins and superadmins can edit users.', 403);
         }
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|string|email|max:255|unique:users,email,' . $targetUser->id,
+            'email' => 'sometimes|string|email|max:255|unique:users,email,'.$targetUser->id,
             'role' => 'sometimes|string|in:user,admin,researcher,superadmin',
             'avatar' => 'sometimes|nullable|string|max:255',
         ]);
 
         if (isset($validated['role'])) {
             $requestedRole = $validated['role'];
-            
+
             $allowedRoles = match ($user->role) {
                 'admin' => ['user', 'researcher'],
                 'superadmin' => ['user', 'admin', 'researcher', 'superadmin'],
                 default => []
             };
-            
-            if (!in_array($requestedRole, $allowedRoles)) {
+
+            if (! in_array($requestedRole, $allowedRoles)) {
                 return ApiResponse::error('Unauthorized. You cannot assign this role.', 403);
             }
         }
@@ -269,8 +270,8 @@ class AdminController extends Controller
     public function getUser(Request $request, User $user): JsonResponse
     {
         $currentUser = $request->user();
-        
-        if (!$currentUser->hasAnyRole(['admin', 'researcher', 'superadmin'])) {
+
+        if (! $currentUser->hasAnyRole(['admin', 'researcher', 'superadmin'])) {
             return ApiResponse::error('Unauthorized. Only admins, researchers, and superadmins can view users.', 403);
         }
 
@@ -288,8 +289,8 @@ class AdminController extends Controller
     public function deleteUser(Request $request, User $targetUser): JsonResponse
     {
         $currentUser = $request->user();
-        
-        if (!$currentUser->isSuperAdmin()) {
+
+        if (! $currentUser->isSuperAdmin()) {
             return ApiResponse::error('Unauthorized. Only superadmins can delete users.', 403);
         }
 
@@ -309,7 +310,7 @@ class AdminController extends Controller
             'created_at' => $targetUser->created_at?->toISOString(),
             'updated_at' => $targetUser->updated_at?->toISOString(),
         ];
-        
+
         // Delete user tokens and user
         $targetUser->tokens()->delete();
         $targetUser->delete();
@@ -323,7 +324,7 @@ class AdminController extends Controller
     public function getSubscriptions(Request $request, SubscriptionService $subscriptionService): JsonResponse
     {
         $user = $request->user();
-        
+
         // Validate query parameters
         $validated = $request->validate([
             'search' => 'sometimes|string|max:255',
@@ -340,7 +341,7 @@ class AdminController extends Controller
         ]);
 
         // Apply role-based access control
-        if (!$user->hasAnyRole(['admin', 'researcher', 'superadmin'])) {
+        if (! $user->hasAnyRole(['admin', 'researcher', 'superadmin'])) {
             return ApiResponse::error('Unauthorized. Only admins, researchers, and superadmins can view subscriptions.', 403);
         }
 
@@ -349,45 +350,80 @@ class AdminController extends Controller
 
         // Build response message with applied filters
         $appliedFilters = [];
-        if (!empty($validated['search'])) {
+        if (! empty($validated['search'])) {
             $appliedFilters[] = "search: '{$validated['search']}'";
         }
-        if (!empty($validated['status'])) {
+        if (! empty($validated['status'])) {
             $appliedFilters[] = "status: {$validated['status']}";
         }
-        if (!empty($validated['plan_id'])) {
+        if (! empty($validated['plan_id'])) {
             $appliedFilters[] = "plan_id: {$validated['plan_id']}";
         }
-        if (!empty($validated['created_from']) || !empty($validated['created_to'])) {
+        if (! empty($validated['created_from']) || ! empty($validated['created_to'])) {
             $dateRange = [];
-            if (!empty($validated['created_from'])) {
+            if (! empty($validated['created_from'])) {
                 $dateRange[] = "from: {$validated['created_from']}";
             }
-            if (!empty($validated['created_to'])) {
+            if (! empty($validated['created_to'])) {
                 $dateRange[] = "to: {$validated['created_to']}";
             }
-            $appliedFilters[] = "created " . implode(', ', $dateRange);
+            $appliedFilters[] = 'created '.implode(', ', $dateRange);
         }
-        if (!empty($validated['next_payment_from']) || !empty($validated['next_payment_to'])) {
+        if (! empty($validated['next_payment_from']) || ! empty($validated['next_payment_to'])) {
             $paymentDateRange = [];
-            if (!empty($validated['next_payment_from'])) {
+            if (! empty($validated['next_payment_from'])) {
                 $paymentDateRange[] = "from: {$validated['next_payment_from']}";
             }
-            if (!empty($validated['next_payment_to'])) {
+            if (! empty($validated['next_payment_to'])) {
                 $paymentDateRange[] = "to: {$validated['next_payment_to']}";
             }
-            $appliedFilters[] = "next_payment " . implode(', ', $paymentDateRange);
+            $appliedFilters[] = 'next_payment '.implode(', ', $paymentDateRange);
         }
 
-        $filterMessage = empty($appliedFilters) 
-            ? "Subscriptions filtered by {$user->role} permissions" 
-            : "Subscriptions filtered by {$user->role} permissions with " . implode(', ', $appliedFilters);
+        $filterMessage = empty($appliedFilters)
+            ? "Subscriptions filtered by {$user->role} permissions"
+            : "Subscriptions filtered by {$user->role} permissions with ".implode(', ', $appliedFilters);
 
         $subscriptionCollection = new SubscriptionCollection($subscriptions);
-        
+
         return ApiResponse::success(
             $subscriptionCollection->toArray($request),
             $filterMessage
         );
+    }
+
+    public function dashboardMetrics(Request $request, SubscriptionMetricsService $metricsService): JsonResponse
+    {
+        $user = $request->user();
+
+        // Apply role-based access control
+        if (! $user->hasAnyRole(['admin', 'researcher', 'superadmin'])) {
+            return ApiResponse::error('Unauthorized. Only admins, researchers, and superadmins can view metrics.', 403);
+        }
+
+        // Validate query parameters
+        $validated = $request->validate([
+            'period' => 'sometimes|string|in:daily,weekly,monthly,quarterly,biannually,annually',
+        ]);
+
+        $period = $validated['period'] ?? 'monthly';
+        $metrics = $metricsService->getDashboardMetrics($period);
+
+        $response = [
+            'success' => true,
+            'data' => [
+                'financial_overview' => $metrics['financial_overview'],
+                'subscription_counts' => $metrics['subscription_counts'],
+                'payment_health' => $metrics['payment_health'],
+                'business_metrics' => $metrics['business_metrics'],
+                'plan_performance' => $metrics['plan_performance'],
+            ],
+            'meta' => [
+                'last_updated' => now()->toISOString(),
+                'period' => $metrics['meta']['period'],
+            ],
+        ];
+
+        return response()->json($response, 200);
     }
 }
