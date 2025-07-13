@@ -833,7 +833,15 @@ GET /admin/subscriptions/dashboard-metrics?period=annually
   "data": {
     "financial_overview": {
       "monthly_recurring_revenue": 450000,
-      "revenue_growth_rate": 12.5
+      "revenue_growth_rate": 12.5,
+      "new_business_revenue": 135000,
+      "renewal_revenue": 315000,
+      "current_mrr": 520000,
+      "revenue_breakdown": {
+        "new_customers": 135000,
+        "renewals": 315000,
+        "total": 450000
+      }
     },
     "subscription_counts": {
       "total": 234,
@@ -857,17 +865,20 @@ GET /admin/subscriptions/dashboard-metrics?period=annually
       {
         "plan_name": "Premium",
         "subscriber_count": 78,
-        "growth_rate": 15.2
+        "growth_rate": 15.2,
+        "interval": "monthly"
       },
       {
         "plan_name": "Basic",
         "subscriber_count": 145,
-        "growth_rate": 8.1
+        "growth_rate": 8.1,
+        "interval": "monthly"
       },
       {
         "plan_name": "Enterprise",
         "subscriber_count": 23,
-        "growth_rate": 22.3
+        "growth_rate": 22.3,
+        "interval": "annually"
       }
     ]
   },
@@ -898,7 +909,15 @@ When using different periods, the revenue key name changes:
   "data": {
     "financial_overview": {
       "quarterly_recurring_revenue": 1350000,
-      "revenue_growth_rate": 22.8
+      "revenue_growth_rate": 22.8,
+      "new_business_revenue": 405000,
+      "renewal_revenue": 945000,
+      "current_mrr": 520000,
+      "revenue_breakdown": {
+        "new_customers": 405000,
+        "renewals": 945000,
+        "total": 1350000
+      }
     },
     // ... other metrics
   },
@@ -933,8 +952,18 @@ When using different periods, the revenue key name changes:
 #### Metrics Explanation
 
 **Financial Overview:**
-- `*_recurring_revenue`: Sum of active subscription amounts for the period (in kobo/cents)
+- `*_recurring_revenue`: **ACTUAL COLLECTED REVENUE** from paid invoices in the period (in kobo/cents) - includes both new subscriptions AND renewals
 - `revenue_growth_rate`: Percentage change compared to previous period
+- `new_business_revenue`: Revenue from first-time customer payments in the period
+- `renewal_revenue`: Revenue from existing customer renewals in the period
+- `current_mrr`: Current Monthly Recurring Revenue from all active subscriptions (normalized to monthly equivalent)
+- `revenue_breakdown`: Detailed breakdown showing revenue sources
+
+**Key Revenue Changes:**
+- ✅ **Fixed**: Revenue calculations now include renewal payments (previously missed)
+- ✅ **Enhanced**: Revenue breakdown by source (new vs existing customers)
+- ✅ **Accurate**: Based on actual invoice payments, not just subscription creation amounts
+- ✅ **Multi-interval**: Properly handles all billing periods (hourly, daily, weekly, monthly, quarterly, biannually, annually)
 
 **Subscription Counts:**
 - `total`: All subscriptions across all statuses
@@ -953,6 +982,44 @@ When using different periods, the revenue key name changes:
 
 **Plan Performance:**
 - Per-plan active subscriber counts and growth rates
+- `interval`: Plan billing period (monthly, annually, etc.)
+
+---
+
+## ⚠️ IMPORTANT: Enhanced Revenue Tracking
+
+**As of [Current Date], the dashboard metrics have been significantly enhanced to provide accurate revenue tracking:**
+
+### What Changed
+1. **Revenue now includes renewals**: Previously, only new subscription amounts were counted. Now all paid invoices (new + renewals) are included.
+2. **Revenue breakdown by source**: New fields show revenue from new customers vs existing customer renewals.
+3. **Multiple billing interval support**: Properly handles all plan intervals (hourly to annually).
+4. **Plan interval information**: Plan performance now includes the billing period for each plan.
+
+### New Financial Overview Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `{period}_recurring_revenue` | integer | **Total actual collected revenue** (new + renewals) |
+| `new_business_revenue` | integer | Revenue from first-time customers only |
+| `renewal_revenue` | integer | Revenue from existing customer renewals |
+| `current_mrr` | integer | Current Monthly Recurring Revenue (all active subscriptions) |
+| `revenue_breakdown` | object | Detailed breakdown: `{new_customers, renewals, total}` |
+
+### Frontend Integration Notes
+
+**Dashboard Cards:**
+- **Primary Revenue Card**: Use `{period}_recurring_revenue` (total actual revenue)
+- **Revenue Breakdown**: Use `revenue_breakdown.new_customers` and `revenue_breakdown.renewals`
+- **Forward-Looking MRR**: Use `current_mrr` for projections
+
+**Charts & Analytics:**
+- Revenue trends now show **actual collected money** including renewals
+- Growth rates are now accurate and include recurring business
+- Plan performance includes interval information for better analysis
+
+**Period Support:**
+All calculations work correctly with `?period=daily`, `weekly`, `monthly`, `quarterly`, `biannually`, `annually`
 
 ---
 

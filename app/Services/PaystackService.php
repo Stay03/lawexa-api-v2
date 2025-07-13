@@ -385,10 +385,20 @@ class PaystackService
                 ->first();
                 
             if ($subscription) {
-                $subscription->update(['status' => 'active']);
-                Log::info('Updated subscription status to active', [
+                // Calculate next payment date based on plan interval
+                $interval = $data['plan']['interval'] ?? 'monthly';
+                $nextPaymentDate = $this->calculateNextPaymentDate(now(), $interval);
+                
+                $subscription->update([
+                    'status' => 'active',
+                    'next_payment_date' => $nextPaymentDate
+                ]);
+                
+                Log::info('Updated subscription status and next payment date', [
                     'subscription_id' => $subscription->id,
-                    'reference' => $data['reference']
+                    'reference' => $data['reference'],
+                    'next_payment_date' => $nextPaymentDate->toDateTimeString(),
+                    'interval' => $interval
                 ]);
             }
         }
@@ -482,6 +492,20 @@ class PaystackService
             'biannually' => $periodStart->copy()->addMonths(6),
             'annually' => $periodStart->copy()->addYear(),
             default => $periodStart->copy()->addMonth(), // fallback to monthly
+        };
+    }
+
+    private function calculateNextPaymentDate(\Carbon\Carbon $currentDate, string $interval): \Carbon\Carbon
+    {
+        return match($interval) {
+            'hourly' => $currentDate->copy()->addHour(),
+            'daily' => $currentDate->copy()->addDay(),
+            'weekly' => $currentDate->copy()->addWeek(),
+            'monthly' => $currentDate->copy()->addMonth(),
+            'quarterly' => $currentDate->copy()->addQuarter(),
+            'biannually' => $currentDate->copy()->addMonths(6),
+            'annually' => $currentDate->copy()->addYear(),
+            default => $currentDate->copy()->addMonth(), // fallback to monthly
         };
     }
 }

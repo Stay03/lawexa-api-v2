@@ -97,8 +97,16 @@ class SubscriptionMetricsService
 
     private function getFinancialOverview(): array
     {
+        // Calculate total actual revenue (includes new + renewals)
         $currentRevenue = $this->calculateRecurringRevenue($this->currentPeriodStart, $this->currentPeriodEnd);
         $previousRevenue = $this->calculateRecurringRevenue($this->previousPeriodStart, $this->previousPeriodEnd);
+
+        // Calculate revenue breakdown by source
+        $newBusinessRevenue = $this->calculateNewBusinessRevenue($this->currentPeriodStart, $this->currentPeriodEnd);
+        $renewalRevenue = $this->calculateRenewalRevenue($this->currentPeriodStart, $this->currentPeriodEnd);
+
+        // Calculate current MRR for forward-looking metrics
+        $currentMRR = $this->calculateCurrentMRR();
 
         $growthRate = $previousRevenue > 0
             ? (($currentRevenue - $previousRevenue) / $previousRevenue) * 100
@@ -109,6 +117,14 @@ class SubscriptionMetricsService
         return [
             $revenueKey => $currentRevenue,
             'revenue_growth_rate' => round($growthRate, 1),
+            'new_business_revenue' => $newBusinessRevenue,
+            'renewal_revenue' => $renewalRevenue,
+            'current_mrr' => $currentMRR,
+            'revenue_breakdown' => [
+                'new_customers' => $newBusinessRevenue,
+                'renewals' => $renewalRevenue,
+                'total' => $currentRevenue,
+            ],
         ];
     }
 
@@ -193,9 +209,69 @@ class SubscriptionMetricsService
 
     private function calculateRecurringRevenue(Carbon $startDate, Carbon $endDate): int
     {
-        return Subscription::where('status', 'active')
-            ->whereBetween('created_at', [$startDate, $endDate])
+        // Calculate actual revenue from paid invoices (includes new subscriptions AND renewals)
+        return SubscriptionInvoice::where('paid', true)
+            ->whereBetween('paid_at', [$startDate, $endDate])
             ->sum('amount');
+    }
+
+    private function calculateActualRevenue(Carbon $startDate, Carbon $endDate): int
+    {
+        // Same as recurring revenue - actual collected revenue from paid invoices
+        return $this->calculateRecurringRevenue($startDate, $endDate);
+    }
+
+    private function calculateNewBusinessRevenue(Carbon $startDate, Carbon $endDate): int
+    {
+        // Revenue from new subscriptions (first-time customers only)
+        $newSubscriptionIds = Subscription::whereBetween('created_at', [$startDate, $endDate])
+            ->pluck('id');
+
+        return SubscriptionInvoice::where('paid', true)
+            ->whereIn('subscription_id', $newSubscriptionIds)
+            ->whereBetween('paid_at', [$startDate, $endDate])
+            ->where('description', 'like', '%initial%')
+            ->sum('amount');
+    }
+
+    private function calculateRenewalRevenue(Carbon $startDate, Carbon $endDate): int
+    {
+        // Revenue from renewals (excluding initial payments)
+        return SubscriptionInvoice::where('paid', true)
+            ->whereBetween('paid_at', [$startDate, $endDate])
+            ->where('description', 'not like', '%initial%')
+            ->sum('amount');
+    }
+
+    private function calculateCurrentMRR(): int
+    {
+        // Monthly Recurring Revenue from all currently active subscriptions
+        $activeSubscriptions = Subscription::where('status', 'active')
+            ->with('plan')
+            ->get();
+
+        $totalMRR = 0;
+        foreach ($activeSubscriptions as $subscription) {
+            $monthlyAmount = $this->normalizeToMonthlyAmount($subscription->amount, $subscription->plan->interval);
+            $totalMRR += $monthlyAmount;
+        }
+
+        return $totalMRR;
+    }
+
+    private function normalizeToMonthlyAmount(int $amount, string $interval): int
+    {
+        // Convert any billing interval to monthly equivalent
+        return match ($interval) {
+            'hourly' => $amount * 24 * 30, // 24 hours * 30 days
+            'daily' => $amount * 30, // 30 days
+            'weekly' => $amount * 4.33, // ~4.33 weeks per month
+            'monthly' => $amount,
+            'quarterly' => intval($amount / 3), // 3 months
+            'biannually' => intval($amount / 6), // 6 months
+            'annually' => intval($amount / 12), // 12 months
+            default => $amount, // fallback to original amount
+        };
     }
 
     private function calculatePaymentSuccessRate(): float
