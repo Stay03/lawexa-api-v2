@@ -156,6 +156,7 @@ class SubscriptionService
     public function getSubscriptionInvoices(Subscription $subscription): Collection
     {
         return $subscription->invoices()
+            ->with(['subscription.user'])
             ->orderBy('period_start', 'desc')
             ->get();
     }

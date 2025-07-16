@@ -30,6 +30,13 @@ class SubscriptionInvoiceResource extends JsonResource
             'is_paid' => $this->isPaid(),
             'is_failed' => $this->isFailed(),
             'subscription' => new SubscriptionResource($this->whenLoaded('subscription')),
+            'user' => $this->whenLoaded('subscription.user', function () {
+                return [
+                    'id' => $this->subscription->user->id,
+                    'name' => $this->subscription->user->name,
+                    'email' => $this->subscription->user->email,
+                ];
+            }),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
