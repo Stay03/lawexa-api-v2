@@ -239,7 +239,7 @@ class PaystackService
         $customerCode = $data['customer']['customer_code'];
         $customerEmail = $data['customer']['email'];
         
-        $user = User::where('email', $customerEmail)->first();
+        $user = User::whereRaw('LOWER(email) = LOWER(?)', [$customerEmail])->first();
         if ($user && !$user->customer_code) {
             $user->update(['customer_code' => $customerCode]);
         }
@@ -369,7 +369,7 @@ class PaystackService
     {
         // Update user's customer code if not set
         if (isset($data['customer']['customer_code']) && isset($data['customer']['email'])) {
-            $user = User::where('email', $data['customer']['email'])->first();
+            $user = User::whereRaw('LOWER(email) = LOWER(?)', [$data['customer']['email']])->first();
             if ($user && !$user->customer_code) {
                 $user->update(['customer_code' => $data['customer']['customer_code']]);
                 Log::info('Updated user customer code', [
