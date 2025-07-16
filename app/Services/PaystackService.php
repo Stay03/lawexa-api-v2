@@ -469,20 +469,18 @@ class PaystackService
         $authorizationCode = $subscriptionData['authorization']['authorization_code'];
         $planCode = $subscriptionData['plan']['plan_code'];
         
-        // We need to check transaction logs or a temporary storage for recent charges
-        // For now, let's create initial invoice based on subscription data if it's a new subscription
+        // Only create initial invoice if this is a new subscription AND no invoice exists yet
         if ($subscription->wasRecentlyCreated) {
-            $invoiceCode = 'INV_' . strtoupper(uniqid()) . '_' . $subscription->id;
-            $interval = $subscriptionData['plan']['interval'] ?? 'monthly';
-            $periodStart = now();
-            $periodEnd = $this->calculatePeriodEnd($periodStart, $interval);
+            $existingInvoice = SubscriptionInvoice::where('subscription_id', $subscription->id)->first();
             
-            SubscriptionInvoice::updateOrCreate(
-                [
+            if (!$existingInvoice) {
+                $invoiceCode = 'INV_' . strtoupper(uniqid()) . '_' . $subscription->id;
+                $interval = $subscriptionData['plan']['interval'] ?? 'monthly';
+                $periodStart = now();
+                $periodEnd = $this->calculatePeriodEnd($periodStart, $interval);
+                
+                SubscriptionInvoice::create([
                     'subscription_id' => $subscription->id,
-                    'description' => 'Initial subscription payment'
-                ],
-                [
                     'invoice_code' => $invoiceCode,
                     'amount' => $subscription->amount,
                     'currency' => $subscription->currency,
@@ -491,17 +489,23 @@ class PaystackService
                     'paid_at' => $subscription->start_date,
                     'period_start' => $periodStart,
                     'period_end' => $periodEnd,
+                    'description' => 'Initial subscription payment',
                     'authorization_data' => $subscriptionData['authorization'] ?? null,
                     'metadata' => $subscriptionData,
-                ]
-            );
+                ]);
 
-            Log::info('Created initial invoice for new subscription', [
-                'subscription_id' => $subscription->id,
-                'authorization_code' => $authorizationCode,
-                'plan_code' => $planCode,
-                'amount' => $subscription->amount
-            ]);
+                Log::info('Created initial invoice for new subscription', [
+                    'subscription_id' => $subscription->id,
+                    'authorization_code' => $authorizationCode,
+                    'plan_code' => $planCode,
+                    'amount' => $subscription->amount
+                ]);
+            } else {
+                Log::info('Invoice already exists for subscription, skipping creation', [
+                    'subscription_id' => $subscription->id,
+                    'existing_invoice_id' => $existingInvoice->id
+                ]);
+            }
         }
     }
 
