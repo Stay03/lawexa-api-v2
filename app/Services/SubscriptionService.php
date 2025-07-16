@@ -91,7 +91,7 @@ class SubscriptionService
 
     public function reactivateSubscription(Subscription $subscription): Subscription
     {
-        if ($subscription->status !== 'cancelled') {
+        if ($subscription->status !== 'cancelled' || $subscription->status !== 'non-renewing') {
             throw new \Exception('Only cancelled subscriptions can be reactivated.');
         }
 
