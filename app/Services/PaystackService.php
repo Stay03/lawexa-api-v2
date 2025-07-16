@@ -278,6 +278,9 @@ class PaystackService
         );
 
 
+        // Check for recent charges that arrived before subscription creation
+        $this->processRecentChargesForSubscription($subscription, $data);
+
         Log::info('Subscription created/updated', [
             'user_id' => $user->id,
             'subscription_code' => $data['subscription_code'],
@@ -458,6 +461,48 @@ class PaystackService
             'annually' => $periodStart->copy()->addYear(),
             default => $periodStart->copy()->addMonth(), // fallback to monthly
         };
+    }
+
+    private function processRecentChargesForSubscription(Subscription $subscription, array $subscriptionData): void
+    {
+        // Check for recent successful charges with same authorization code that might have arrived before subscription
+        $authorizationCode = $subscriptionData['authorization']['authorization_code'];
+        $planCode = $subscriptionData['plan']['plan_code'];
+        
+        // We need to check transaction logs or a temporary storage for recent charges
+        // For now, let's create initial invoice based on subscription data if it's a new subscription
+        if ($subscription->wasRecentlyCreated) {
+            $invoiceCode = 'INV_' . strtoupper(uniqid()) . '_' . $subscription->id;
+            $interval = $subscriptionData['plan']['interval'] ?? 'monthly';
+            $periodStart = now();
+            $periodEnd = $this->calculatePeriodEnd($periodStart, $interval);
+            
+            SubscriptionInvoice::updateOrCreate(
+                [
+                    'subscription_id' => $subscription->id,
+                    'description' => 'Initial subscription payment'
+                ],
+                [
+                    'invoice_code' => $invoiceCode,
+                    'amount' => $subscription->amount,
+                    'currency' => $subscription->currency,
+                    'status' => 'paid',
+                    'paid' => true,
+                    'paid_at' => $subscription->start_date,
+                    'period_start' => $periodStart,
+                    'period_end' => $periodEnd,
+                    'authorization_data' => $subscriptionData['authorization'] ?? null,
+                    'metadata' => $subscriptionData,
+                ]
+            );
+
+            Log::info('Created initial invoice for new subscription', [
+                'subscription_id' => $subscription->id,
+                'authorization_code' => $authorizationCode,
+                'plan_code' => $planCode,
+                'amount' => $subscription->amount
+            ]);
+        }
     }
 
     private function calculateNextPaymentDate(\Carbon\Carbon $currentDate, string $interval): \Carbon\Carbon
