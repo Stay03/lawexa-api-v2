@@ -1184,6 +1184,855 @@ collection:
     scripts:
       afterResponse: ""
       preRequest: ""
+  - name: Cases
+    meta:
+      id: fld_c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2
+      created: 1751451883131
+      modified: 1751451883131
+      sortKey: -1751451883131
+      description: "Legal cases endpoints for users and admin management"
+    children:
+      - url: "{{ _.host }}/api/cases?page=1&per_page=15&search=&country=&court=&topic=&level=&date_from=&date_to="
+        name: List Cases
+        meta:
+          id: req_case_list_user_001
+          created: 1751451883131
+          modified: 1751451883131
+          isPrivate: false
+          description: >
+            **List Legal Cases**
+
+
+            Retrieves a paginated list of legal cases with advanced filtering and search capabilities.
+
+
+            **Authentication:** Required (Bearer Token)
+
+
+            **Query Parameters:**
+
+            - `search`: Optional, string, search in title, body, court, citation
+
+            - `country`: Optional, string, filter by country
+
+            - `court`: Optional, string, filter by court
+
+            - `topic`: Optional, string, filter by topic
+
+            - `level`: Optional, string, filter by level
+
+            - `date_from`: Optional, date, filter cases from this date (YYYY-MM-DD)
+
+            - `date_to`: Optional, date, filter cases until this date (YYYY-MM-DD)
+
+            - `page`: Optional, integer, page number (default: 1)
+
+            - `per_page`: Optional, integer, items per page (default: 15)
+
+
+            **Success Response (200):**
+
+            ```json
+
+            {
+              "status": "success",
+              "message": "Cases retrieved successfully",
+              "data": {
+                "cases": {
+                  "data": [
+                    {
+                      "id": 1,
+                      "title": "Case Title",
+                      "body": "Case description...",
+                      "report": "Case report...",
+                      "course": "Law 101",
+                      "topic": "Constitutional Law",
+                      "tag": "landmark",
+                      "principles": "Legal principles...",
+                      "level": "Supreme Court",
+                      "slug": "case-title",
+                      "court": "Supreme Court",
+                      "date": "2023-01-01",
+                      "country": "Nigeria",
+                      "citation": "2023 SCNJ 123",
+                      "judges": "Justice A, Justice B",
+                      "judicial_precedent": "Precedent details...",
+                      "creator": {
+                        "id": 1,
+                        "name": "Admin User"
+                      },
+                      "created_at": "2023-01-01T00:00:00.000000Z",
+                      "updated_at": "2023-01-01T00:00:00.000000Z"
+                    }
+                  ],
+                  "pagination": {
+                    "current_page": 1,
+                    "per_page": 15,
+                    "total": 100,
+                    "last_page": 7
+                  }
+                }
+              }
+            }
+
+            ```
+
+
+            **Error Response (401):**
+
+            ```json
+
+            {
+              "message": "Unauthenticated."
+            }
+
+            ```
+          sortKey: -1751451883131
+        method: GET
+        headers:
+          - name: Authorization
+            value: Bearer {{ _.token }}
+          - name: User-Agent
+            value: insomnia/11.2.0
+          - name: accept
+            value: application/json
+        scripts:
+          preRequest: ""
+          afterResponse: ""
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.host }}/api/cases/{{ _.case_slug }}"
+        name: View Case
+        meta:
+          id: req_case_view_user_001
+          created: 1751451883131
+          modified: 1751451883131
+          isPrivate: false
+          description: >
+            **View Single Legal Case**
+
+
+            Retrieves detailed information about a specific legal case.
+
+
+            **Authentication:** Required (Bearer Token)
+
+
+            **Path Parameters:**
+
+            - `case_id`: The ID of the case to view (for admin endpoints)
+            - `case_slug`: The slug of the case to view (for user endpoints)
+
+
+            **Success Response (200):**
+
+            ```json
+
+            {
+              "status": "success",
+              "message": "Case retrieved successfully",
+              "data": {
+                "case": {
+                  "id": 1,
+                  "title": "Case Title",
+                  "body": "Detailed case description...",
+                  "report": "Case report...",
+                  "course": "Law 101",
+                  "topic": "Constitutional Law",
+                  "tag": "landmark",
+                  "principles": "Legal principles...",
+                  "level": "Supreme Court",
+                  "slug": "case-title",
+                  "court": "Supreme Court",
+                  "date": "2023-01-01",
+                  "country": "Nigeria",
+                  "citation": "2023 SCNJ 123",
+                  "judges": "Justice A, Justice B",
+                  "judicial_precedent": "Precedent details...",
+                  "creator": {
+                    "id": 1,
+                    "name": "Admin User"
+                  },
+                  "created_at": "2023-01-01T00:00:00.000000Z",
+                  "updated_at": "2023-01-01T00:00:00.000000Z"
+                }
+              }
+            }
+
+            ```
+
+
+            **Error Response (401):**
+
+            ```json
+
+            {
+              "message": "Unauthenticated."
+            }
+
+            ```
+
+
+            **Error Response (404):**
+
+            ```json
+
+            {
+              "status": "error",
+              "message": "Case not found"
+            }
+
+            ```
+          sortKey: -1751451883131
+        method: GET
+        headers:
+          - name: Authorization
+            value: Bearer {{ _.token }}
+          - name: User-Agent
+            value: insomnia/11.2.0
+          - name: accept
+            value: application/json
+        scripts:
+          preRequest: ""
+          afterResponse: ""
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.host }}/api/admin/cases?page=1&per_page=15&search=&country=&court=&topic=&level=&date_from=&date_to=&created_by="
+        name: Admin - List Cases
+        meta:
+          id: req_case_list_admin_001
+          created: 1751451883131
+          modified: 1751451883131
+          isPrivate: false
+          description: >
+            **Admin - List Legal Cases**
+
+
+            Admin endpoint to retrieve a paginated list of legal cases with additional admin filters.
+
+
+            **Authentication:** Required (Bearer Token) - Admin, Researcher, or Superadmin role
+
+
+            **Query Parameters:**
+
+            - `search`: Optional, string, search in title, body, court, citation
+
+            - `country`: Optional, string, filter by country
+
+            - `court`: Optional, string, filter by court
+
+            - `topic`: Optional, string, filter by topic
+
+            - `level`: Optional, string, filter by level
+
+            - `date_from`: Optional, date, filter cases from this date (YYYY-MM-DD)
+
+            - `date_to`: Optional, date, filter cases until this date (YYYY-MM-DD)
+
+            - `created_by`: Optional, integer, filter by creator user ID (admin only)
+
+            - `page`: Optional, integer, page number (default: 1)
+
+            - `per_page`: Optional, integer, items per page (default: 15)
+
+
+            **Success Response (200):**
+
+            ```json
+
+            {
+              "status": "success",
+              "message": "Cases retrieved successfully",
+              "data": {
+                "cases": {
+                  "data": [
+                    {
+                      "id": 1,
+                      "title": "Case Title",
+                      "body": "Case description...",
+                      "report": "Case report...",
+                      "course": "Law 101",
+                      "topic": "Constitutional Law",
+                      "tag": "landmark",
+                      "principles": "Legal principles...",
+                      "level": "Supreme Court",
+                      "slug": "case-title",
+                      "court": "Supreme Court",
+                      "date": "2023-01-01",
+                      "country": "Nigeria",
+                      "citation": "2023 SCNJ 123",
+                      "judges": "Justice A, Justice B",
+                      "judicial_precedent": "Precedent details...",
+                      "creator": {
+                        "id": 1,
+                        "name": "Admin User"
+                      },
+                      "created_at": "2023-01-01T00:00:00.000000Z",
+                      "updated_at": "2023-01-01T00:00:00.000000Z"
+                    }
+                  ],
+                  "pagination": {
+                    "current_page": 1,
+                    "per_page": 15,
+                    "total": 100,
+                    "last_page": 7
+                  }
+                }
+              }
+            }
+
+            ```
+
+
+            **Error Response (403):**
+
+            ```json
+
+            {
+              "status": "error",
+              "message": "Unauthorized. Only admins, researchers, and superadmins can access admin endpoints."
+            }
+
+            ```
+          sortKey: -1751451883131
+        method: GET
+        headers:
+          - name: Authorization
+            value: Bearer {{ _.token }}
+          - name: User-Agent
+            value: insomnia/11.2.0
+          - name: accept
+            value: application/json
+        scripts:
+          preRequest: ""
+          afterResponse: ""
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.host }}/api/admin/cases"
+        name: Admin - Create Case
+        meta:
+          id: req_case_create_admin_001
+          created: 1751451883131
+          modified: 1751451883131
+          isPrivate: false
+          description: >
+            **Admin - Create Legal Case**
+
+
+            Creates a new legal case in the system.
+
+
+            **Authentication:** Required (Bearer Token) - Admin, Researcher, or Superadmin role
+
+
+            **Request Body:**
+
+            ```json
+
+            {
+              "title": "Landmark Constitutional Case",
+              "body": "Detailed case description and legal analysis...",
+              "report": "Full case report with findings...",
+              "course": "Constitutional Law 201",
+              "topic": "Fundamental Rights",
+              "tag": "landmark",
+              "principles": "Constitutional interpretation principles...",
+              "level": "Supreme Court",
+              "court": "Supreme Court of Nigeria",
+              "date": "2023-06-15",
+              "country": "Nigeria",
+              "citation": "2023 SCNJ 456",
+              "judges": "Justice Adebayo, Justice Okafor, Justice Musa",
+              "judicial_precedent": "Established precedent for constitutional interpretation..."
+            }
+
+            ```
+
+
+            **Validation Rules:**
+
+            - `title`: Required, string, max 255 characters
+
+            - `body`: Required, string
+
+            - `report`: Optional, string
+
+            - `course`: Optional, string, max 255 characters
+
+            - `topic`: Optional, string, max 255 characters
+
+            - `tag`: Optional, string, max 255 characters  
+
+            - `principles`: Optional, string
+
+            - `level`: Optional, string, max 255 characters
+
+            - `court`: Optional, string, max 255 characters
+
+            - `date`: Optional, valid date (YYYY-MM-DD)
+
+            - `country`: Optional, string, max 255 characters
+
+            - `citation`: Optional, string, max 255 characters
+
+            - `judges`: Optional, string
+
+            - `judicial_precedent`: Optional, string
+
+
+            **Success Response (201):**
+
+            ```json
+
+            {
+              "status": "success",
+              "message": "Case created successfully",
+              "data": {
+                "case": {
+                  "id": 1,
+                  "title": "Landmark Constitutional Case",
+                  "body": "Detailed case description...",
+                  "report": "Full case report...",
+                  "course": "Constitutional Law 201",
+                  "topic": "Fundamental Rights",
+                  "tag": "landmark",
+                  "principles": "Constitutional interpretation principles...",
+                  "level": "Supreme Court",
+                  "slug": "landmark-constitutional-case",
+                  "court": "Supreme Court of Nigeria",
+                  "date": "2023-06-15",
+                  "country": "Nigeria",
+                  "citation": "2023 SCNJ 456",
+                  "judges": "Justice Adebayo, Justice Okafor, Justice Musa",
+                  "judicial_precedent": "Established precedent...",
+                  "creator": {
+                    "id": 1,
+                    "name": "Admin User"
+                  },
+                  "created_at": "2023-01-01T00:00:00.000000Z",
+                  "updated_at": "2023-01-01T00:00:00.000000Z"
+                }
+              }
+            }
+
+            ```
+
+
+            **Error Response (422):**
+
+            ```json
+
+            {
+              "status": "error",
+              "message": "Validation failed",
+              "errors": {
+                "title": ["Case title is required"],
+                "body": ["Case body is required"]
+              }
+            }
+
+            ```
+          sortKey: -1751451883131
+        method: POST
+        body:
+          mimeType: application/json
+          text: |-
+            {
+            	"title": "{% faker 'randomWords', 5 %}",
+            	"body": "{% faker 'randomParagraphs', 3 %}",
+            	"report": "{% faker 'randomParagraphs', 2 %}",
+            	"course": "Constitutional Law 201",
+            	"topic": "Fundamental Rights",
+            	"tag": "landmark",
+            	"principles": "{% faker 'randomSentences', 2 %}",
+            	"level": "Supreme Court",
+            	"court": "Supreme Court of Nigeria",
+            	"date": "2023-06-15",
+            	"country": "Nigeria",
+            	"citation": "2023 SCNJ 456",
+            	"judges": "Justice Adebayo, Justice Okafor, Justice Musa",
+            	"judicial_precedent": "{% faker 'randomSentences', 3 %}"
+            }
+        headers:
+          - name: Authorization
+            value: Bearer {{ _.token }}
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/11.2.0
+          - name: accept
+            value: application/json
+        scripts:
+          preRequest: ""
+          afterResponse: ""
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.host }}/api/admin/cases/{{ _.case_id }}"
+        name: Admin - View Case
+        meta:
+          id: req_case_view_admin_001
+          created: 1751451883131
+          modified: 1751451883131
+          isPrivate: false
+          description: >
+            **Admin - View Legal Case**
+
+
+            Admin endpoint to view detailed information about a specific legal case.
+
+
+            **Authentication:** Required (Bearer Token) - Admin, Researcher, or Superadmin role
+
+
+            **Path Parameters:**
+
+            - `case_id`: The ID of the case to view (for admin endpoints)
+            - `case_slug`: The slug of the case to view (for user endpoints)
+
+
+            **Success Response (200):**
+
+            ```json
+
+            {
+              "status": "success",
+              "message": "Case retrieved successfully",
+              "data": {
+                "case": {
+                  "id": 1,
+                  "title": "Case Title",
+                  "body": "Detailed case description...",
+                  "report": "Case report...",
+                  "course": "Law 101",
+                  "topic": "Constitutional Law",
+                  "tag": "landmark",
+                  "principles": "Legal principles...",
+                  "level": "Supreme Court",
+                  "slug": "case-title",
+                  "court": "Supreme Court",
+                  "date": "2023-01-01",
+                  "country": "Nigeria",
+                  "citation": "2023 SCNJ 123",
+                  "judges": "Justice A, Justice B",
+                  "judicial_precedent": "Precedent details...",
+                  "creator": {
+                    "id": 1,
+                    "name": "Admin User"
+                  },
+                  "created_at": "2023-01-01T00:00:00.000000Z",
+                  "updated_at": "2023-01-01T00:00:00.000000Z"
+                }
+              }
+            }
+
+            ```
+
+
+            **Error Response (403):**
+
+            ```json
+
+            {
+              "status": "error",
+              "message": "Unauthorized. Only admins, researchers, and superadmins can access admin endpoints."
+            }
+
+            ```
+          sortKey: -1751451883131
+        method: GET
+        headers:
+          - name: Authorization
+            value: Bearer {{ _.token }}
+          - name: User-Agent
+            value: insomnia/11.2.0
+          - name: accept
+            value: application/json
+        scripts:
+          preRequest: ""
+          afterResponse: ""
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.host }}/api/admin/cases/{{ _.case_id }}"
+        name: Admin - Update Case
+        meta:
+          id: req_case_update_admin_001
+          created: 1751451883131
+          modified: 1751451883131
+          isPrivate: false
+          description: >
+            **Admin - Update Legal Case**
+
+
+            Updates an existing legal case in the system.
+
+
+            **Authentication:** Required (Bearer Token) - Admin, Researcher, or Superadmin role
+
+
+            **Path Parameters:**
+
+            - `case_id`: The ID of the case to update (admin endpoint uses ID)
+
+
+            **Request Body:** (All fields are optional for updates)
+
+            ```json
+
+            {
+              "title": "Updated Case Title",
+              "body": "Updated case description...",
+              "report": "Updated case report...",
+              "course": "Advanced Constitutional Law",
+              "topic": "Updated topic",
+              "tag": "updated",
+              "principles": "Updated legal principles...",
+              "level": "Court of Appeal",
+              "court": "Court of Appeal, Lagos",
+              "date": "2023-07-20",
+              "country": "Nigeria",
+              "citation": "2023 CA 789",
+              "judges": "Justice Updated Names",
+              "judicial_precedent": "Updated precedent information..."
+            }
+
+            ```
+
+
+            **Validation Rules:**
+
+            - `title`: Optional, string, max 255 characters
+
+            - `body`: Optional, string
+
+            - `report`: Optional, string
+
+            - `course`: Optional, string, max 255 characters
+
+            - `topic`: Optional, string, max 255 characters
+
+            - `tag`: Optional, string, max 255 characters
+
+            - `principles`: Optional, string
+
+            - `level`: Optional, string, max 255 characters
+
+            - `court`: Optional, string, max 255 characters
+
+            - `date`: Optional, valid date (YYYY-MM-DD)
+
+            - `country`: Optional, string, max 255 characters
+
+            - `citation`: Optional, string, max 255 characters
+
+            - `judges`: Optional, string
+
+            - `judicial_precedent`: Optional, string
+
+
+            **Success Response (200):**
+
+            ```json
+
+            {
+              "status": "success",
+              "message": "Case updated successfully",
+              "data": {
+                "case": {
+                  "id": 1,
+                  "title": "Updated Case Title",
+                  "body": "Updated case description...",
+                  "report": "Updated case report...",
+                  "course": "Advanced Constitutional Law",
+                  "topic": "Updated topic",
+                  "tag": "updated",
+                  "principles": "Updated legal principles...",
+                  "level": "Court of Appeal",
+                  "slug": "updated-case-title",
+                  "court": "Court of Appeal, Lagos",
+                  "date": "2023-07-20",
+                  "country": "Nigeria",
+                  "citation": "2023 CA 789",
+                  "judges": "Justice Updated Names",
+                  "judicial_precedent": "Updated precedent information...",
+                  "creator": {
+                    "id": 1,
+                    "name": "Admin User"
+                  },
+                  "created_at": "2023-01-01T00:00:00.000000Z",
+                  "updated_at": "2023-01-01T12:00:00.000000Z"
+                }
+              }
+            }
+
+            ```
+
+
+            **Error Response (422):**
+
+            ```json
+
+            {
+              "status": "error",
+              "message": "Validation failed",
+              "errors": {
+                "title": ["Case title cannot exceed 255 characters"]
+              }
+            }
+
+            ```
+          sortKey: -1751451883131
+        method: PUT
+        body:
+          mimeType: application/json
+          text: |-
+            {
+            	"title": "Updated Case Title",
+            	"body": "This is an updated case description with more details...",
+            	"report": "Updated comprehensive case report...",
+            	"topic": "Updated Legal Topic",
+            	"level": "Court of Appeal",
+            	"court": "Court of Appeal, Lagos"
+            }
+        headers:
+          - name: Authorization
+            value: Bearer {{ _.token }}
+          - name: Content-Type
+            value: application/json
+          - name: User-Agent
+            value: insomnia/11.2.0
+          - name: accept
+            value: application/json
+        scripts:
+          preRequest: ""
+          afterResponse: ""
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.host }}/api/admin/cases/{{ _.case_id }}"
+        name: Admin - Delete Case
+        meta:
+          id: req_case_delete_admin_001
+          created: 1751451883131
+          modified: 1751451883131
+          isPrivate: false
+          description: >
+            **Admin - Delete Legal Case**
+
+
+            Permanently deletes a legal case from the system.
+
+
+            **Authentication:** Required (Bearer Token) - Admin, Researcher, or Superadmin role
+
+
+            **Path Parameters:**
+
+            - `case_id`: The ID of the case to delete (admin endpoint uses ID)
+
+
+            **Success Response (200):**
+
+            ```json
+
+            {
+              "status": "success",
+              "message": "Case deleted successfully",
+              "data": []
+            }
+
+            ```
+
+
+            **Error Response (403):**
+
+            ```json
+
+            {
+              "status": "error",
+              "message": "Unauthorized. Only admins, researchers, and superadmins can delete cases."
+            }
+
+            ```
+
+
+            **Error Response (404):**
+
+            ```json
+
+            {
+              "status": "error",
+              "message": "Case not found"
+            }
+
+            ```
+
+
+            **Important Notes:**
+
+            - This action is irreversible
+
+            - The case will be permanently removed from the database
+
+            - Use with caution
+          sortKey: -1751451883131
+        method: DELETE
+        headers:
+          - name: Authorization
+            value: Bearer {{ _.token }}
+          - name: User-Agent
+            value: insomnia/11.2.0
+          - name: accept
+            value: application/json
+        scripts:
+          preRequest: ""
+          afterResponse: ""
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+    scripts:
+      afterResponse: ""
+      preRequest: ""
 cookieJar:
   name: Default Jar
   meta:
@@ -1209,6 +2058,8 @@ environments:
         host: http://127.0.0.1:8000
         token: 7|twVxyhhfpfK3m5vEo3IQANYQEePf5jFNyjpAsM6d531ca79d
         user_id: 1
+        case_id: 1
+        case_slug: test-id-based-update
       color: "#41c238"
     - name: Web
       meta:
@@ -1221,4 +2072,6 @@ environments:
         host: https://rest.lawexa.com
         token: 51|yYMUEHdTyrD0MT0L8p2vl0Fj1VJCYS0SSqcFEbO11fd09933
         user_id: 1
+        case_id: 1
+        case_slug: test-case-slug
       color: "#b91313"

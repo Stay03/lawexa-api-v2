@@ -11,7 +11,8 @@
       "Bash(php -l:*)",
       "Bash(rg:*)",
       "Bash(mkdir:*)",
-      "WebFetch(domain:paystack.com)"
+      "WebFetch(domain:paystack.com)",
+      "Bash(curl:*)"
     ],
     "deny": []
   }

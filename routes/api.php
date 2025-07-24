@@ -8,6 +8,19 @@ use App\Http\Controllers\PlanController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\AdminSubscriptionController;
 use App\Http\Controllers\PaystackWebhookController;
+use App\Http\Controllers\CaseController;
+use App\Http\Controllers\AdminCaseController;
+
+// Configure route model bindings - admin routes use ID, user routes use slug
+Route::bind('case', function ($value, $route) {
+    // Check if this is an admin route
+    if (str_contains($route->uri(), 'admin/cases')) {
+        // Admin routes: bind by ID
+        return \App\Models\CourtCase::findOrFail($value);
+    }
+    // User routes: bind by slug (default behavior)
+    return \App\Models\CourtCase::where('slug', $value)->firstOrFail();
+});
 
 Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register']);
@@ -52,6 +65,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('switch-plan', [SubscriptionController::class, 'switchPlan']);
     });
 
+    // User case routes (slug-based)
+    Route::prefix('cases')->group(function () {
+        Route::get('/', [CaseController::class, 'index']);
+        Route::get('{case}', [CaseController::class, 'show']);
+    });
+
     Route::middleware('role:admin,researcher,superadmin')->prefix('admin')->group(function () {
         Route::get('dashboard', [App\Http\Controllers\AdminController::class, 'dashboard']);
         Route::get('users', [App\Http\Controllers\AdminController::class, 'getUsers']);
@@ -78,6 +97,15 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('{plan}', [PlanController::class, 'destroy']);
             Route::post('{plan}/activate', [PlanController::class, 'activate']);
             Route::post('{plan}/sync', [PlanController::class, 'sync']);
+        });
+        
+        // Admin case management routes (ID-based)
+        Route::prefix('cases')->group(function () {
+            Route::get('/', [AdminCaseController::class, 'index']);
+            Route::post('/', [AdminCaseController::class, 'store']);
+            Route::get('{case}', [AdminCaseController::class, 'show'])->where('case', '[0-9]+');
+            Route::put('{case}', [AdminCaseController::class, 'update'])->where('case', '[0-9]+');
+            Route::delete('{case}', [AdminCaseController::class, 'destroy'])->where('case', '[0-9]+');
         });
     });
 });

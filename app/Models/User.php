@@ -127,4 +127,9 @@ class User extends Authenticatable
     {
         return $this->activeSubscription?->next_payment_date;
     }
+
+    public function courtCases(): HasMany
+    {
+        return $this->hasMany(CourtCase::class, 'created_by');
+    }
 }
