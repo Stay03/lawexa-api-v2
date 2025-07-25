@@ -1,0 +1,8 @@
+Show peoper download link in download file endpoint
+
+
+git pull
+php artisan migrate
+composer install
+php artisan config:clear
+php artisan cache:clear

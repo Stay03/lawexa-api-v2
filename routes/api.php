@@ -11,6 +11,8 @@ use App\Http\Controllers\PaystackWebhookController;
 use App\Http\Controllers\CaseController;
 use App\Http\Controllers\AdminCaseController;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\DirectUploadController;
+use App\Http\Controllers\S3WebhookController;
 
 // Configure route model bindings - admin routes use ID, user routes use slug
 Route::bind('case', function ($value, $route) {
@@ -34,14 +36,27 @@ Route::prefix('auth')->group(function () {
     Route::post('google/exchange', [GoogleAuthController::class, 'exchangeCodeForToken']);
 });
 
-// Paystack webhook (no auth required)
+// Webhook endpoints (no auth required)
 Route::post('webhooks/paystack', [PaystackWebhookController::class, 'handle']);
+Route::post('webhooks/s3', [S3WebhookController::class, 'handle']);
+Route::get('webhooks/s3/health', [S3WebhookController::class, 'health']);
 
 // Public plans endpoint (no auth required)
 Route::get('plans', [PlanController::class, 'index']);
 Route::get('plans/{plan}', [PlanController::class, 'show']);
 
 Route::middleware('auth:sanctum')->group(function () {
+    // Direct upload routes (available to all authenticated users)
+    Route::prefix('direct-upload')->group(function () {
+        Route::get('config', [DirectUploadController::class, 'getUploadConfig']);
+        Route::post('generate-url', [DirectUploadController::class, 'generateUploadUrl']);
+        Route::post('{fileId}/complete', [DirectUploadController::class, 'markUploadCompleted'])->where('fileId', '[0-9]+');
+        Route::post('{fileId}/failed', [DirectUploadController::class, 'markUploadFailed'])->where('fileId', '[0-9]+');
+        Route::get('{fileId}/status', [DirectUploadController::class, 'getUploadStatus'])->where('fileId', '[0-9]+');
+        Route::delete('{fileId}/cancel', [DirectUploadController::class, 'cancelUpload'])->where('fileId', '[0-9]+');
+        Route::get('pending', [DirectUploadController::class, 'getPendingUploads']);
+    });
+
     Route::prefix('user')->group(function () {
         Route::get('profile', function (Request $request) {
             $user = $request->user()->load(['activeSubscription', 'subscriptions']);
@@ -119,6 +134,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('delete-multiple', [FileController::class, 'destroyMultiple']);
             Route::get('stats', [FileController::class, 'stats']);
             Route::post('cleanup', [FileController::class, 'cleanup'])->middleware('role:admin,superadmin');
+        });
+        
+        // Admin direct upload management routes
+        Route::prefix('direct-upload')->group(function () {
+            Route::post('cleanup-expired', [DirectUploadController::class, 'cleanupExpiredUploads'])->middleware('role:admin,superadmin');
         });
     });
 });

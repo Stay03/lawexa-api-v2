@@ -32,6 +32,7 @@ class File extends Model
         'fileable_type',
         'fileable_id',
         'uploaded_by',
+        'upload_status',
     ];
 
     /**
@@ -133,6 +134,30 @@ class File extends Model
     }
 
     /**
+     * Check if upload is pending.
+     */
+    public function getIsPendingAttribute(): bool
+    {
+        return $this->upload_status === 'pending';
+    }
+
+    /**
+     * Check if upload is completed.
+     */
+    public function getIsCompletedAttribute(): bool
+    {
+        return $this->upload_status === 'completed';
+    }
+
+    /**
+     * Check if upload failed.
+     */
+    public function getIsFailedAttribute(): bool
+    {
+        return $this->upload_status === 'failed';
+    }
+
+    /**
      * Scope to filter files by category.
      */
     public function scopeByCategory($query, string $category)
@@ -170,6 +195,38 @@ class File extends Model
     {
         return $query->where('fileable_type', get_class($model))
                     ->where('fileable_id', $model->id);
+    }
+
+    /**
+     * Scope to filter files by upload status.
+     */
+    public function scopeByUploadStatus($query, string $status)
+    {
+        return $query->where('upload_status', $status);
+    }
+
+    /**
+     * Scope to get only completed uploads.
+     */
+    public function scopeCompleted($query)
+    {
+        return $query->where('upload_status', 'completed');
+    }
+
+    /**
+     * Scope to get only pending uploads.
+     */
+    public function scopePending($query)
+    {
+        return $query->where('upload_status', 'pending');
+    }
+
+    /**
+     * Scope to get only failed uploads.
+     */
+    public function scopeFailed($query)
+    {
+        return $query->where('upload_status', 'failed');
     }
 
     /**
