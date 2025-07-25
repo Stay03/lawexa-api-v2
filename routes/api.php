@@ -50,6 +50,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('direct-upload')->group(function () {
         Route::get('config', [DirectUploadController::class, 'getUploadConfig']);
         Route::post('generate-url', [DirectUploadController::class, 'generateUploadUrl']);
+        Route::post('simple', [DirectUploadController::class, 'simpleUpload']);
         Route::post('{fileId}/complete', [DirectUploadController::class, 'markUploadCompleted'])->where('fileId', '[0-9]+');
         Route::post('{fileId}/failed', [DirectUploadController::class, 'markUploadFailed'])->where('fileId', '[0-9]+');
         Route::get('{fileId}/status', [DirectUploadController::class, 'getUploadStatus'])->where('fileId', '[0-9]+');

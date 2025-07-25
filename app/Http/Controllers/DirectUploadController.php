@@ -9,6 +9,7 @@ use App\Services\DirectS3UploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Exception;
 
 class DirectUploadController extends Controller
@@ -292,6 +293,128 @@ class DirectUploadController extends Controller
             return ApiResponse::error(
                 'Failed to cleanup expired uploads: ' . $e->getMessage(), 
                 500
+            );
+        }
+    }
+
+    /**
+     * Simple upload endpoint that handles the entire direct S3 upload process
+     */
+    public function simpleUpload(Request $request): JsonResponse
+    {
+        try {
+            // Validate request
+            $request->validate([
+                'files' => 'required|array|min:1',
+                'files.*' => 'required|file|max:' . (100 * 1024), // 100MB in KB
+                'category' => 'sometimes|string|in:general,legal,case,document,image',
+            ]);
+
+            $category = $request->get('category', 'general');
+            $uploadedFiles = [];
+            $errors = [];
+            
+            foreach ($request->file('files') as $uploadedFile) {
+                try {
+                    // Extract file information
+                    $fileData = [
+                        'original_name' => $uploadedFile->getClientOriginalName(),
+                        'mime_type' => $uploadedFile->getMimeType(),
+                        'size' => $uploadedFile->getSize(),
+                        'category' => $category,
+                    ];
+
+                    // Use the existing service to handle the upload process
+                    $result = $this->uploadService->generateUploadUrl($fileData, $request->user()->id);
+                    
+                    // Get the file content and upload it directly using the service's S3 client
+                    $fileContent = file_get_contents($uploadedFile->getRealPath());
+                    
+                    // Upload directly to S3 using the service's existing S3 client
+                    $s3Client = new \Aws\S3\S3Client([
+                        'version' => 'latest',
+                        'region' => config('filesystems.disks.s3.region'),
+                        'credentials' => [
+                            'key' => config('filesystems.disks.s3.key'),
+                            'secret' => config('filesystems.disks.s3.secret'),
+                        ],
+                        'http' => [
+                            'verify' => false, // For development - should be true in production
+                        ],
+                    ]);
+                    
+                    $s3Client->putObject([
+                        'Bucket' => config('filesystems.disks.s3.bucket'),
+                        'Key' => $result['path'],
+                        'Body' => $fileContent,
+                        'ContentType' => $fileData['mime_type'],
+                        'Metadata' => [
+                            'original-name' => $fileData['original_name'],
+                            'category' => $category,
+                            'uploaded-by' => (string) $request->user()->id,
+                        ]
+                    ]);
+                    
+                    // Mark the upload as completed
+                    $fileRecord = $this->uploadService->markUploadCompleted($result['file_id']);
+
+                    $uploadedFiles[] = [
+                        'id' => $fileRecord->id,
+                        'original_name' => $fileRecord->original_name,
+                        'filename' => $fileRecord->filename,
+                        'size' => $fileRecord->size,
+                        'human_size' => $fileRecord->human_size,
+                        'mime_type' => $fileRecord->mime_type,
+                        'category' => $fileRecord->category,
+                        'upload_status' => $fileRecord->upload_status,
+                        'url' => $fileRecord->url,
+                        'created_at' => $fileRecord->created_at,
+                    ];
+
+                    Log::info('File uploaded successfully via simple upload', [
+                        'file_id' => $fileRecord->id,
+                        'filename' => $filename,
+                        'size' => $fileData['size']
+                    ]);
+
+                } catch (Exception $e) {
+                    $errors[] = [
+                        'filename' => $uploadedFile->getClientOriginalName() ?? 'unknown',
+                        'error' => $e->getMessage()
+                    ];
+                    
+                    Log::error('Failed to upload file via simple upload', [
+                        'filename' => $uploadedFile->getClientOriginalName() ?? 'unknown',
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+
+            $response_data = [
+                'files' => $uploadedFiles,
+                'uploaded_count' => count($uploadedFiles),
+                'failed_count' => count($errors),
+            ];
+
+            if (!empty($errors)) {
+                $response_data['errors'] = $errors;
+            }
+
+            $message = count($uploadedFiles) > 0 
+                ? 'Files uploaded successfully' 
+                : 'No files were uploaded successfully';
+
+            return ApiResponse::success($response_data, $message);
+
+        } catch (Exception $e) {
+            Log::error('Simple upload request failed', [
+                'user_id' => $request->user()->id,
+                'error' => $e->getMessage()
+            ]);
+
+            return ApiResponse::error(
+                'Upload failed: ' . $e->getMessage(), 
+                422
             );
         }
     }

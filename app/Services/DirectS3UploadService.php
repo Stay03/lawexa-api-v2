@@ -262,7 +262,7 @@ class DirectS3UploadService
     /**
      * Generate unique filename
      */
-    private function generateUniqueFilename(string $originalName): string
+    public function generateUniqueFilename(string $originalName): string
     {
         $extension = pathinfo($originalName, PATHINFO_EXTENSION);
         $uuid = Str::uuid();
@@ -272,7 +272,7 @@ class DirectS3UploadService
     /**
      * Generate directory path based on category and date
      */
-    private function generateDirectoryPath(string $category): string
+    public function generateDirectoryPath(string $category): string
     {
         $year = date('Y');
         $month = date('m');
