@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Services\FileUploadService;
 use Illuminate\Foundation\Http\FormRequest;
 
 class CreateCaseRequest extends FormRequest
@@ -21,6 +22,10 @@ class CreateCaseRequest extends FormRequest
      */
     public function rules(): array
     {
+        $fileUploadService = app(FileUploadService::class);
+        $maxFileSize = $fileUploadService->getMaxFileSize() / 1024; // Convert to KB for Laravel validation
+        $allowedTypes = implode(',', $fileUploadService->getAllowedTypes());
+
         return [
             'title' => 'required|string|max:255',
             'body' => 'required|string',
@@ -36,6 +41,14 @@ class CreateCaseRequest extends FormRequest
             'citation' => 'nullable|string|max:255',
             'judges' => 'nullable|string',
             'judicial_precedent' => 'nullable|string',
+            
+            // File upload rules
+            'files' => 'sometimes|array|max:10',
+            'files.*' => [
+                'file',
+                'max:' . $maxFileSize,
+                'mimes:' . $allowedTypes
+            ],
         ];
     }
 
@@ -46,6 +59,10 @@ class CreateCaseRequest extends FormRequest
      */
     public function messages(): array
     {
+        $fileUploadService = app(FileUploadService::class);
+        $maxSizeMB = $fileUploadService->getMaxFileSize() / 1024 / 1024;
+        $allowedTypes = implode(', ', $fileUploadService->getAllowedTypes());
+
         return [
             'title.required' => 'Case title is required',
             'title.max' => 'Case title cannot exceed 255 characters',
@@ -54,6 +71,13 @@ class CreateCaseRequest extends FormRequest
             'country.max' => 'Country name cannot exceed 255 characters',
             'citation.max' => 'Citation cannot exceed 255 characters',
             'date.date' => 'Please provide a valid date',
+            
+            // File upload messages
+            'files.array' => 'Files must be provided as an array',
+            'files.max' => 'You cannot upload more than 10 files at once',
+            'files.*.file' => 'One or more uploaded files are not valid',
+            'files.*.max' => "Each file size cannot exceed {$maxSizeMB}MB",
+            'files.*.mimes' => "Only the following file types are allowed: {$allowedTypes}",
         ];
     }
 }

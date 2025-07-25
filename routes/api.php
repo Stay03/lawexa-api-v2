@@ -10,6 +10,7 @@ use App\Http\Controllers\AdminSubscriptionController;
 use App\Http\Controllers\PaystackWebhookController;
 use App\Http\Controllers\CaseController;
 use App\Http\Controllers\AdminCaseController;
+use App\Http\Controllers\FileController;
 
 // Configure route model bindings - admin routes use ID, user routes use slug
 Route::bind('case', function ($value, $route) {
@@ -106,6 +107,18 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('{case}', [AdminCaseController::class, 'show'])->where('case', '[0-9]+');
             Route::put('{case}', [AdminCaseController::class, 'update'])->where('case', '[0-9]+');
             Route::delete('{case}', [AdminCaseController::class, 'destroy'])->where('case', '[0-9]+');
+        });
+        
+        // Admin file management routes
+        Route::prefix('files')->group(function () {
+            Route::get('/', [FileController::class, 'index']);
+            Route::post('/', [FileController::class, 'store']);
+            Route::get('{id}', [FileController::class, 'show'])->where('id', '[0-9]+');
+            Route::get('{id}/download', [FileController::class, 'download'])->where('id', '[0-9]+');
+            Route::delete('{id}', [FileController::class, 'destroy'])->where('id', '[0-9]+');
+            Route::post('delete-multiple', [FileController::class, 'destroyMultiple']);
+            Route::get('stats', [FileController::class, 'stats']);
+            Route::post('cleanup', [FileController::class, 'cleanup'])->middleware('role:admin,superadmin');
         });
     });
 });

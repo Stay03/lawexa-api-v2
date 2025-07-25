@@ -37,6 +37,10 @@ class CaseResource extends JsonResource
                     'name' => $this->creator->name,
                 ];
             }),
+            'files' => $this->whenLoaded('files', function () {
+                return FileResource::collection($this->files);
+            }),
+            'files_count' => $this->when($this->relationLoaded('files'), $this->files->count()),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

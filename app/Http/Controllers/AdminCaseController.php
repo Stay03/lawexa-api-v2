@@ -8,11 +8,13 @@ use App\Http\Resources\CaseCollection;
 use App\Http\Resources\CaseResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\CourtCase;
+use App\Traits\HandlesFileUploads;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AdminCaseController extends Controller
 {
+    use HandlesFileUploads;
     public function index(Request $request): JsonResponse
     {
         $query = CourtCase::with('creator:id,name');
@@ -67,7 +69,13 @@ class AdminCaseController extends Controller
 
         try {
             $case = CourtCase::create($validated);
-            $case->load('creator:id,name');
+            
+            // Handle file uploads if present
+            if ($request->hasFile('files')) {
+                $this->handleFileUploads($request, $case, 'files', 'case_reports', 'local');
+            }
+            
+            $case->load(['creator:id,name', 'files']);
 
             return ApiResponse::success([
                 'case' => new CaseResource($case)
@@ -79,7 +87,7 @@ class AdminCaseController extends Controller
 
     public function show(CourtCase $case): JsonResponse
     {
-        $case->load('creator:id,name');
+        $case->load(['creator:id,name', 'files']);
         
         return ApiResponse::success([
             'case' => new CaseResource($case)
@@ -92,7 +100,13 @@ class AdminCaseController extends Controller
 
         try {
             $case->update($validated);
-            $case->load('creator:id,name');
+            
+            // Handle file uploads if present
+            if ($request->hasFile('files')) {
+                $this->handleFileUploads($request, $case, 'files', 'case_reports', 'local');
+            }
+            
+            $case->load(['creator:id,name', 'files']);
 
             return ApiResponse::success([
                 'case' => new CaseResource($case)
@@ -105,6 +119,9 @@ class AdminCaseController extends Controller
     public function destroy(CourtCase $case): JsonResponse
     {
         try {
+            // Delete associated files first
+            $this->deleteModelFiles($case);
+            
             $case->delete();
 
             return ApiResponse::success([], 'Case deleted successfully');
