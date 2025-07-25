@@ -23,8 +23,8 @@ Authorization: Bearer {token}
 
 | Action | User | Admin | Researcher | Superadmin |
 |--------|------|-------|------------|------------|
+| Upload files | ✅ | ✅ | ✅ | ✅ |
 | View files | ❌ | ✅ | ✅ | ✅ |
-| Upload files | ❌ | ✅ | ✅ | ✅ |
 | Download files | ❌ | ✅ | ✅ | ✅ |
 | Delete files | ❌ | ✅ | ✅ | ✅ |
 | File statistics | ❌ | ✅ | ✅ | ✅ |
@@ -37,7 +37,17 @@ Authorization: Bearer {token}
 
 ---
 
+## File Upload
+
+### Primary Upload Endpoint
+
+**POST** `/upload` - The main file upload endpoint for all authenticated users. Files are uploaded directly to S3 storage and return immediately with completed file records and S3 URLs.
+
+---
+
 ## Admin Endpoints
+
+**Note:** Admin endpoints are for file management operations like viewing, downloading, and deleting files. For uploading files, use the primary `/upload` endpoint above.
 
 ### 1. Get Files List (Admin)
 
@@ -81,14 +91,18 @@ GET /admin/files?category=case_reports&type=document&page=1&per_page=10
         "mime_type": "text/plain",
         "extension": "txt",
         "category": "general",
-        "url": "/storage/uploads/general/2025/07/7c002749-23bd-4731-9696-85e085bcf9d6.txt",
-        "download_url": "/storage/uploads/general/2025/07/7c002749-23bd-4731-9696-85e085bcf9d6.txt",
+        "url": "https://lawexa-api-files-dev.s3.amazonaws.com/uploads/general/2025/07/7c002749-23bd-4731-9696-85e085bcf9d6.txt",
+        "download_url": "https://lawexa-api-files-dev.s3.amazonaws.com/uploads/general/2025/07/7c002749-23bd-4731-9696-85e085bcf9d6.txt",
         "is_image": false,
         "is_document": true,
-        "disk": "local",
+        "disk": "s3",
         "metadata": {
-          "upload_ip": "127.0.0.1",
-          "upload_user_agent": "curl/8.2.1"
+          "upload_ip": "89.38.97.151",
+          "upload_user_agent": "curl/8.2.1",
+          "expected_size": 70,
+          "initiated_at": "2025-07-25T17:29:22.280568Z",
+          "completed_at": "2025-07-25T17:29:22.415800Z",
+          "s3_etag": "0729e75c39d3426fe4cecaf983a29bc0"
         },
         "uploaded_by": {
           "id": 2,
@@ -107,14 +121,18 @@ GET /admin/files?category=case_reports&type=document&page=1&per_page=10
         "mime_type": "application/pdf",
         "extension": "pdf",
         "category": "case_reports",
-        "url": "/storage/uploads/case_reports/2025/07/65de88f5-a47e-41d3-bdbb-5f17a0c21865.pdf",
-        "download_url": "/storage/uploads/case_reports/2025/07/65de88f5-a47e-41d3-bdbb-5f17a0c21865.pdf",
+        "url": "https://lawexa-api-files-dev.s3.amazonaws.com/uploads/case_reports/2025/07/65de88f5-a47e-41d3-bdbb-5f17a0c21865.pdf",
+        "download_url": "https://lawexa-api-files-dev.s3.amazonaws.com/uploads/case_reports/2025/07/65de88f5-a47e-41d3-bdbb-5f17a0c21865.pdf",
         "is_image": false,
         "is_document": true,
-        "disk": "local",
+        "disk": "s3",
         "metadata": {
-          "upload_ip": "127.0.0.1",
-          "upload_user_agent": null
+          "upload_ip": "89.38.97.151",
+          "upload_user_agent": "curl/8.2.1",
+          "expected_size": 29692,
+          "initiated_at": "2025-07-25T17:17:48.024130Z",
+          "completed_at": "2025-07-25T17:17:48.148049Z",
+          "s3_etag": "c59f02240abd2b4299ee4301e551f119"
         },
         "attached_to": {
           "type": "App\\Models\\CourtCase",
@@ -203,47 +221,46 @@ GET /admin/files/12
 }
 ```
 
-### 3. Upload File (Admin)
+### 3. Upload Files
 
-**POST** `/admin/files`
+**POST** `/upload`
 
-Uploads one or more files to the system.
+Primary endpoint for uploading files directly to S3 storage. Files are uploaded immediately and return completed records with S3 URLs.
 
 #### Required Permissions
-- admin, researcher, or superadmin
+- Any authenticated user (all roles)
 
 #### Request Body (Multipart Form Data)
 
 | Field | Type | Required | Validation | Description |
 |-------|------|----------|------------|-------------|
-| `file` | file | Yes (single) | See validation rules | Single file upload |
-| `files[]` | file array | Yes (multiple) | See validation rules | Multiple file upload (max 10) |
-| `category` | string | No | general, case_reports | File category (default: general) |
-| `disk` | string | No | local, s3 | Storage disk (default: local) |
+| `files[]` | file array | Yes | See validation rules | Multiple file upload (max 10) |
+| `category` | string | No | general, legal, case, document, image, case_reports | File category (default: general) |
 
 #### File Validation Rules
-- **Max size:** 10MB per file
+- **Max size:** 100MB per file
 - **Max files:** 10 files per request
 - **Allowed image types:** jpg, jpeg, png, gif, webp
 - **Allowed document types:** pdf, doc, docx, txt, rtf
+- **Storage:** Direct upload to Amazon S3
 
 #### Example Request (Single File)
 ```bash
-curl -X POST "/admin/files" \
+curl -X POST "/upload" \
   -H "Authorization: Bearer {token}" \
   -H "Content-Type: multipart/form-data" \
-  -F "file=@document.pdf" \
+  -F "files[]=@document.pdf" \
   -F "category=case_reports"
 ```
 
 #### Example Request (Multiple Files)
 ```bash
-curl -X POST "/admin/files" \
+curl -X POST "/upload" \
   -H "Authorization: Bearer {token}" \
   -H "Content-Type: multipart/form-data" \
   -F "files[]=@document1.pdf" \
   -F "files[]=@document2.docx" \
-  -F "category=case_reports"
+  -F "category=document"
 ```
 
 #### Success Response (200)
@@ -254,33 +271,52 @@ curl -X POST "/admin/files" \
   "data": {
     "files": [
       {
-        "id": 13,
-        "name": "test-case-document.txt",
-        "filename": "59330715-549e-4303-a168-bf2c11e4058a.txt",
-        "size": 70,
-        "human_size": "70 B",
-        "mime_type": "text/plain",
-        "extension": "txt",
+        "id": 24,
+        "original_name": "test-document.pdf",
+        "filename": "e8ecf23d-6da2-45e1-a78e-66caf629aa74.pdf",
+        "size": 2048576,
+        "human_size": "2 MB",
+        "mime_type": "application/pdf",
         "category": "case_reports",
-        "url": "/storage/uploads/case_reports/2025/07/59330715-549e-4303-a168-bf2c11e4058a.txt",
-        "download_url": "/storage/uploads/case_reports/2025/07/59330715-549e-4303-a168-bf2c11e4058a.txt",
-        "is_image": false,
-        "is_document": true,
-        "disk": "local",
-        "metadata": {
-          "upload_ip": "127.0.0.1",
-          "upload_user_agent": "curl/8.2.1"
-        },
-        "uploaded_by": {
-          "id": 2,
-          "name": "Dr. Arturo Rogahn",
-          "email": "Johnathon.Prohaska@hotmail.com"
-        },
-        "created_at": "2025-07-25T11:45:08.000000Z",
-        "updated_at": "2025-07-25T11:45:08.000000Z"
+        "upload_status": "completed",
+        "url": "https://lawexa-api-files-dev.s3.amazonaws.com/uploads/case_reports/2025/07/e8ecf23d-6da2-45e1-a78e-66caf629aa74.pdf",
+        "created_at": "2025-07-25T17:26:51.000000Z"
       }
     ],
-    "uploaded_count": 1
+    "uploaded_count": 1,
+    "failed_count": 0
+  }
+}
+```
+
+#### Error Response with Partial Success
+```json
+{
+  "status": "success",
+  "message": "Files uploaded successfully",
+  "data": {
+    "files": [
+      {
+        "id": 25,
+        "original_name": "valid-document.pdf",
+        "filename": "a1b2c3d4-5e6f-7890-abcd-ef1234567890.pdf",
+        "size": 1024768,
+        "human_size": "1000 KB",
+        "mime_type": "application/pdf",
+        "category": "general",
+        "upload_status": "completed",
+        "url": "https://lawexa-api-files-dev.s3.amazonaws.com/uploads/general/2025/07/a1b2c3d4-5e6f-7890-abcd-ef1234567890.pdf",
+        "created_at": "2025-07-25T17:28:15.000000Z"
+      }
+    ],
+    "uploaded_count": 1,
+    "failed_count": 1,
+    "errors": [
+      {
+        "filename": "invalid-file.exe",
+        "error": "File type not allowed. Allowed types: jpg, jpeg, png, gif, webp, pdf, doc, docx, txt, rtf"
+      }
+    ]
   }
 }
 ```
@@ -289,7 +325,7 @@ curl -X POST "/admin/files" \
 
 **GET** `/admin/files/{id}/download`
 
-Downloads a specific file by its ID.
+Generates a temporary signed download URL for accessing a specific file stored in S3.
 
 #### Required Permissions
 - admin, researcher, or superadmin
@@ -301,12 +337,37 @@ Downloads a specific file by its ID.
 | `id` | integer | Yes | File ID to download |
 
 #### Example Request
-```
-GET /admin/files/12/download
+```bash
+curl -X GET "/admin/files/7/download" \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"
 ```
 
 #### Success Response (200)
-Returns the file content with appropriate headers for download.
+```json
+{
+  "status": "success",
+  "message": "Success",
+  "data": {
+    "download_url": "https://lawexa-api-files-dev.s3.amazonaws.com/uploads/general/2025/07/a5e5b9fb-1e64-4d70-8f1f-ffc6e5096fd6.txt?X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVIJPT2UGT6Y6E2FQ%2F20250725%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250725T182323Z&X-Amz-SignedHeaders=host&X-Amz-Expires=3600&X-Amz-Signature=621fd12ce02ed1df0174ed2ffc489e507d847cbf5a1a1276b4398cf63193a9fe",
+    "filename": "test-primary-upload.txt",
+    "size": 55,
+    "mime_type": "text/plain"
+  }
+}
+```
+
+**Note:** The `download_url` is a temporary signed URL that expires in 1 hour (3600 seconds). Use this URL directly in your browser or application to download the file content.
+
+#### Using the Download URL
+Once you have the `download_url`, you can access the file content directly:
+
+```bash
+# Download the file content using the signed URL
+curl -o downloaded-file.txt "https://lawexa-api-files-dev.s3.amazonaws.com/uploads/general/2025/07/filename.txt?[signed-parameters]"
+```
+
+The signed URL provides direct access to the file stored in S3 without requiring additional authentication.
 
 ### 5. Delete File (Admin)
 
@@ -497,19 +558,20 @@ POST /admin/files/cleanup
 | Field | Type | Nullable | Description |
 |-------|------|----------|-------------|
 | `id` | integer | No | Unique file identifier |
-| `name` | string | No | Original filename |
+| `original_name` | string | No | Original filename |
 | `filename` | string | No | Stored filename (UUID-based) |
 | `size` | integer | No | File size in bytes |
 | `human_size` | string | No | Human-readable file size |
 | `mime_type` | string | No | File MIME type |
-| `extension` | string | No | File extension |
-| `category` | string | No | File category (general, case_reports) |
-| `url` | string | No | File access URL |
-| `download_url` | string | No | Direct download URL |
-| `is_image` | boolean | No | Whether file is an image |
-| `is_document` | boolean | No | Whether file is a document |
-| `disk` | string | No | Storage disk (local, s3) |
-| `metadata` | object | Yes | File metadata (IP, user agent, dimensions) |
+| `extension` | string | Yes | File extension |
+| `category` | string | No | File category (general, legal, case, document, image, case_reports) |
+| `upload_status` | string | No | Upload status (completed, pending, failed) |
+| `url` | string | No | S3 file access URL |
+| `download_url` | string | Yes | Direct download URL (deprecated - admin only) |
+| `is_image` | boolean | Yes | Whether file is an image |
+| `is_document` | boolean | Yes | Whether file is a document |
+| `disk` | string | No | Storage disk (s3 for new uploads) |
+| `metadata` | object | Yes | File metadata (IP, user agent, S3 info) |
 | `width` | integer | Yes | Image width (images only) |
 | `height` | integer | Yes | Image height (images only) |
 | `attached_to` | object | Yes | Parent model information |
@@ -538,6 +600,10 @@ POST /admin/files/cleanup
 |-------|------|----------|-------------|
 | `upload_ip` | string | Yes | IP address of uploader |
 | `upload_user_agent` | string | Yes | User agent of uploader |
+| `expected_size` | integer | Yes | Expected file size during upload |
+| `initiated_at` | string | Yes | ISO timestamp when upload was initiated |
+| `completed_at` | string | Yes | ISO timestamp when upload was completed |
+| `s3_etag` | string | Yes | S3 ETag for file verification |
 | `width` | integer | Yes | Image width (images only) |
 | `height` | integer | Yes | Image height (images only) |
 
@@ -580,18 +646,23 @@ POST /admin/files/cleanup
 | Category | Description | Use Case |
 |----------|-------------|----------|
 | `general` | General file uploads | Standalone files, user uploads |
-| `case_reports` | Legal case documents | Case attachments, legal documents |
+| `legal` | Legal documents | Legal forms, contracts, agreements |
+| `case` | Case-related files | General case files |
+| `document` | Document files | Reports, presentations, documents |
+| `image` | Image files | Photos, screenshots, diagrams |
+| `case_reports` | Legal case documents | Case attachments, legal case reports |
 
-### Category-based Storage
+### Category-based S3 Storage
 
-Files are organized in storage by category:
+Files are organized in Amazon S3 by category:
 ```
-storage/app/private/uploads/{category}/{year}/{month}/{uuid}.{extension}
+s3://bucket-name/uploads/{category}/{year}/{month}/{uuid}.{extension}
 ```
 
 Examples:
-- `uploads/general/2025/07/uuid.pdf`
-- `uploads/case_reports/2025/07/uuid.docx`
+- `uploads/general/2025/07/a1b2c3d4-5e6f-7890-abcd-ef1234567890.pdf`
+- `uploads/case_reports/2025/07/e8ecf23d-6da2-45e1-a78e-66caf629aa74.docx`
+- `uploads/image/2025/07/f9g8h7i6-j5k4-l3m2-n1o0-p9q8r7s6t5u4.jpg`
 
 ---
 
@@ -599,7 +670,7 @@ Examples:
 
 ### Upload Case Documents
 ```bash
-curl -X POST "/admin/files" \
+curl -X POST "/upload" \
   -H "Authorization: Bearer {token}" \
   -F "files[]=@case-report.pdf" \
   -F "files[]=@evidence.jpg" \
@@ -650,7 +721,7 @@ POST /admin/files/delete-multiple
 ## File Upload Integration
 
 ### Upload Files with Case Creation
-When creating a case, files can be attached directly:
+When creating a case, files can be attached directly using the admin case endpoint:
 
 ```bash
 curl -X POST "/admin/cases" \
@@ -662,25 +733,42 @@ curl -X POST "/admin/cases" \
 ```
 
 The uploaded files will automatically:
+- Be uploaded to S3 directly
 - Be categorized as `case_reports`
 - Be linked to the created case via polymorphic relationship
 - Include uploader information (`uploaded_by`)
+- Have `upload_status` set to `completed`
+
+### Standalone File Upload
+For general file uploads not attached to specific models:
+
+```bash
+curl -X POST "/upload" \
+  -H "Authorization: Bearer {token}" \
+  -F "files[]=@document.pdf" \
+  -F "files[]=@image.jpg" \
+  -F "category=general"
+```
+
+Response includes immediate S3 URLs for the uploaded files.
 
 ---
 
 ## Security Features
 
 ### File Validation
-- **Size limits:** Maximum 10MB per file
+- **Size limits:** Maximum 100MB per file
 - **Type restrictions:** Only allowed file types can be uploaded
 - **MIME type validation:** Files are validated by both extension and MIME type
+- **Category validation:** Files must specify valid category
 - **Virus scanning:** Files are scanned for malicious content (if configured)
 
 ### Storage Security
-- **Private storage:** Files stored in private directories
+- **S3 Private Storage:** Files stored in private S3 buckets
 - **UUID filenames:** Original filenames are replaced with UUIDs
-- **Access control:** Download URLs require authentication
-- **Disk isolation:** Files can be stored on different disks (local, S3)
+- **Signed URLs:** Access via temporary signed URLs for security
+- **Encryption:** Files encrypted at rest in S3
+- **Access control:** All file access requires authentication
 
 ### Audit Trail
 - **Upload tracking:** Every file tracks who uploaded it
@@ -719,9 +807,9 @@ The uploaded files will automatically:
 4. **Deletion:** Files are soft-deleted and can be cleaned up periodically
 
 ### Storage Options
-- **Local Storage:** Files stored on server filesystem
-- **S3 Storage:** Files stored on Amazon S3 (configurable)
-- **Hybrid:** Different categories can use different storage disks
+- **S3 Storage:** Primary storage on Amazon S3 with direct upload
+- **Local Storage:** Legacy files may exist on server filesystem (admin managed)
+- **Direct Upload:** New files upload directly to S3 without server processing
 
 ### Performance
 - **Pagination:** All file lists are paginated for performance
