@@ -188,7 +188,7 @@ class FileUploadService
     public function getFileUrl(File $file): string
     {
         if ($file->disk === 's3') {
-            return Storage::disk('s3')->url($file->path);
+            return Storage::disk('s3')->temporaryUrl($file->path, now()->addMinutes(60));
         }
         
         return Storage::disk($file->disk)->url($file->path);
@@ -272,7 +272,7 @@ class FileUploadService
     private function generateFileUrl(string $path, string $disk): string
     {
         if ($disk === 's3') {
-            return Storage::disk('s3')->url($path);
+            return Storage::disk('s3')->temporaryUrl($path, now()->addMinutes(60));
         }
         
         return Storage::disk($disk)->url($path);
