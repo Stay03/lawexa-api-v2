@@ -46,6 +46,9 @@ Route::get('plans', [PlanController::class, 'index']);
 Route::get('plans/{plan}', [PlanController::class, 'show']);
 
 Route::middleware('auth:sanctum')->group(function () {
+    // Primary upload endpoint (simple direct S3 upload)
+    Route::post('upload', [DirectUploadController::class, 'simpleUpload']);
+    
     // Direct upload routes (available to all authenticated users)
     Route::prefix('direct-upload')->group(function () {
         Route::get('config', [DirectUploadController::class, 'getUploadConfig']);
