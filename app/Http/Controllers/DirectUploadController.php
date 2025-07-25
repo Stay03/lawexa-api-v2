@@ -307,7 +307,7 @@ class DirectUploadController extends Controller
             $request->validate([
                 'files' => 'required|array|min:1',
                 'files.*' => 'required|file|max:' . (100 * 1024), // 100MB in KB
-                'category' => 'sometimes|string|in:general,legal,case,document,image',
+                'category' => 'sometimes|string|in:general,legal,case,document,image,case_reports',
             ]);
 
             $category = $request->get('category', 'general');
@@ -429,7 +429,7 @@ class DirectUploadController extends Controller
                 'allowed_types' => $this->uploadService->getAllowedTypes(),
                 'max_file_size' => 5 * 1024 * 1024 * 1024, // 5GB in bytes
                 'max_file_size_human' => '5GB',
-                'categories' => ['general', 'legal', 'case', 'document', 'image'],
+                'categories' => ['general', 'legal', 'case', 'document', 'image', 'case_reports'],
                 'upload_url_expiration_minutes' => 60,
             ], 'Upload configuration retrieved successfully');
 

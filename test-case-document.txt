@@ -1,1 +1,1 @@
-This is a sample case document for testing file upload functionality.
+This is a test case report document for direct S3 upload

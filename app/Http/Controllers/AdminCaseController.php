@@ -8,13 +8,13 @@ use App\Http\Resources\CaseCollection;
 use App\Http\Resources\CaseResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\CourtCase;
-use App\Traits\HandlesFileUploads;
+use App\Traits\HandlesDirectS3Uploads;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AdminCaseController extends Controller
 {
-    use HandlesFileUploads;
+    use HandlesDirectS3Uploads;
     public function index(Request $request): JsonResponse
     {
         $query = CourtCase::with('creator:id,name');
@@ -72,7 +72,7 @@ class AdminCaseController extends Controller
             
             // Handle file uploads if present
             if ($request->hasFile('files')) {
-                $this->handleFileUploads($request, $case, 'files', 'case_reports', 'local');
+                $this->handleDirectS3FileUploads($request, $case, 'files', 'case_reports', $request->user()->id);
             }
             
             $case->load(['creator:id,name', 'files']);
@@ -103,7 +103,7 @@ class AdminCaseController extends Controller
             
             // Handle file uploads if present
             if ($request->hasFile('files')) {
-                $this->handleFileUploads($request, $case, 'files', 'case_reports', 'local');
+                $this->handleDirectS3FileUploads($request, $case, 'files', 'case_reports', $request->user()->id);
             }
             
             $case->load(['creator:id,name', 'files']);
@@ -120,7 +120,7 @@ class AdminCaseController extends Controller
     {
         try {
             // Delete associated files first
-            $this->deleteModelFiles($case);
+            $this->deleteDirectS3ModelFiles($case);
             
             $case->delete();
 

@@ -41,7 +41,7 @@ class DirectUploadRequest extends FormRequest
             'category' => [
                 'required',
                 'string',
-                'in:general,legal,case,document,image',
+                'in:general,legal,case,document,image,case_reports',
             ],
         ];
     }
@@ -60,7 +60,7 @@ class DirectUploadRequest extends FormRequest
             'size.min' => 'File size must be at least 1 byte',
             'size.max' => 'File size cannot exceed 5GB',
             'category.required' => 'File category is required',
-            'category.in' => 'Invalid file category. Allowed: general, legal, case, document, image',
+            'category.in' => 'Invalid file category. Allowed: general, legal, case, document, image, case_reports',
         ];
     }
 
