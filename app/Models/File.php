@@ -79,7 +79,15 @@ class File extends Model
     public function getDownloadUrlAttribute(): string
     {
         if ($this->disk === 's3') {
-            return Storage::disk('s3')->url($this->path);
+            // Generate a presigned URL with download headers
+            return Storage::disk('s3')->temporaryUrl(
+                $this->path,
+                now()->addMinutes(60), // URL expires in 60 minutes
+                [
+                    'ResponseContentDisposition' => 'attachment; filename="' . $this->original_name . '"',
+                    'ResponseContentType' => $this->mime_type,
+                ]
+            );
         }
         
         return Storage::disk($this->disk)->url($this->path);
