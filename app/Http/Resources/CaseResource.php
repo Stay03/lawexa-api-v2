@@ -8,6 +8,11 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class CaseResource extends JsonResource
 {
     /**
+     * Whether to use simplified file information
+     */
+    public static $useSimplifiedFiles = false;
+
+    /**
      * Transform the resource into an array.
      *
      * @return array<string, mixed>
@@ -38,6 +43,24 @@ class CaseResource extends JsonResource
                 ];
             }),
             'files' => $this->whenLoaded('files', function () {
+                if (static::$useSimplifiedFiles) {
+                    // Return simplified file information
+                    return $this->files->map(function ($file) {
+                        return [
+                            'id' => $file->id,
+                            'name' => $file->original_name,
+                            'size' => $file->size,
+                            'human_size' => $file->human_size,
+                            'mime_type' => $file->mime_type,
+                            'extension' => $file->extension,
+                            'category' => $file->category,
+                            'is_image' => $file->is_image,
+                            'is_document' => $file->is_document,
+                            'created_at' => $file->created_at?->format('Y-m-d H:i:s'),
+                        ];
+                    });
+                }
+                
                 return FileResource::collection($this->files);
             }),
             'files_count' => $this->when($this->relationLoaded('files'), $this->files->count()),

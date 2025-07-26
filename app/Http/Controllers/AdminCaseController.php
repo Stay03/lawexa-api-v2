@@ -17,7 +17,7 @@ class AdminCaseController extends Controller
     use HandlesDirectS3Uploads;
     public function index(Request $request): JsonResponse
     {
-        $query = CourtCase::with('creator:id,name');
+        $query = CourtCase::with(['creator:id,name', 'files']);
 
         if ($request->has('search')) {
             $query->search($request->search);

@@ -1,8 +1,16 @@
 Show peoper download link in download file endpoint
 
+write a simple upload endpoint that does all of the direct upload process so i can just select a file or files and upload them
+update docs for direct upload
+
+add new direct upload  to case report so case report uploaded files when adding a case will go through the direct file upload
+
+/api/admin/cases should show that a case has report files
+
 
 git pull
 php artisan migrate
 composer install
 php artisan config:clear
 php artisan cache:clear
+

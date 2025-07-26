@@ -9,8 +9,17 @@ class CaseCollection extends ResourceCollection
 {
     public function toArray(Request $request): array
     {
-        return [
-            'cases' => $this->collection,
+        // Map each case manually with simplified files
+        $cases = $this->collection->map(function ($case) use ($request) {
+            $caseResource = new CaseResource($case);
+            CaseResource::$useSimplifiedFiles = true;
+            $data = $caseResource->toArray($request);
+            CaseResource::$useSimplifiedFiles = false;
+            return $data;
+        });
+        
+        $result = [
+            'cases' => $cases,
             'meta' => [
                 'current_page' => $this->resource->currentPage(),
                 'from' => $this->resource->firstItem(),
@@ -26,5 +35,7 @@ class CaseCollection extends ResourceCollection
                 'next' => $this->resource->nextPageUrl(),
             ],
         ];
+        
+        return $result;
     }
 }
