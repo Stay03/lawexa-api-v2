@@ -23,7 +23,7 @@ class AdminCreateNoteRequest extends FormRequest
     {
         return [
             'title' => 'required|string|max:255',
-            'content' => 'required|string|max:65535',
+            'content' => 'required|string|max:10000000',
             'user_id' => 'required|exists:users,id',
             'is_private' => 'sometimes|boolean',
             'tags' => 'sometimes|array|max:10',
@@ -42,7 +42,7 @@ class AdminCreateNoteRequest extends FormRequest
             'title.required' => 'Note title is required',
             'title.max' => 'Note title cannot exceed 255 characters',
             'content.required' => 'Note content is required',
-            'content.max' => 'Note content cannot exceed 65535 characters',
+            'content.max' => 'Note content cannot exceed 10 million characters',
             'user_id.required' => 'User ID is required',
             'user_id.exists' => 'The specified user does not exist',
             'is_private.boolean' => 'Privacy setting must be true or false',

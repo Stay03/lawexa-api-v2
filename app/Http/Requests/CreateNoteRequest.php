@@ -23,7 +23,7 @@ class CreateNoteRequest extends FormRequest
     {
         return [
             'title' => 'required|string|max:255',
-            'content' => 'required|string|max:65535',
+            'content' => 'required|string|max:10000000',
             'is_private' => 'sometimes|boolean',
             'tags' => 'sometimes|array|max:10',
             'tags.*' => 'string|max:50',
@@ -41,7 +41,7 @@ class CreateNoteRequest extends FormRequest
             'title.required' => 'Note title is required',
             'title.max' => 'Note title cannot exceed 255 characters',
             'content.required' => 'Note content is required',
-            'content.max' => 'Note content cannot exceed 65535 characters',
+            'content.max' => 'Note content cannot exceed 10 million characters',
             'is_private.boolean' => 'Privacy setting must be true or false',
             'tags.array' => 'Tags must be provided as an array',
             'tags.max' => 'You cannot have more than 10 tags',

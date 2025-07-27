@@ -24,7 +24,7 @@ class UpdateNoteRequest extends FormRequest
     {
         return [
             'title' => 'sometimes|string|max:255',
-            'content' => 'sometimes|string|max:65535',
+            'content' => 'sometimes|string|max:10000000',
             'is_private' => 'sometimes|boolean',
             'tags' => 'sometimes|array|max:10',
             'tags.*' => 'string|max:50',
@@ -40,7 +40,7 @@ class UpdateNoteRequest extends FormRequest
     {
         return [
             'title.max' => 'Note title cannot exceed 255 characters',
-            'content.max' => 'Note content cannot exceed 65535 characters',
+            'content.max' => 'Note content cannot exceed 10 million characters',
             'is_private.boolean' => 'Privacy setting must be true or false',
             'tags.array' => 'Tags must be provided as an array',
             'tags.max' => 'You cannot have more than 10 tags',
