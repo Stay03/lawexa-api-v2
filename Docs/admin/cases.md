@@ -80,7 +80,6 @@ GET /cases?search=constitutional&country=Nigeria&court=Supreme Court&page=1&per_
         "id": 2,
         "title": "Utique volo turba crapula labore temperantia. Sufficio titulus adhaero acidus dens deduco quaerat cerno canonicus. Aliquid cernuus vespillo alias tabella cito. Inflammatio aqua adaugeo ipsa curis ultio sumo curto.",
         "body": "Celebrer tardus delego denuncio nam quibusdam agnosco iusto.",
-        "report": null,
         "course": "Constitutional Law 201",
         "topic": "Fundamental Rights",
         "tag": "landmark",
@@ -97,6 +96,21 @@ GET /cases?search=constitutional&country=Nigeria&court=Supreme Court&page=1&per_
           "id": 36,
           "name": "Calvin Hammes-Fay"
         },
+        "files": [
+          {
+            "id": 23,
+            "name": "test-case-document.txt",
+            "size": 57,
+            "human_size": "57 B",
+            "mime_type": "text/plain",
+            "extension": "txt",
+            "category": "case_reports",
+            "is_image": false,
+            "is_document": true,
+            "created_at": "2025-07-25 17:09:44"
+          }
+        ],
+        "files_count": 1,
         "created_at": "2025-07-24T17:24:35.000000Z",
         "updated_at": "2025-07-24T17:24:35.000000Z"
       }
@@ -149,7 +163,6 @@ GET /cases/test-id-based-update
       "id": 1,
       "title": "Test ID-based Update",
       "body": "Testing admin ID-based routing",
-      "report": "Updated comprehensive case report...",
       "course": "Constitutional Law 201",
       "topic": "Updated Legal Topic",
       "tag": "landmark",
@@ -166,6 +179,8 @@ GET /cases/test-id-based-update
         "id": 36,
         "name": "Calvin Hammes-Fay"
       },
+      "files": [],
+      "files_count": 0,
       "created_at": "2025-07-24T17:18:48.000000Z",
       "updated_at": "2025-07-24T20:20:21.000000Z"
     }
@@ -237,7 +252,6 @@ GET /admin/cases?search=constitutional&created_by=36&page=1&per_page=15
         "id": 2,
         "title": "Utique volo turba crapula labore temperantia. Sufficio titulus adhaero acidus dens deduco quaerat cerno canonicus. Aliquid cernuus vespillo alias tabella cito. Inflammatio aqua adaugeo ipsa curis ultio sumo curto.",
         "body": "Celebrer tardus delego denuncio nam quibusdam agnosco iusto.",
-        "report": null,
         "course": "Constitutional Law 201",
         "topic": "Fundamental Rights",
         "tag": "landmark",
@@ -254,6 +268,43 @@ GET /admin/cases?search=constitutional&created_by=36&page=1&per_page=15
           "id": 36,
           "name": "Calvin Hammes-Fay"
         },
+        "files": [
+          {
+            "id": 28,
+            "name": "test-case-report.txt",
+            "filename": "211c7970-b4da-4a3b-ba6f-0f2fd9699290.txt",
+            "size": 52,
+            "human_size": "52 B",
+            "mime_type": "text/plain",
+            "extension": "txt",
+            "category": "case_reports",
+            "url": "https://lawexa-api-files-dev.s3.amazonaws.com/uploads/case_reports/2025/07/211c7970-b4da-4a3b-ba6f-0f2fd9699290.txt",
+            "download_url": "https://lawexa-api-files-dev.s3.amazonaws.com/uploads/case_reports/2025/07/211c7970-b4da-4a3b-ba6f-0f2fd9699290.txt?[signed-parameters]",
+            "is_image": false,
+            "is_document": true,
+            "disk": "s3",
+            "metadata": {
+              "upload_ip": "127.0.0.1",
+              "upload_user_agent": "curl/8.2.1",
+              "expected_size": 52,
+              "initiated_at": "2025-07-26T10:46:34.955492Z",
+              "completed_at": "2025-07-26T10:46:36.960856Z",
+              "s3_etag": "bef2f710ba2c4d7315ac23c197c6b39f"
+            },
+            "attached_to": {
+              "type": "App\\Models\\CourtCase",
+              "id": 15
+            },
+            "uploaded_by": {
+              "id": 2,
+              "name": "Dr. Arturo Rogahn",
+              "email": "Johnathon.Prohaska@hotmail.com"
+            },
+            "created_at": "2025-07-26T10:46:34.000000Z",
+            "updated_at": "2025-07-26T10:46:37.000000Z"
+          }
+        ],
+        "files_count": 1,
         "created_at": "2025-07-24T17:24:35.000000Z",
         "updated_at": "2025-07-24T17:24:35.000000Z"
       }
@@ -306,7 +357,6 @@ GET /admin/cases/1
       "id": 1,
       "title": "Test ID-based Update",
       "body": "Testing admin ID-based routing",
-      "report": "Updated comprehensive case report...",
       "course": "Constitutional Law 201",
       "topic": "Updated Legal Topic",
       "tag": "landmark",
@@ -323,6 +373,8 @@ GET /admin/cases/1
         "id": 36,
         "name": "Calvin Hammes-Fay"
       },
+      "files": [],
+      "files_count": 0,
       "created_at": "2025-07-24T17:18:48.000000Z",
       "updated_at": "2025-07-24T20:20:21.000000Z"
     }
@@ -334,7 +386,13 @@ GET /admin/cases/1
 
 **POST** `/admin/cases`
 
-Creates a new legal case record.
+Creates a new legal case record with optional file attachments.
+
+**Content Types Supported:**
+- **JSON (`application/json`)**: For creating cases without file uploads
+- **Multipart (`multipart/form-data`)**: Required for creating cases with file uploads
+
+**Note**: Files can only be uploaded using multipart/form-data. Files are automatically categorized as "case_reports" and uploaded to S3.
 
 #### Required Permissions
 - admin, researcher, or superadmin
@@ -345,7 +403,6 @@ Creates a new legal case record.
 |-------|------|----------|------------|-------------|
 | `title` | string | Yes | max:500 | Case title |
 | `body` | string | Yes | - | Case description/summary |
-| `report` | string | No | nullable | Detailed case report |
 | `course` | string | No | nullable, max:255 | Associated course |
 | `topic` | string | No | nullable, max:255 | Legal topic/area |
 | `tag` | string | No | nullable, max:100 | Case tag/category |
@@ -357,13 +414,13 @@ Creates a new legal case record.
 | `citation` | string | No | nullable, max:255 | Legal citation |
 | `judges` | string | No | nullable | Judges involved |
 | `judicial_precedent` | string | No | nullable, max:255 | Precedent strength |
+| `files` | file array | No | max:10, each max:100MB | Case report files (PDF, DOC, TXT, etc.) |
 
-#### Example Request
+#### Example Request (JSON)
 ```json
 {
   "title": "New Constitutional Case",
   "body": "This case deals with fundamental rights under the constitution.",
-  "report": "Detailed analysis of the constitutional implications...",
   "course": "Constitutional Law 301",
   "topic": "Fundamental Rights",
   "tag": "landmark",
@@ -378,6 +435,19 @@ Creates a new legal case record.
 }
 ```
 
+#### Example Request (With File Upload)
+```bash
+curl -X POST "/admin/cases" \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: multipart/form-data" \
+  -F "title=New Constitutional Case with Documents" \
+  -F "body=This case deals with fundamental rights under the constitution." \
+  -F "court=Supreme Court of Nigeria" \
+  -F "country=Nigeria" \
+  -F "files[]=@case-report.pdf" \
+  -F "files[]=@supporting-document.docx"
+```
+
 #### Success Response (201)
 ```json
 {
@@ -388,8 +458,7 @@ Creates a new legal case record.
       "id": 3,
       "title": "New Constitutional Case",
       "body": "This case deals with fundamental rights under the constitution.",
-      "report": "Detailed analysis of the constitutional implications...",
-      "course": "Constitutional Law 301",
+          "course": "Constitutional Law 301",
       "topic": "Fundamental Rights",
       "tag": "landmark",
       "principles": "Freedom of expression is a fundamental right",
@@ -405,6 +474,8 @@ Creates a new legal case record.
         "id": 36,
         "name": "Calvin Hammes-Fay"
       },
+      "files": [],
+      "files_count": 0,
       "created_at": "2025-07-24T20:45:00.000000Z",
       "updated_at": "2025-07-24T20:45:00.000000Z"
     }
@@ -416,7 +487,16 @@ Creates a new legal case record.
 
 **PUT** `/admin/cases/{id}`
 
-Updates an existing legal case record.
+Updates an existing legal case record with optional file attachments.
+
+**Content Types Supported:**
+- **JSON (`application/json`)**: For updating case fields without file uploads
+- **Multipart (`multipart/form-data`)**: Required for updating cases with file uploads
+
+**Important Note for File Uploads**: 
+- Files uploaded during updates are **added to existing files** (files accumulate)
+- For file uploads with updates, use `POST` with `_method=PUT` parameter instead of actual `PUT` method
+- New files are automatically categorized as "case_reports" and uploaded to S3
 
 #### Required Permissions
 - admin, researcher, or superadmin
@@ -428,9 +508,11 @@ Updates an existing legal case record.
 | `id` | integer | Yes | Case ID to update |
 
 #### Request Body
-Same as Create Case endpoint (all fields optional for updates)
+Same as Create Case endpoint (all fields optional for updates), including:
+- All case fields are optional
+- `files[]` array for new file uploads (optional)
 
-#### Example Request
+#### Example Request (JSON)
 ```json
 {
   "title": "Updated Case Title",
@@ -438,6 +520,19 @@ Same as Create Case endpoint (all fields optional for updates)
   "topic": "Updated Legal Topic"
 }
 ```
+
+#### Example Request (With File Upload)
+```bash
+curl -X POST "/admin/cases/1" \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: multipart/form-data" \
+  -F "_method=PUT" \
+  -F "title=Updated Case Title with New Files" \
+  -F "files[]=@additional-report.pdf" \
+  -F "files[]=@supporting-document.docx"
+```
+
+**Note**: Use `POST` with `_method=PUT` for file uploads due to HTTP limitations with multipart data in PUT requests.
 
 #### Success Response (200)
 ```json
@@ -449,7 +544,6 @@ Same as Create Case endpoint (all fields optional for updates)
       "id": 1,
       "title": "Updated Case Title",
       "body": "Updated case description",
-      "report": "Updated comprehensive case report...",
       "course": "Constitutional Law 201",
       "topic": "Updated Legal Topic",
       "tag": "landmark",
@@ -466,6 +560,8 @@ Same as Create Case endpoint (all fields optional for updates)
         "id": 36,
         "name": "Calvin Hammes-Fay"
       },
+      "files": [],
+      "files_count": 0,
       "created_at": "2025-07-24T17:18:48.000000Z",
       "updated_at": "2025-07-24T20:50:00.000000Z"
     }
@@ -555,7 +651,6 @@ DELETE /admin/cases/1
 | `id` | integer | No | Unique case identifier |
 | `title` | string | No | Case title |
 | `body` | string | No | Case description/summary |
-| `report` | string | Yes | Detailed case report |
 | `course` | string | Yes | Associated course |
 | `topic` | string | Yes | Legal topic/area |
 | `tag` | string | Yes | Case tag/category |
@@ -569,6 +664,8 @@ DELETE /admin/cases/1
 | `judges` | string | Yes | Judges involved |
 | `judicial_precedent` | string | Yes | Precedent strength |
 | `creator` | object | No | Creator user information |
+| `files` | array | No | Array of attached case report files |
+| `files_count` | integer | No | Total number of attached case report files |
 | `created_at` | string | Yes | ISO timestamp of creation |
 | `updated_at` | string | Yes | ISO timestamp of last update |
 
@@ -578,6 +675,57 @@ DELETE /admin/cases/1
 |-------|------|----------|-------------|
 | `id` | integer | No | Creator user ID |
 | `name` | string | No | Creator name |
+
+### File Object
+
+**Note for Frontend**: Files attached to cases are specifically case report documents (PDFs, Word docs, text files, etc.) that supplement the case information.
+
+| Field | Type | Nullable | Description |
+|-------|------|----------|-------------|
+| `id` | integer | No | File ID |
+| `name` | string | No | Original filename |
+| `filename` | string | No | UUID-based stored filename |
+| `size` | integer | No | File size in bytes |
+| `human_size` | string | No | Human-readable file size (e.g., "52 B") |
+| `mime_type` | string | No | MIME type of the file |
+| `extension` | string | No | File extension |
+| `category` | string | No | Always "case_reports" for case files |
+| `url` | string | No | Direct S3 access URL |
+| `download_url` | string | No | Signed S3 download URL (expires in 1 hour) |
+| `is_image` | boolean | No | Whether file is an image |
+| `is_document` | boolean | No | Whether file is a document |
+| `disk` | string | No | Storage disk (always "s3" for new uploads) |
+| `metadata` | object | No | Upload metadata (IP, user agent, S3 info) |
+| `attached_to` | object | No | Parent case information |
+| `uploaded_by` | object | No | User who uploaded the file |
+| `created_at` | string | No | File upload timestamp |
+| `updated_at` | string | No | File last update timestamp |
+
+### File Metadata Object
+
+| Field | Type | Nullable | Description |
+|-------|------|----------|-------------|
+| `upload_ip` | string | No | IP address of uploader |
+| `upload_user_agent` | string | No | User agent of uploader |
+| `expected_size` | integer | No | Expected file size during upload |
+| `initiated_at` | string | No | ISO timestamp when upload was initiated |
+| `completed_at` | string | No | ISO timestamp when upload was completed |
+| `s3_etag` | string | No | S3 ETag for file verification |
+
+### File Attached To Object
+
+| Field | Type | Nullable | Description |
+|-------|------|----------|-------------|
+| `type` | string | No | Parent model class (always "App\\Models\\CourtCase") |
+| `id` | integer | No | Parent case ID |
+
+### File Uploaded By Object
+
+| Field | Type | Nullable | Description |
+|-------|------|----------|-------------|
+| `id` | integer | No | Uploader user ID |
+| `name` | string | No | Uploader name |
+| `email` | string | No | Uploader email |
 
 ### Pagination Meta Object
 

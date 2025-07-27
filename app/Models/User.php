@@ -132,4 +132,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(CourtCase::class, 'created_by');
     }
+
+    public function notes(): HasMany
+    {
+        return $this->hasMany(Note::class);
+    }
 }

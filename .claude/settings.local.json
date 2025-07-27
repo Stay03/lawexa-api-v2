@@ -12,7 +12,8 @@
       "Bash(rg:*)",
       "Bash(mkdir:*)",
       "WebFetch(domain:paystack.com)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }

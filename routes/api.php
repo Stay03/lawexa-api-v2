@@ -13,6 +13,8 @@ use App\Http\Controllers\AdminCaseController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\DirectUploadController;
 use App\Http\Controllers\S3WebhookController;
+use App\Http\Controllers\NoteController;
+use App\Http\Controllers\AdminNoteController;
 
 // Configure route model bindings - admin routes use ID, user routes use slug
 Route::bind('case', function ($value, $route) {
@@ -23,6 +25,16 @@ Route::bind('case', function ($value, $route) {
     }
     // User routes: bind by slug (default behavior)
     return \App\Models\CourtCase::where('slug', $value)->firstOrFail();
+});
+
+Route::bind('note', function ($value, $route) {
+    // Check if this is an admin route
+    if (str_contains($route->uri(), 'admin/notes')) {
+        // Admin routes: bind by ID
+        return \App\Models\Note::findOrFail($value);
+    }
+    // User routes: bind by ID but with ownership validation in controller
+    return \App\Models\Note::findOrFail($value);
 });
 
 Route::prefix('auth')->group(function () {
@@ -91,6 +103,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('{case}', [CaseController::class, 'show']);
     });
 
+    // User note routes
+    Route::prefix('notes')->group(function () {
+        Route::get('/', [NoteController::class, 'index']);
+        Route::post('/', [NoteController::class, 'store']);
+        Route::get('{note}', [NoteController::class, 'show']);
+        Route::put('{note}', [NoteController::class, 'update']);
+        Route::delete('{note}', [NoteController::class, 'destroy']);
+    });
+
     Route::middleware('role:admin,researcher,superadmin')->prefix('admin')->group(function () {
         Route::get('dashboard', [App\Http\Controllers\AdminController::class, 'dashboard']);
         Route::get('users', [App\Http\Controllers\AdminController::class, 'getUsers']);
@@ -143,6 +164,15 @@ Route::middleware('auth:sanctum')->group(function () {
         // Admin direct upload management routes
         Route::prefix('direct-upload')->group(function () {
             Route::post('cleanup-expired', [DirectUploadController::class, 'cleanupExpiredUploads'])->middleware('role:admin,superadmin');
+        });
+        
+        // Admin note management routes
+        Route::prefix('notes')->group(function () {
+            Route::get('/', [AdminNoteController::class, 'index']);
+            Route::post('/', [AdminNoteController::class, 'store'])->middleware('role:admin,superadmin');
+            Route::get('{note}', [AdminNoteController::class, 'show'])->where('note', '[0-9]+');
+            Route::put('{note}', [AdminNoteController::class, 'update'])->where('note', '[0-9]+')->middleware('role:admin,superadmin');
+            Route::delete('{note}', [AdminNoteController::class, 'destroy'])->where('note', '[0-9]+')->middleware('role:admin,superadmin');
         });
     });
 });
