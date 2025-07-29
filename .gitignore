@@ -23,3 +23,6 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 deployment.md
+
+# Database backups (contains sensitive data)
+/database/backups/
