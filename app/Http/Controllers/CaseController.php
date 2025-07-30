@@ -13,7 +13,15 @@ class CaseController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = CourtCase::with(['creator:id,name', 'files']);
+        $includeSimilarCases = $request->boolean('include_similar_cases', false);
+        
+        $with = ['creator:id,name', 'files'];
+        if ($includeSimilarCases) {
+            $with[] = 'similarCases:id,title,slug,court,date,country,citation';
+            $with[] = 'casesWhereThisIsSimilar:id,title,slug,court,date,country,citation';
+        }
+        
+        $query = CourtCase::with($with);
 
         if ($request->has('search')) {
             $query->search($request->search);
@@ -56,7 +64,12 @@ class CaseController extends Controller
 
     public function show(CourtCase $case): JsonResponse
     {
-        $case->load(['creator:id,name', 'files']);
+        $case->load([
+            'creator:id,name', 
+            'files',
+            'similarCases:id,title,slug,court,date,country,citation',
+            'casesWhereThisIsSimilar:id,title,slug,court,date,country,citation'
+        ]);
         
         return ApiResponse::success([
             'case' => new CaseResource($case)

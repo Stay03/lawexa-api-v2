@@ -111,6 +111,8 @@ GET /cases?search=constitutional&country=Nigeria&court=Supreme Court&page=1&per_
           }
         ],
         "files_count": 1,
+        "similar_cases": {},
+        "similar_cases_count": {},
         "created_at": "2025-07-24T17:24:35.000000Z",
         "updated_at": "2025-07-24T17:24:35.000000Z"
       }
@@ -181,6 +183,27 @@ GET /cases/test-id-based-update
       },
       "files": [],
       "files_count": 0,
+      "similar_cases": [
+        {
+          "id": 15,
+          "title": "Related Case v Example Corp [2023] Test 123",
+          "slug": "related-case-v-example-corp-2023-test-123",
+          "court": "Supreme Court",
+          "date": "2023-04-05",
+          "country": "Nigeria",
+          "citation": "[2023] Test 123"
+        },
+        {
+          "id": 25,
+          "title": "Another Similar Case [2022] Test 789",
+          "slug": "another-similar-case-2022-test-789",
+          "court": "Court of Appeal",
+          "date": "2022-12-15",
+          "country": "Nigeria",
+          "citation": "[2022] Test 789"
+        }
+      ],
+      "similar_cases_count": 2,
       "created_at": "2025-07-24T17:18:48.000000Z",
       "updated_at": "2025-07-24T20:20:21.000000Z"
     }
@@ -233,6 +256,7 @@ Retrieves a paginated list of legal cases with admin-specific filtering options.
 | `date_from` | date | No | - | Filter cases from date (YYYY-MM-DD) |
 | `date_to` | date | No | - | Filter cases up to date (YYYY-MM-DD) |
 | `created_by` | integer | No | - | Filter by creator user ID (admin only) |
+| `include_similar_cases` | boolean | No | false | Include similar cases data in list view (performance impact) |
 | `page` | integer | No | 1 | Page number |
 | `per_page` | integer | No | 15 | Items per page (max: 100) |
 
@@ -305,6 +329,8 @@ GET /admin/cases?search=constitutional&created_by=36&page=1&per_page=15
           }
         ],
         "files_count": 1,
+        "similar_cases": {},
+        "similar_cases_count": {},
         "created_at": "2025-07-24T17:24:35.000000Z",
         "updated_at": "2025-07-24T17:24:35.000000Z"
       }
@@ -375,6 +401,27 @@ GET /admin/cases/1
       },
       "files": [],
       "files_count": 0,
+      "similar_cases": [
+        {
+          "id": 15,
+          "title": "Related Case v Example Corp [2023] Test 123",
+          "slug": "related-case-v-example-corp-2023-test-123",
+          "court": "Supreme Court",
+          "date": "2023-04-05",
+          "country": "Nigeria",
+          "citation": "[2023] Test 123"
+        },
+        {
+          "id": 25,
+          "title": "Another Similar Case [2022] Test 789",
+          "slug": "another-similar-case-2022-test-789",
+          "court": "Court of Appeal",
+          "date": "2022-12-15",
+          "country": "Nigeria",
+          "citation": "[2022] Test 789"
+        }
+      ],
+      "similar_cases_count": 2,
       "created_at": "2025-07-24T17:18:48.000000Z",
       "updated_at": "2025-07-24T20:20:21.000000Z"
     }
@@ -414,6 +461,7 @@ Creates a new legal case record with optional file attachments.
 | `citation` | string | No | nullable, max:255 | Legal citation |
 | `judges` | string | No | nullable | Judges involved |
 | `judicial_precedent` | string | No | nullable, max:255 | Precedent strength |
+| `similar_case_ids` | integer array | No | max:50 items, each must exist | Array of case IDs to link as similar cases |
 | `files` | file array | No | max:10, each max:100MB | Case report files (PDF, DOC, TXT, etc.) |
 
 #### Example Request (JSON)
@@ -431,11 +479,12 @@ Creates a new legal case record with optional file attachments.
   "country": "Nigeria",
   "citation": "2024 SCNJ 123",
   "judges": "Justice Olukoya, Justice Adeola",
-  "judicial_precedent": "Strong"
+  "judicial_precedent": "Strong",
+  "similar_case_ids": [15, 25, 30]
 }
 ```
 
-#### Example Request (With File Upload)
+#### Example Request (With File Upload and Similar Cases)
 ```bash
 curl -X POST "/admin/cases" \
   -H "Authorization: Bearer {token}" \
@@ -444,6 +493,8 @@ curl -X POST "/admin/cases" \
   -F "body=This case deals with fundamental rights under the constitution." \
   -F "court=Supreme Court of Nigeria" \
   -F "country=Nigeria" \
+  -F "similar_case_ids[]=15" \
+  -F "similar_case_ids[]=25" \
   -F "files[]=@case-report.pdf" \
   -F "files[]=@supporting-document.docx"
 ```
@@ -476,6 +527,27 @@ curl -X POST "/admin/cases" \
       },
       "files": [],
       "files_count": 0,
+      "similar_cases": [
+        {
+          "id": 15,
+          "title": "Related Constitutional Case [2023] Test 456",
+          "slug": "related-constitutional-case-2023-test-456",
+          "court": "Supreme Court",
+          "date": "2023-04-05",
+          "country": "Nigeria",
+          "citation": "[2023] Test 456"
+        },
+        {
+          "id": 25,
+          "title": "Freedom of Expression Case [2022] Test 789",
+          "slug": "freedom-of-expression-case-2022-test-789",
+          "court": "Court of Appeal",
+          "date": "2022-12-15",
+          "country": "Nigeria",
+          "citation": "[2022] Test 789"
+        }
+      ],
+      "similar_cases_count": 2,
       "created_at": "2025-07-24T20:45:00.000000Z",
       "updated_at": "2025-07-24T20:45:00.000000Z"
     }
@@ -510,6 +582,7 @@ Updates an existing legal case record with optional file attachments.
 #### Request Body
 Same as Create Case endpoint (all fields optional for updates), including:
 - All case fields are optional
+- `similar_case_ids[]` array to update linked similar cases (optional - replaces existing links)
 - `files[]` array for new file uploads (optional)
 
 #### Example Request (JSON)
@@ -517,17 +590,20 @@ Same as Create Case endpoint (all fields optional for updates), including:
 {
   "title": "Updated Case Title",
   "body": "Updated case description",
-  "topic": "Updated Legal Topic"
+  "topic": "Updated Legal Topic",
+  "similar_case_ids": [10, 20, 35]
 }
 ```
 
-#### Example Request (With File Upload)
+#### Example Request (With File Upload and Similar Cases)
 ```bash
 curl -X POST "/admin/cases/1" \
   -H "Authorization: Bearer {token}" \
   -H "Content-Type: multipart/form-data" \
   -F "_method=PUT" \
   -F "title=Updated Case Title with New Files" \
+  -F "similar_case_ids[]=10" \
+  -F "similar_case_ids[]=20" \
   -F "files[]=@additional-report.pdf" \
   -F "files[]=@supporting-document.docx"
 ```
@@ -562,6 +638,27 @@ curl -X POST "/admin/cases/1" \
       },
       "files": [],
       "files_count": 0,
+      "similar_cases": [
+        {
+          "id": 10,
+          "title": "Updated Similar Case [2023] Test 101",
+          "slug": "updated-similar-case-2023-test-101",
+          "court": "High Court",
+          "date": "2023-03-10",
+          "country": "Nigeria",
+          "citation": "[2023] Test 101"
+        },
+        {
+          "id": 20,
+          "title": "Related Legal Topic Case [2022] Test 202",
+          "slug": "related-legal-topic-case-2022-test-202",
+          "court": "Court of Appeal",
+          "date": "2022-11-20",
+          "country": "Nigeria",
+          "citation": "[2022] Test 202"
+        }
+      ],
+      "similar_cases_count": 2,
       "created_at": "2025-07-24T17:18:48.000000Z",
       "updated_at": "2025-07-24T20:50:00.000000Z"
     }
@@ -635,7 +732,9 @@ DELETE /admin/cases/1
   "data": null,
   "errors": {
     "title": ["Case title is required"],
-    "body": ["Case body is required"]
+    "body": ["Case body is required"],
+    "similar_case_ids.0": ["One or more similar case IDs do not exist"],
+    "similar_case_ids": ["A case cannot be marked as similar to itself"]
   }
 }
 ```
@@ -666,6 +765,8 @@ DELETE /admin/cases/1
 | `creator` | object | No | Creator user information |
 | `files` | array | No | Array of attached case report files |
 | `files_count` | integer | No | Total number of attached case report files |
+| `similar_cases` | array | No | Array of similar/related cases (empty object `{}` in list views, array in single case views) |
+| `similar_cases_count` | integer/object | No | Number of similar cases (empty object `{}` in list views, integer in single case views) |
 | `created_at` | string | Yes | ISO timestamp of creation |
 | `updated_at` | string | Yes | ISO timestamp of last update |
 
@@ -675,6 +776,20 @@ DELETE /admin/cases/1
 |-------|------|----------|-------------|
 | `id` | integer | No | Creator user ID |
 | `name` | string | No | Creator name |
+
+### Similar Case Object
+
+**Note**: Similar cases are automatically detected based on case content, topics, and legal principles. They appear as an array in single case views and as empty objects `{}` in list views for performance optimization.
+
+| Field | Type | Nullable | Description |
+|-------|------|----------|-------------|
+| `id` | integer | No | Similar case ID |
+| `title` | string | No | Similar case title |
+| `slug` | string | No | Similar case slug for URL routing |
+| `court` | string | Yes | Court name where the similar case was heard |
+| `date` | string | Yes | Similar case date (YYYY-MM-DD format) |
+| `country` | string | Yes | Country where the similar case was heard |
+| `citation` | string | Yes | Legal citation of the similar case |
 
 ### File Object
 
@@ -786,6 +901,24 @@ GET /cases?search=rights&country=Nigeria&level=Supreme Court&topic=Constitutiona
 GET /admin/cases?search=rights&country=Nigeria&created_by=36&page=2&per_page=25
 ```
 
+### Similar Cases Management
+```
+# Create case with similar cases
+POST /admin/cases
+{"title": "New Case", "body": "Case content", "similar_case_ids": [123, 456, 789]}
+
+# Update similar cases only
+PUT /admin/cases/1
+{"similar_case_ids": [101, 202, 303]}
+
+# Clear all similar cases
+PUT /admin/cases/1
+{"similar_case_ids": []}
+
+# Get admin cases with similar cases included
+GET /admin/cases?include_similar_cases=true&per_page=10
+```
+
 ---
 
 ## HTTP Status Codes
@@ -814,6 +947,21 @@ GET /admin/cases?search=rights&country=Nigeria&created_by=36&page=2&per_page=25
 - Searches across title, body, principles, and judges fields
 - Case-insensitive search
 - Partial word matching supported
+
+### Similar Cases Feature
+- **Automatic Detection**: Similar cases are automatically identified based on case content, legal topics, and principles
+- **Manual Management**: Administrators can manually link similar cases using the `similar_case_ids` field during case creation or updates
+- **Performance Optimization**: 
+  - In list views (`/cases` and `/admin/cases`): `similar_cases` and `similar_cases_count` appear as empty objects `{}` for faster loading
+  - In single case views (`/cases/{slug}` and `/admin/cases/{id}`): Full similar cases data is included as an array
+  - Use `include_similar_cases=true` query parameter in admin list views to include similar cases data (impacts performance)
+- **Data Structure**: Each similar case includes `id`, `title`, `slug`, `court`, `date`, `country`, and `citation`
+- **Validation Rules**:
+  - Maximum 50 similar cases per case
+  - Case IDs must exist in the database
+  - A case cannot be marked as similar to itself
+  - Empty array `[]` can be used to clear all similar case links
+- **Use Cases**: Helps legal researchers find related precedents and comparable cases for comprehensive legal analysis
 
 ### Security
 - User endpoints use slug-based routing (public-friendly)

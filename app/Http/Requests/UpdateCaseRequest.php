@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Services\FileUploadService;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class UpdateCaseRequest extends FormRequest
 {
@@ -42,6 +43,10 @@ class UpdateCaseRequest extends FormRequest
             'judges' => 'nullable|string',
             'judicial_precedent' => 'nullable|string',
             
+            // Similar cases rules
+            'similar_case_ids' => 'sometimes|array|max:50',
+            'similar_case_ids.*' => 'integer|exists:court_cases,id',
+            
             // File upload rules
             'files' => 'sometimes|array|max:10',
             'files.*' => [
@@ -76,6 +81,31 @@ class UpdateCaseRequest extends FormRequest
             'files.*.file' => 'One or more uploaded files are not valid',
             'files.*.max' => "Each file size cannot exceed {$maxSizeMB}MB",
             'files.*.mimes' => "Only the following file types are allowed: {$allowedTypes}",
+            
+            // Similar cases messages
+            'similar_case_ids.array' => 'Similar cases must be provided as an array',
+            'similar_case_ids.max' => 'You cannot link more than 50 similar cases',
+            'similar_case_ids.*.integer' => 'Each similar case ID must be a valid integer',
+            'similar_case_ids.*.exists' => 'One or more similar case IDs do not exist',
         ];
+    }
+
+    /**
+     * Configure the validator instance.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            if ($this->has('similar_case_ids') && is_array($this->similar_case_ids)) {
+                $caseId = $this->route('case')?->id;
+                
+                if ($caseId && in_array($caseId, $this->similar_case_ids)) {
+                    $validator->errors()->add(
+                        'similar_case_ids',
+                        'A case cannot be marked as similar to itself.'
+                    );
+                }
+            }
+        });
     }
 }

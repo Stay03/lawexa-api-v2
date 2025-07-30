@@ -64,6 +64,48 @@ class CaseResource extends JsonResource
                 return FileResource::collection($this->files);
             }),
             'files_count' => $this->when($this->relationLoaded('files'), $this->files->count()),
+            'similar_cases' => $this->when(
+                $this->relationLoaded('similarCases') || $this->relationLoaded('casesWhereThisIsSimilar'),
+                function () {
+                    $similarCases = collect();
+                    
+                    // Add cases this case is similar to
+                    if ($this->relationLoaded('similarCases')) {
+                        $similarCases = $similarCases->merge($this->similarCases);
+                    }
+                    
+                    // Add cases where this case is marked as similar
+                    if ($this->relationLoaded('casesWhereThisIsSimilar')) {
+                        $similarCases = $similarCases->merge($this->casesWhereThisIsSimilar);
+                    }
+                    
+                    // Remove duplicates and map to desired format
+                    return $similarCases->unique('id')->map(function ($similarCase) {
+                        return [
+                            'id' => $similarCase->id,
+                            'title' => $similarCase->title,
+                            'slug' => $similarCase->slug,
+                            'court' => $similarCase->court,
+                            'date' => $similarCase->date?->format('Y-m-d'),
+                            'country' => $similarCase->country,
+                            'citation' => $similarCase->citation,
+                        ];
+                    })->values();
+                }
+            ),
+            'similar_cases_count' => $this->when(
+                $this->relationLoaded('similarCases') || $this->relationLoaded('casesWhereThisIsSimilar'),
+                function () {
+                    $count = 0;
+                    if ($this->relationLoaded('similarCases')) {
+                        $count += $this->similarCases->count();
+                    }
+                    if ($this->relationLoaded('casesWhereThisIsSimilar')) {
+                        $count += $this->casesWhereThisIsSimilar->count();
+                    }
+                    return $count;
+                }
+            ),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

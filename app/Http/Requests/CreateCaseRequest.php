@@ -42,6 +42,10 @@ class CreateCaseRequest extends FormRequest
             'judges' => 'nullable|string',
             'judicial_precedent' => 'nullable|string',
             
+            // Similar cases rules
+            'similar_case_ids' => 'sometimes|array|max:50',
+            'similar_case_ids.*' => 'integer|exists:court_cases,id',
+            
             // File upload rules
             'files' => 'sometimes|array|max:10',
             'files.*' => [
@@ -78,6 +82,12 @@ class CreateCaseRequest extends FormRequest
             'files.*.file' => 'One or more uploaded files are not valid',
             'files.*.max' => "Each file size cannot exceed {$maxSizeMB}MB",
             'files.*.mimes' => "Only the following file types are allowed: {$allowedTypes}",
+            
+            // Similar cases messages
+            'similar_case_ids.array' => 'Similar cases must be provided as an array',
+            'similar_case_ids.max' => 'You cannot link more than 50 similar cases',
+            'similar_case_ids.*.integer' => 'Each similar case ID must be a valid integer',
+            'similar_case_ids.*.exists' => 'One or more similar case IDs do not exist',
         ];
     }
 }

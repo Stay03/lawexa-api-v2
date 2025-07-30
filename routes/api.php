@@ -18,8 +18,10 @@ use App\Http\Controllers\AdminNoteController;
 
 // Configure route model bindings - admin routes use ID, user routes use slug
 Route::bind('case', function ($value, $route) {
-    // Check if this is an admin route
-    if (str_contains($route->uri(), 'admin/cases')) {
+    // Check if this is an admin route by examining the full URI pattern
+    $uri = $route->uri();
+    
+    if (str_contains($uri, 'admin/cases')) {
         // Admin routes: bind by ID
         return \App\Models\CourtCase::findOrFail($value);
     }
@@ -144,9 +146,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('cases')->group(function () {
             Route::get('/', [AdminCaseController::class, 'index']);
             Route::post('/', [AdminCaseController::class, 'store']);
-            Route::get('{case}', [AdminCaseController::class, 'show'])->where('case', '[0-9]+');
-            Route::put('{case}', [AdminCaseController::class, 'update'])->where('case', '[0-9]+');
-            Route::delete('{case}', [AdminCaseController::class, 'destroy'])->where('case', '[0-9]+');
+            Route::get('{id}', [AdminCaseController::class, 'show'])->where('id', '[0-9]+');
+            Route::put('{id}', [AdminCaseController::class, 'update'])->where('id', '[0-9]+');
+            Route::delete('{id}', [AdminCaseController::class, 'destroy'])->where('id', '[0-9]+');
         });
         
         // Admin file management routes

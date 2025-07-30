@@ -17,7 +17,15 @@ class AdminCaseController extends Controller
     use HandlesDirectS3Uploads;
     public function index(Request $request): JsonResponse
     {
-        $query = CourtCase::with(['creator:id,name', 'files']);
+        $includeSimilarCases = $request->boolean('include_similar_cases', false);
+        
+        $with = ['creator:id,name', 'files'];
+        if ($includeSimilarCases) {
+            $with[] = 'similarCases:id,title,slug,court,date,country,citation';
+            $with[] = 'casesWhereThisIsSimilar:id,title,slug,court,date,country,citation';
+        }
+        
+        $query = CourtCase::with($with);
 
         if ($request->has('search')) {
             $query->search($request->search);
@@ -70,12 +78,22 @@ class AdminCaseController extends Controller
         try {
             $case = CourtCase::create($validated);
             
+            // Handle similar cases if present
+            if ($request->has('similar_case_ids') && is_array($request->similar_case_ids)) {
+                $this->syncSimilarCases($case, $request->similar_case_ids);
+            }
+            
             // Handle file uploads if present
             if ($request->hasFile('files')) {
                 $this->handleDirectS3FileUploads($request, $case, 'files', 'case_reports', $request->user()->id);
             }
             
-            $case->load(['creator:id,name', 'files']);
+            $case->load([
+                'creator:id,name', 
+                'files',
+                'similarCases:id,title,slug,court,date,country,citation',
+                'casesWhereThisIsSimilar:id,title,slug,court,date,country,citation'
+            ]);
 
             return ApiResponse::success([
                 'case' => new CaseResource($case)
@@ -85,28 +103,45 @@ class AdminCaseController extends Controller
         }
     }
 
-    public function show(CourtCase $case): JsonResponse
+    public function show($id): JsonResponse
     {
-        $case->load(['creator:id,name', 'files']);
+        $case = CourtCase::with([
+            'creator:id,name', 
+            'files',
+            'similarCases:id,title,slug,court,date,country,citation',
+            'casesWhereThisIsSimilar:id,title,slug,court,date,country,citation'
+        ])->findOrFail($id);
         
         return ApiResponse::success([
             'case' => new CaseResource($case)
         ], 'Case retrieved successfully');
     }
 
-    public function update(UpdateCaseRequest $request, CourtCase $case): JsonResponse
+    public function update(UpdateCaseRequest $request, $id): JsonResponse
     {
+        $case = CourtCase::findOrFail($id);
         $validated = $request->validated();
 
         try {
             $case->update($validated);
+            
+            // Handle similar cases if present
+            if ($request->has('similar_case_ids')) {
+                $similarCaseIds = is_array($request->similar_case_ids) ? $request->similar_case_ids : [];
+                $this->syncSimilarCases($case, $similarCaseIds);
+            }
             
             // Handle file uploads if present
             if ($request->hasFile('files')) {
                 $this->handleDirectS3FileUploads($request, $case, 'files', 'case_reports', $request->user()->id);
             }
             
-            $case->load(['creator:id,name', 'files']);
+            $case->load([
+                'creator:id,name', 
+                'files',
+                'similarCases:id,title,slug,court,date,country,citation',
+                'casesWhereThisIsSimilar:id,title,slug,court,date,country,citation'
+            ]);
 
             return ApiResponse::success([
                 'case' => new CaseResource($case)
@@ -116,8 +151,10 @@ class AdminCaseController extends Controller
         }
     }
 
-    public function destroy(CourtCase $case): JsonResponse
+    public function destroy($id): JsonResponse
     {
+        $case = CourtCase::findOrFail($id);
+        
         try {
             // Delete associated files first
             $this->deleteDirectS3ModelFiles($case);
@@ -128,5 +165,22 @@ class AdminCaseController extends Controller
         } catch (\Exception $e) {
             return ApiResponse::error('Failed to delete case: ' . $e->getMessage(), 500);
         }
+    }
+
+    /**
+     * Sync similar cases for a given case
+     */
+    private function syncSimilarCases(CourtCase $case, array $similarCaseIds): void
+    {
+        // Remove the case itself from the list to prevent self-referencing
+        $similarCaseIds = array_filter($similarCaseIds, function($id) use ($case) {
+            return $id != $case->id;
+        });
+
+        // Remove duplicates
+        $similarCaseIds = array_unique($similarCaseIds);
+
+        // Sync the relationships - this will add new ones and remove old ones
+        $case->similarCases()->sync($similarCaseIds);
     }
 }
