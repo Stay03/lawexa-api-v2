@@ -67,6 +67,7 @@ class CaseController extends Controller
         $case->load([
             'creator:id,name', 
             'files',
+            'caseReport',
             'similarCases:id,title,slug,court,date,country,citation',
             'casesWhereThisIsSimilar:id,title,slug,court,date,country,citation'
         ]);

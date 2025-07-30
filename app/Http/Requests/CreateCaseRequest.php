@@ -42,6 +42,9 @@ class CreateCaseRequest extends FormRequest
             'judges' => 'nullable|string',
             'judicial_precedent' => 'nullable|string',
             
+            // Case report rules
+            'case_report_text' => 'nullable|string',
+            
             // Similar cases rules
             'similar_case_ids' => 'sometimes|array|max:50',
             'similar_case_ids.*' => 'integer|exists:court_cases,id',

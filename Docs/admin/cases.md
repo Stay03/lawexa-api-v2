@@ -177,6 +177,7 @@ GET /cases/test-id-based-update
       "citation": "2023 SCNJ 456",
       "judges": "Justice Adebayo, Justice Okafor, Justice Musa",
       "judicial_precedent": "Strong",
+      "case_report_text": "<p><span style=\"font-size: 24pt;\"><strong>TEST ID-BASED UPDATE [2023] SCNJ 456</strong></span></p><p>&nbsp;</p><p><strong><span style=\"font-size: 14pt;\">Between:</span></strong></p><p><strong><span style=\"font-size: 14pt;\">Test Plaintiff Ltd<span style=\"white-space: pre;\"> </span>Claimant</span></strong></p><p>&nbsp;</p><p><strong>AND</strong></p><p><strong><span style=\"font-size: 14pt;\">1.<span style=\"white-space: pre;\"> </span>Test Defendant<span style=\"white-space: pre;\"> </span>Respondent</span></strong></p><p>&nbsp;</p><p><strong>JUDGMENT</strong></p><p>This comprehensive case report contains detailed legal analysis, precedents, and judicial reasoning. The HTML format preserves legal document structure and formatting...</p>",
       "creator": {
         "id": 36,
         "name": "Calvin Hammes-Fay"
@@ -395,6 +396,7 @@ GET /admin/cases/1
       "citation": "2023 SCNJ 456",
       "judges": "Justice Adebayo, Justice Okafor, Justice Musa",
       "judicial_precedent": "Strong",
+      "case_report_text": "<p><span style=\"font-size: 24pt;\"><strong>TEST ID-BASED UPDATE [2023] SCNJ 456</strong></span></p><p>&nbsp;</p><p><strong><span style=\"font-size: 14pt;\">Between:</span></strong></p><p><strong><span style=\"font-size: 14pt;\">Test Plaintiff Ltd<span style=\"white-space: pre;\"> </span>Claimant</span></strong></p><p>&nbsp;</p><p><strong>AND</strong></p><p><strong><span style=\"font-size: 14pt;\">1.<span style=\"white-space: pre;\"> </span>Test Defendant<span style=\"white-space: pre;\"> </span>Respondent</span></strong></p><p>&nbsp;</p><p><strong>JUDGMENT</strong></p><p>This comprehensive case report contains detailed legal analysis, precedents, and judicial reasoning. The HTML format preserves legal document structure and formatting...</p>",
       "creator": {
         "id": 36,
         "name": "Calvin Hammes-Fay"
@@ -461,6 +463,7 @@ Creates a new legal case record with optional file attachments.
 | `citation` | string | No | nullable, max:255 | Legal citation |
 | `judges` | string | No | nullable | Judges involved |
 | `judicial_precedent` | string | No | nullable, max:255 | Precedent strength |
+| `case_report_text` | string | No | nullable | Full detailed case report text in HTML format (stored separately for performance) |
 | `similar_case_ids` | integer array | No | max:50 items, each must exist | Array of case IDs to link as similar cases |
 | `files` | file array | No | max:10, each max:100MB | Case report files (PDF, DOC, TXT, etc.) |
 
@@ -480,6 +483,7 @@ Creates a new legal case record with optional file attachments.
   "citation": "2024 SCNJ 123",
   "judges": "Justice Olukoya, Justice Adeola",
   "judicial_precedent": "Strong",
+  "case_report_text": "<p><span style=\"font-size: 24pt;\"><strong>NEW CONSTITUTIONAL CASE [2024] SCNJ 123</strong></span></p><p>&nbsp;</p><p><strong><span style=\"font-size: 14pt;\">Between:</span></strong></p><p><strong><span style=\"font-size: 14pt;\">The Attorney General<span style=\"white-space: pre;\"> </span>Applicant</span></strong></p><p>&nbsp;</p><p><strong>AND</strong></p><p><strong><span style=\"font-size: 14pt;\">1.<span style=\"white-space: pre;\"> </span>Citizens Rights Group</span></strong></p><p><strong><span style=\"font-size: 14pt;\">2.<span style=\"white-space: pre;\"> </span>Freedom Foundation<span style=\"white-space: pre;\"> </span>Respondents</span></strong></p><p>&nbsp;</p><p><strong>JUDGMENT</strong></p><p>This case establishes fundamental principles regarding constitutional rights and freedoms under the Nigerian Constitution...</p>",
   "similar_case_ids": [15, 25, 30]
 }
 ```
@@ -493,6 +497,7 @@ curl -X POST "/admin/cases" \
   -F "body=This case deals with fundamental rights under the constitution." \
   -F "court=Supreme Court of Nigeria" \
   -F "country=Nigeria" \
+  -F "case_report_text=<p><span style=\"font-size: 24pt;\"><strong>NEW CONSTITUTIONAL CASE WITH DOCUMENTS [2024] SCNJ 123</strong></span></p><p>&nbsp;</p><p><strong><span style=\"font-size: 14pt;\">Between:</span></strong></p><p><strong><span style=\"font-size: 14pt;\">The Attorney General<span style=\"white-space: pre;\"> </span>Applicant</span></strong></p><p>&nbsp;</p><p><strong>AND</strong></p><p><strong><span style=\"font-size: 14pt;\">1.<span style=\"white-space: pre;\"> </span>Citizens Rights Group<span style=\"white-space: pre;\"> </span>Respondents</span></strong></p><p>&nbsp;</p><p><strong>JUDGMENT</strong></p><p>This comprehensive case report establishes key constitutional principles...</p>" \
   -F "similar_case_ids[]=15" \
   -F "similar_case_ids[]=25" \
   -F "files[]=@case-report.pdf" \
@@ -521,6 +526,7 @@ curl -X POST "/admin/cases" \
       "citation": "2024 SCNJ 123",
       "judges": "Justice Olukoya, Justice Adeola",
       "judicial_precedent": "Strong",
+      "case_report_text": "<p><span style=\"font-size: 24pt;\"><strong>NEW CONSTITUTIONAL CASE [2024] SCNJ 123</strong></span></p><p>&nbsp;</p><p><strong><span style=\"font-size: 14pt;\">Between:</span></strong></p><p><strong><span style=\"font-size: 14pt;\">The Attorney General<span style=\"white-space: pre;\"> </span>Applicant</span></strong></p><p>&nbsp;</p><p><strong>AND</strong></p><p><strong><span style=\"font-size: 14pt;\">1.<span style=\"white-space: pre;\"> </span>Citizens Rights Group</span></strong></p><p><strong><span style=\"font-size: 14pt;\">2.<span style=\"white-space: pre;\"> </span>Freedom Foundation<span style=\"white-space: pre;\"> </span>Respondents</span></strong></p><p>&nbsp;</p><p><strong>JUDGMENT</strong></p><p>This case establishes fundamental principles regarding constitutional rights and freedoms under the Nigerian Constitution...</p>",
       "creator": {
         "id": 36,
         "name": "Calvin Hammes-Fay"
@@ -582,6 +588,10 @@ Updates an existing legal case record with optional file attachments.
 #### Request Body
 Same as Create Case endpoint (all fields optional for updates), including:
 - All case fields are optional
+- `case_report_text` field to create/update/delete full case report text (optional)
+  - Provide text to create or update existing case report
+  - Provide empty string `""` to delete existing case report
+  - Omit field to leave case report unchanged
 - `similar_case_ids[]` array to update linked similar cases (optional - replaces existing links)
 - `files[]` array for new file uploads (optional)
 
@@ -591,6 +601,7 @@ Same as Create Case endpoint (all fields optional for updates), including:
   "title": "Updated Case Title",
   "body": "Updated case description",
   "topic": "Updated Legal Topic",
+  "case_report_text": "<p><span style=\"font-size: 24pt;\"><strong>UPDATED CASE TITLE [2023] SCNJ 456</strong></span></p><p>&nbsp;</p><p><strong><span style=\"font-size: 14pt;\">Between:</span></strong></p><p><strong><span style=\"font-size: 14pt;\">The State<span style=\"white-space: pre;\"> </span>Prosecutor</span></strong></p><p>&nbsp;</p><p><strong>AND</strong></p><p><strong><span style=\"font-size: 14pt;\">1.<span style=\"white-space: pre;\"> </span>Defendant Name<span style=\"white-space: pre;\"> </span>Defendant</span></strong></p><p>&nbsp;</p><p><strong>UPDATED JUDGMENT</strong></p><p>This updated case report includes additional legal analysis and revised judicial reasoning...</p>",
   "similar_case_ids": [10, 20, 35]
 }
 ```
@@ -602,6 +613,7 @@ curl -X POST "/admin/cases/1" \
   -H "Content-Type: multipart/form-data" \
   -F "_method=PUT" \
   -F "title=Updated Case Title with New Files" \
+  -F "case_report_text=<p><span style=\"font-size: 24pt;\"><strong>UPDATED CASE TITLE WITH NEW FILES [2023] SCNJ 456</strong></span></p><p>&nbsp;</p><p><strong><span style=\"font-size: 14pt;\">Between:</span></strong></p><p><strong><span style=\"font-size: 14pt;\">Updated Plaintiff<span style=\"white-space: pre;\"> </span>Claimant</span></strong></p><p>&nbsp;</p><p><strong>AND</strong></p><p><strong><span style=\"font-size: 14pt;\">1.<span style=\"white-space: pre;\"> </span>Updated Defendant<span style=\"white-space: pre;\"> </span>Respondent</span></strong></p><p>&nbsp;</p><p><strong>AMENDED JUDGMENT</strong></p><p>This updated case report with additional files includes comprehensive legal analysis...</p>" \
   -F "similar_case_ids[]=10" \
   -F "similar_case_ids[]=20" \
   -F "files[]=@additional-report.pdf" \
@@ -632,6 +644,7 @@ curl -X POST "/admin/cases/1" \
       "citation": "2023 SCNJ 456",
       "judges": "Justice Adebayo, Justice Okafor, Justice Musa",
       "judicial_precedent": "Strong",
+      "case_report_text": "<p><span style=\"font-size: 24pt;\"><strong>UPDATED CASE TITLE [2023] SCNJ 456</strong></span></p><p>&nbsp;</p><p><strong><span style=\"font-size: 14pt;\">Between:</span></strong></p><p><strong><span style=\"font-size: 14pt;\">The State<span style=\"white-space: pre;\"> </span>Prosecutor</span></strong></p><p>&nbsp;</p><p><strong>AND</strong></p><p><strong><span style=\"font-size: 14pt;\">1.<span style=\"white-space: pre;\"> </span>Defendant Name<span style=\"white-space: pre;\"> </span>Defendant</span></strong></p><p>&nbsp;</p><p><strong>UPDATED JUDGMENT</strong></p><p>This updated case report includes additional legal analysis and revised judicial reasoning...</p>",
       "creator": {
         "id": 36,
         "name": "Calvin Hammes-Fay"
@@ -762,6 +775,7 @@ DELETE /admin/cases/1
 | `citation` | string | Yes | Legal citation |
 | `judges` | string | Yes | Judges involved |
 | `judicial_precedent` | string | Yes | Precedent strength |
+| `case_report_text` | string | Yes | Full detailed case report text in HTML format (null if not set, stored separately for performance) |
 | `creator` | object | No | Creator user information |
 | `files` | array | No | Array of attached case report files |
 | `files_count` | integer | No | Total number of attached case report files |
@@ -901,6 +915,35 @@ GET /cases?search=rights&country=Nigeria&level=Supreme Court&topic=Constitutiona
 GET /admin/cases?search=rights&country=Nigeria&created_by=36&page=2&per_page=25
 ```
 
+### Case Report Text Management
+```bash
+# Create case with full report text
+curl -X POST "http://127.0.0.1:8000/api/admin/cases" \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Test Case with Report",
+    "body": "Case summary",
+    "case_report_text": "<p><span style=\"font-size: 24pt;\"><strong>TEST CASE WITH REPORT [2025] TEST 001</strong></span></p><p>&nbsp;</p><p><strong><span style=\"font-size: 14pt;\">Between:</span></strong></p><p><strong><span style=\"font-size: 14pt;\">Test Plaintiff<span style=\"white-space: pre;\"> </span>Claimant</span></strong></p><p>&nbsp;</p><p><strong>AND</strong></p><p><strong><span style=\"font-size: 14pt;\">1.<span style=\"white-space: pre;\"> </span>Test Defendant<span style=\"white-space: pre;\"> </span>Respondent</span></strong></p><p>&nbsp;</p><p><strong>JUDGMENT</strong></p><p>Comprehensive full report text with detailed legal analysis...</p>"
+  }'
+
+# Update only the case report text
+curl -X PUT "http://127.0.0.1:8000/api/admin/cases/123" \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "case_report_text": "<p><span style=\"font-size: 24pt;\"><strong>UPDATED TEST CASE [2025] TEST 001</strong></span></p><p>&nbsp;</p><p><strong><span style=\"font-size: 14pt;\">Between:</span></strong></p><p><strong><span style=\"font-size: 14pt;\">Updated Plaintiff<span style=\"white-space: pre;\"> </span>Claimant</span></strong></p><p>&nbsp;</p><p><strong>AND</strong></p><p><strong><span style=\"font-size: 14pt;\">1.<span style=\"white-space: pre;\"> </span>Updated Defendant<span style=\"white-space: pre;\"> </span>Respondent</span></strong></p><p>&nbsp;</p><p><strong>REVISED JUDGMENT</strong></p><p>Updated comprehensive report text with additional analysis...</p>"
+  }'
+
+# Delete case report text
+curl -X PUT "http://127.0.0.1:8000/api/admin/cases/123" \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "case_report_text": ""
+  }'
+```
+
 ### Similar Cases Management
 ```
 # Create case with similar cases
@@ -962,6 +1005,21 @@ GET /admin/cases?include_similar_cases=true&per_page=10
   - A case cannot be marked as similar to itself
   - Empty array `[]` can be used to clear all similar case links
 - **Use Cases**: Helps legal researchers find related precedents and comparable cases for comprehensive legal analysis
+
+### Case Report Text Feature
+- **Purpose**: Stores comprehensive full case report text separately from main case data for performance optimization
+- **Format**: HTML formatted text preserving legal document structure with proper headings, paragraphs, and styling
+- **Typical Structure**: Case title, parties (Between/AND sections), judgment text with proper legal formatting
+- **Storage**: Uses dedicated `case_reports` table with foreign key relationship to cases
+- **Performance**: Prevents loading large text content during case listing operations
+- **Optional Field**: Completely optional - cases work perfectly without case reports
+- **Management**: Full CRUD operations supported:
+  - **Create**: Provide `case_report_text` field during case creation
+  - **Read**: Always included in single case responses when available (shows `null` if not set)
+  - **Update**: Provide `case_report_text` field during case updates to create/modify
+  - **Delete**: Provide empty string `""` in `case_report_text` field to remove existing report
+- **Data Integrity**: Automatically deleted when parent case is deleted (cascade delete)
+- **API Responses**: Included in both user and admin endpoints when case report relationship is loaded
 
 ### Security
 - User endpoints use slug-based routing (public-friendly)

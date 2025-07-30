@@ -36,6 +36,9 @@ class CaseResource extends JsonResource
             'citation' => $this->citation,
             'judges' => $this->judges,
             'judicial_precedent' => $this->judicial_precedent,
+            'case_report_text' => $this->whenLoaded('caseReport', function () {
+                return $this->caseReport?->full_report_text;
+            }),
             'creator' => $this->whenLoaded('creator', function () {
                 return [
                     'id' => $this->creator->id,

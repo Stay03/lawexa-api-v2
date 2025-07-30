@@ -88,9 +88,17 @@ class AdminCaseController extends Controller
                 $this->handleDirectS3FileUploads($request, $case, 'files', 'case_reports', $request->user()->id);
             }
             
+            // Handle case report if present
+            if ($request->filled('case_report_text')) {
+                $case->caseReport()->create([
+                    'full_report_text' => $request->case_report_text
+                ]);
+            }
+            
             $case->load([
                 'creator:id,name', 
                 'files',
+                'caseReport',
                 'similarCases:id,title,slug,court,date,country,citation',
                 'casesWhereThisIsSimilar:id,title,slug,court,date,country,citation'
             ]);
@@ -108,6 +116,7 @@ class AdminCaseController extends Controller
         $case = CourtCase::with([
             'creator:id,name', 
             'files',
+            'caseReport',
             'similarCases:id,title,slug,court,date,country,citation',
             'casesWhereThisIsSimilar:id,title,slug,court,date,country,citation'
         ])->findOrFail($id);
@@ -136,9 +145,24 @@ class AdminCaseController extends Controller
                 $this->handleDirectS3FileUploads($request, $case, 'files', 'case_reports', $request->user()->id);
             }
             
+            // Handle case report update/create/delete
+            if ($request->has('case_report_text')) {
+                if ($request->filled('case_report_text')) {
+                    // Create or update case report
+                    $case->caseReport()->updateOrCreate(
+                        ['case_id' => $case->id],
+                        ['full_report_text' => $request->case_report_text]
+                    );
+                } else {
+                    // Delete case report if empty string provided
+                    $case->caseReport()->delete();
+                }
+            }
+            
             $case->load([
                 'creator:id,name', 
                 'files',
+                'caseReport',
                 'similarCases:id,title,slug,court,date,country,citation',
                 'casesWhereThisIsSimilar:id,title,slug,court,date,country,citation'
             ]);
