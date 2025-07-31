@@ -11,7 +11,7 @@ class AdminUpdateIssueRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->hasAdminAccess();
+        return true;
     }
 
     /**
