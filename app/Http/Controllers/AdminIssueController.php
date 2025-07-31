@@ -70,12 +70,12 @@ class AdminIssueController extends Controller
     /**
      * Display the specified issue for admin.
      */
-    public function show(Issue $issue)
+    public function show(Issue $adminIssue)
     {
-        $issue->load(['user', 'assignedTo', 'files', 'screenshots']);
+        $adminIssue->load(['user', 'assignedTo', 'files', 'screenshots']);
         
         return ApiResponse::success(
-            new AdminIssueResource($issue),
+            new AdminIssueResource($adminIssue),
             'Issue retrieved successfully'
         );
     }
@@ -83,22 +83,22 @@ class AdminIssueController extends Controller
     /**
      * Update the specified issue (admin only).
      */
-    public function update(AdminUpdateIssueRequest $request, Issue $issue)
+    public function update(AdminUpdateIssueRequest $request, Issue $adminIssue)
     {
         DB::beginTransaction();
         
         try {
             $data = $request->validated();
             
-            if (isset($data['status']) && $data['status'] === 'resolved' && !$issue->resolved_at) {
+            if (isset($data['status']) && $data['status'] === 'resolved' && !$adminIssue->resolved_at) {
                 $data['resolved_at'] = now();
             }
             
-            $issue->update($data);
+            $adminIssue->update($data);
             
             if ($request->has('file_ids')) {
                 File::where('fileable_type', Issue::class)
-                    ->where('fileable_id', $issue->id)
+                    ->where('fileable_id', $adminIssue->id)
                     ->update([
                         'fileable_id' => null,
                         'fileable_type' => null
@@ -107,18 +107,18 @@ class AdminIssueController extends Controller
                 if (!empty($request->file_ids)) {
                     File::whereIn('id', $request->file_ids)
                         ->update([
-                            'fileable_id' => $issue->id,
+                            'fileable_id' => $adminIssue->id,
                             'fileable_type' => Issue::class
                         ]);
                 }
             }
             
-            $issue->load(['user', 'assignedTo', 'files', 'screenshots']);
+            $adminIssue->load(['user', 'assignedTo', 'files', 'screenshots']);
             
             DB::commit();
             
             return ApiResponse::success(
-                new AdminIssueResource($issue),
+                new AdminIssueResource($adminIssue),
                 'Issue updated successfully'
             );
             
@@ -131,9 +131,9 @@ class AdminIssueController extends Controller
     /**
      * Remove the specified issue from storage (admin only).
      */
-    public function destroy(Issue $issue)
+    public function destroy(Issue $adminIssue)
     {
-        $issue->delete();
+        $adminIssue->delete();
         
         return ApiResponse::success(null, 'Issue deleted successfully');
     }
@@ -172,19 +172,19 @@ class AdminIssueController extends Controller
     /**
      * Generate AI analysis for an issue.
      */
-    public function aiAnalyze(Issue $issue)
+    public function aiAnalyze(Issue $adminIssue)
     {
         try {
-            $analysis = "AI Analysis for Issue #{$issue->id}:\n\n";
-            $analysis .= "Title: {$issue->title}\n";
-            $analysis .= "Type: {$issue->type}\n";
-            $analysis .= "Severity: {$issue->severity}\n";
-            $analysis .= "Area: {$issue->area}\n\n";
+            $analysis = "AI Analysis for Issue #{$adminIssue->id}:\n\n";
+            $analysis .= "Title: {$adminIssue->title}\n";
+            $analysis .= "Type: {$adminIssue->type}\n";
+            $analysis .= "Severity: {$adminIssue->severity}\n";
+            $analysis .= "Area: {$adminIssue->area}\n\n";
             $analysis .= "Description Analysis:\n";
             $analysis .= "This appears to be a {$issue->type} issue affecting the {$issue->area} area. ";
-            $analysis .= "Based on the severity level ({$issue->severity}), ";
+            $analysis .= "Based on the severity level ({$adminIssue->severity}), ";
             
-            switch ($issue->severity) {
+            switch ($adminIssue->severity) {
                 case 'critical':
                     $analysis .= "this requires immediate attention and should be prioritized for urgent resolution.";
                     break;
@@ -205,7 +205,7 @@ class AdminIssueController extends Controller
             $analysis .= "3. Assign to appropriate team member based on area\n";
             $analysis .= "4. Set up monitoring if this is a recurring issue\n";
             
-            $issue->update(['ai_analysis' => $analysis]);
+            $adminIssue->update(['ai_analysis' => $analysis]);
             
             return ApiResponse::success(
                 ['ai_analysis' => $analysis],

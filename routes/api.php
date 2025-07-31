@@ -192,10 +192,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('issues')->group(function () {
             Route::get('/', [AdminIssueController::class, 'index']);
             Route::get('stats', [AdminIssueController::class, 'stats']);
-            Route::get('{issue}', [AdminIssueController::class, 'show'])->where('issue', '[0-9]+');
-            Route::put('{issue}', [AdminIssueController::class, 'update'])->where('issue', '[0-9]+');
-            Route::delete('{issue}', [AdminIssueController::class, 'destroy'])->where('issue', '[0-9]+')->middleware('role:admin,superadmin');
-            Route::post('{issue}/ai-analyze', [AdminIssueController::class, 'aiAnalyze'])->where('issue', '[0-9]+');
+            Route::get('{adminIssue}', [AdminIssueController::class, 'show'])->where('adminIssue', '[0-9]+');
+            Route::put('{adminIssue}', [AdminIssueController::class, 'update'])->where('adminIssue', '[0-9]+');
+            Route::delete('{adminIssue}', [AdminIssueController::class, 'destroy'])->where('adminIssue', '[0-9]+')->middleware('role:admin,superadmin');
+            Route::post('{adminIssue}/ai-analyze', [AdminIssueController::class, 'aiAnalyze'])->where('adminIssue', '[0-9]+');
         });
     });
 });
