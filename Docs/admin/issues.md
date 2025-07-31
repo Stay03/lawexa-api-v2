@@ -78,34 +78,77 @@ GET /issues?area=both&severity=low
   "message": "Issues retrieved successfully",
   "data": [
     {
-      "id": 1,
-      "title": "Test Issue - Login Button Fixed (Updated)",
-      "description": "When I click the login button, nothing happens. The page doesn't redirect and no error message is shown.",
-      "type": "bug",
+      "id": 5,
+      "title": "Single Request Test Issue",
+      "description": "This issue was created with direct file upload in a single request",
+      "type": "feature_request",
       "severity": "low",
       "priority": "low",
       "status": "open",
-      "area": "both",
-      "category": "authentication",
-      "browser_info": {
-        "browser": "Chrome",
-        "version": "118.0.0.0",
-        "os": "Windows 11"
-      },
-      "environment_info": {
-        "environment": "production",
-        "version": "v2.1.0"
-      },
-      "steps_to_reproduce": "1. Go to login page\n2. Enter valid credentials\n3. Click login button\n4. Nothing happens",
-      "expected_behavior": "Should redirect to dashboard after successful login",
-      "actual_behavior": "Button click has no effect, stays on login page",
-      "files": [],
+      "area": "backend",
+      "category": null,
+      "browser_info": null,
+      "environment_info": null,
+      "steps_to_reproduce": null,
+      "expected_behavior": null,
+      "actual_behavior": null,
+      "files": [
+        {
+          "id": 16,
+          "name": "test-single-request.txt",
+          "filename": "a8788091-2bc6-4edd-9fbc-12b107ea557d.txt",
+          "size": 107,
+          "human_size": "107 B",
+          "mime_type": "text/plain",
+          "extension": "txt",
+          "category": "issue",
+          "url": "https://lawexa-api-files-dev.s3.amazonaws.com/uploads/issue/2025/07/a8788091-2bc6-4edd-9fbc-12b107ea557d.txt",
+          "download_url": "https://lawexa-api-files-dev.s3.amazonaws.com/uploads/issue/2025/07/a8788091-2bc6-4edd-9fbc-12b107ea557d.txt?response-content-disposition=attachment%3B%20filename%3D%22test-single-request.txt%22&response-content-type=text%2Fplain&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVIJPT2UGT6Y6E2FQ%2F20250731%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250731T200217Z&X-Amz-SignedHeaders=host&X-Amz-Expires=3599&X-Amz-Signature=a780e04cf2c8181860834d4265ef77782de152df759ddc48e710b884453165ac",
+          "is_image": false,
+          "is_document": true,
+          "disk": "s3",
+          "metadata": {
+            "upload_ip": "127.0.0.1",
+            "upload_user_agent": "curl/8.2.1",
+            "expected_size": 107,
+            "initiated_at": "2025-07-31T09:11:41.643958Z",
+            "completed_at": "2025-07-31T09:11:42.821944Z",
+            "s3_etag": "e492321d309056e1da2320da50131d42"
+          },
+          "attached_to": {
+            "type": "App\\Models\\Issue",
+            "id": 5
+          },
+          "uploaded_by": {
+            "id": 53,
+            "name": "Ramiro Labadie II",
+            "email": "Everett59@yahoo.com"
+          },
+          "created_at": "2025-07-31T09:11:41.000000Z",
+          "updated_at": "2025-07-31T09:11:42.000000Z"
+        }
+      ],
       "screenshots": [],
       "resolved_at": null,
-      "created_at": "2025-07-31T00:47:55.000000Z",
-      "updated_at": "2025-07-31T00:49:05.000000Z"
+      "created_at": "2025-07-31T09:11:41.000000Z",
+      "updated_at": "2025-07-31T09:11:41.000000Z"
     }
-  ]
+  ],
+  "meta": {
+    "current_page": 1,
+    "from": 1,
+    "last_page": 1,
+    "per_page": 15,
+    "to": 2,
+    "total": 2,
+    "filters_applied": []
+  },
+  "links": {
+    "first": "http://localhost:8000/api/issues?page=1",
+    "last": "http://localhost:8000/api/issues?page=1",
+    "prev": null,
+    "next": null
+  }
 }
 ```
 
@@ -177,6 +220,50 @@ curl -X POST "/api/issues" \
 
 #### Success Response (201)
 
+**Response with JSON payload (basic creation):**
+```json
+{
+  "status": "success",
+  "message": "Issue created successfully",
+  "data": {
+    "id": 6,
+    "title": "Test API Validation Issue",
+    "description": "Testing the issues API to verify it works as documented",
+    "type": "bug",
+    "severity": "medium",
+    "priority": null,
+    "status": null,
+    "area": "backend",
+    "category": "testing",
+    "browser_info": null,
+    "environment_info": null,
+    "steps_to_reproduce": null,
+    "expected_behavior": null,
+    "actual_behavior": null,
+    "user": {
+      "id": 53,
+      "name": "Ramiro Labadie II",
+      "email": "Everett59@yahoo.com",
+      "role": "admin",
+      "avatar": null,
+      "google_id": null,
+      "customer_code": null,
+      "subscription_status": "inactive",
+      "subscription_expiry": null,
+      "has_active_subscription": false,
+      "email_verified_at": null,
+      "created_at": "2025-07-30T01:11:34.000000Z",
+      "updated_at": "2025-07-30T01:11:34.000000Z"
+    },
+    "files": [],
+    "screenshots": [],
+    "resolved_at": null,
+    "created_at": "2025-07-31T20:02:40.000000Z",
+    "updated_at": "2025-07-31T20:02:40.000000Z"
+  }
+}
+```
+
 **Response with direct file upload:**
 ```json
 {
@@ -188,7 +275,7 @@ curl -X POST "/api/issues" \
     "description": "This issue was created with direct file upload in a single request",
     "type": "feature_request",
     "severity": "low",
-    "priority": "low",
+    "priority": null,
     "status": null,
     "area": "backend",
     "category": null,
@@ -867,7 +954,22 @@ GET /admin/issues?status=in_progress&severity=high&search=login&sort_by=created_
       "created_at": "2025-07-31T00:47:55.000000Z",
       "updated_at": "2025-07-31T00:50:24.000000Z"
     }
-  ]
+  ],
+  "meta": {
+    "current_page": 1,
+    "from": 1,
+    "last_page": 1,
+    "per_page": 20,
+    "to": 3,
+    "total": 3,
+    "filters_applied": []
+  },
+  "links": {
+    "first": "http://localhost:8000/api/admin/issues?page=1",
+    "last": "http://localhost:8000/api/admin/issues?page=1",
+    "prev": null,
+    "next": null
+  }
 }
 ```
 
@@ -1266,6 +1368,17 @@ POST /admin/issues/1/ai-analyze
 }
 ```
 
+#### Error Response (500)
+```json
+{
+  "status": "error",
+  "message": "Failed to generate AI analysis",
+  "data": null
+}
+```
+
+**Note:** AI analysis may fail due to API configuration issues or external service availability.
+
 ### 11. Delete Issue (Admin)
 
 **DELETE** `/admin/issues/{id}`
@@ -1381,6 +1494,7 @@ DELETE /admin/issues/3
 
 ### User Object
 
+**Standard User Object (Issues API):**
 | Field | Type | Nullable | Description |
 |-------|------|----------|-------------|
 | `id` | integer | No | User ID |
@@ -1393,15 +1507,11 @@ DELETE /admin/issues/3
 | `subscription_status` | string | No | Current subscription status |
 | `subscription_expiry` | string | Yes | Subscription expiry date |
 | `has_active_subscription` | boolean | No | Whether user has active subscription |
-| `plan` | string | Yes | Current subscription plan name |
-| `plan_code` | string | Yes | Current subscription plan code |
-| `formatted_amount` | string | Yes | Formatted subscription amount |
-| `amount` | integer | Yes | Subscription amount in kobo/cents |
-| `interval` | string | Yes | Subscription billing interval |
-| `active_subscription` | object | Yes | Active subscription details |
 | `email_verified_at` | string | Yes | Email verification timestamp |
 | `created_at` | string | No | User creation timestamp |
 | `updated_at` | string | No | User last update timestamp |
+
+**Note:** The Issues API returns a simplified user object without subscription plan details (`plan`, `plan_code`, `formatted_amount`, `amount`, `interval`, `active_subscription` fields). For complete user information with subscription details, use the dedicated user endpoints.
 
 ### File Object
 
@@ -1607,12 +1717,34 @@ Issues follow a standard lifecycle:
 4. **closed** - Verified and completed
 5. **duplicate** - Marked as duplicate of another issue
 
-### Default Values
-- **type**: defaults to "bug"
-- **severity**: defaults to "medium"  
-- **priority**: defaults to "medium"
-- **status**: defaults to "open"
+### Default Values & Response Behavior
+- **Creation Response**: `priority` and `status` fields return `null` in POST responses, even when defaults would apply
+- **Retrieval Response**: When fetching issues via GET, default values are applied:
+  - **type**: defaults to "bug"
+  - **severity**: defaults to "medium"  
+  - **priority**: defaults to "medium"
+  - **status**: defaults to "open"
 - **area**: optional field, can be null
+
+### Pagination Structure
+All list endpoints (`GET /issues`, `GET /admin/issues`) return paginated responses with the following structure:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data` | array | Array of issue objects |
+| `meta` | object | Pagination metadata |
+| `meta.current_page` | integer | Current page number |
+| `meta.from` | integer | First item number on current page |
+| `meta.last_page` | integer | Last page number |
+| `meta.per_page` | integer | Items per page |
+| `meta.to` | integer | Last item number on current page |
+| `meta.total` | integer | Total number of items |
+| `meta.filters_applied` | array | Applied filters (empty array if none) |
+| `links` | object | Navigation links |
+| `links.first` | string | URL to first page |
+| `links.last` | string | URL to last page |
+| `links.prev` | string\|null | URL to previous page (null if on first page) |
+| `links.next` | string\|null | URL to next page (null if on last page) |
 
 ### File Attachments
 - Issues support file attachments via two methods:

@@ -147,7 +147,7 @@ class AdminIssueController extends Controller
             'total_issues' => Issue::count(),
             'open_issues' => Issue::where('status', 'open')->count(),
             'in_progress_issues' => Issue::where('status', 'in_progress')->count(),
-            'resolved_issues' => Issue::whereIn('status', ['resolved', 'closed'])->count(),
+            'resolved_issues' => Issue::where('status', 'resolved')->count(),
             'closed_issues' => Issue::where('status', 'closed')->count(),
             'duplicate_issues' => Issue::where('status', 'duplicate')->count(),
             'critical_issues' => Issue::where('severity', 'critical')->count(),
