@@ -9,11 +9,13 @@ use App\Http\Resources\IssueResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Issue;
 use App\Models\File;
+use App\Traits\HandlesDirectS3Uploads;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class IssueController extends Controller
 {
+    use HandlesDirectS3Uploads;
     /**
      * Display a listing of the user's issues.
      */
@@ -63,6 +65,13 @@ class IssueController extends Controller
                 ...$request->validated()
             ]);
             
+            // Handle direct file uploads if present
+            if ($request->hasFile('files')) {
+                $fileCategory = $request->get('file_category', 'issue');
+                $this->handleDirectS3FileUploads($request, $issue, 'files', $fileCategory, $user->id);
+            }
+            
+            // Handle existing file_ids approach (backwards compatibility)
             if ($request->has('file_ids') && !empty($request->file_ids)) {
                 File::whereIn('id', $request->file_ids)
                     ->where('uploaded_by', $user->id)

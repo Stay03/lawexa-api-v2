@@ -113,10 +113,14 @@ GET /issues?area=both&severity=low
 
 **POST** `/issues`
 
-Creates a new issue report with optional file attachments and comprehensive bug details.
+Creates a new issue report with optional file attachments and comprehensive bug details. Supports both direct file uploads and existing file attachment methods.
 
 #### Required Permissions
 - Authenticated user (any role)
+
+#### Content Types Supported
+- **JSON**: `application/json` (for existing file_ids approach)
+- **Form Data**: `multipart/form-data` (for direct file uploads)
 
 #### Request Body
 
@@ -134,9 +138,13 @@ Creates a new issue report with optional file attachments and comprehensive bug 
 | `steps_to_reproduce` | string | No | - | Steps to reproduce the issue |
 | `expected_behavior` | string | No | - | Expected behavior description |
 | `actual_behavior` | string | No | - | Actual behavior description |
-| `file_ids` | array | No | each must exist in files table | Array of file IDs to attach |
+| `file_ids` | array | No | each must exist in files table | Array of file IDs to attach (existing approach) |
+| `files` | array | No | max:10 files, file validation | Direct file uploads (new approach) |
+| `file_category` | string | No | in:general,legal,case,document,image,case_reports,issue | Category for uploaded files (defaults to 'issue') |
 
-#### Example Request
+#### Example Requests
+
+**Method 1: JSON with existing file_ids (existing approach)**
 ```json
 {
   "title": "Test Issue - Login Button Not Working",
@@ -147,90 +155,103 @@ Creates a new issue report with optional file attachments and comprehensive bug 
   "category": "authentication",
   "steps_to_reproduce": "1. Go to login page\n2. Enter valid credentials\n3. Click login button\n4. Nothing happens",
   "expected_behavior": "Should redirect to dashboard after successful login",
-  "actual_behavior": "Button click has no effect, stays on login page"
+  "actual_behavior": "Button click has no effect, stays on login page",
+  "file_ids": [15, 16]
 }
 ```
 
+**Method 2: Form Data with direct file upload (new approach)**
+```bash
+curl -X POST "/api/issues" \
+  -H "Authorization: Bearer {token}" \
+  -F "title=Test Issue - Login Button Not Working" \
+  -F "description=When I click the login button, nothing happens." \
+  -F "type=bug" \
+  -F "severity=high" \
+  -F "area=frontend" \
+  -F "category=authentication" \
+  -F "files[]=@screenshot1.png" \
+  -F "files[]=@error_log.txt" \
+  -F "file_category=issue"
+```
+
 #### Success Response (201)
+
+**Response with direct file upload:**
 ```json
 {
   "status": "success",
   "message": "Issue created successfully",
   "data": {
-    "id": 1,
-    "title": "Test Issue - Login Button Not Working",
-    "description": "When I click the login button, nothing happens. The page doesn't redirect and no error message is shown.",
-    "type": "bug",
-    "severity": "high",
-    "priority": "medium",
-    "status": "open",
-    "area": "frontend",
-    "category": "authentication",
+    "id": 5,
+    "title": "Single Request Test Issue",
+    "description": "This issue was created with direct file upload in a single request",
+    "type": "feature_request",
+    "severity": "low",
+    "priority": "low",
+    "status": null,
+    "area": "backend",
+    "category": null,
     "browser_info": null,
     "environment_info": null,
-    "steps_to_reproduce": "1. Go to login page\n2. Enter valid credentials\n3. Click login button\n4. Nothing happens",
-    "expected_behavior": "Should redirect to dashboard after successful login",
-    "actual_behavior": "Button click has no effect, stays on login page",
+    "steps_to_reproduce": null,
+    "expected_behavior": null,
+    "actual_behavior": null,
     "user": {
-      "id": 1,
-      "name": "Stay Njokede",
-      "email": "njokedestay@gmail.com",
+      "id": 53,
+      "name": "Ramiro Labadie II",
+      "email": "Everett59@yahoo.com",
       "role": "admin",
-      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocKC_f_xaqhTn0S44tbuCckQV-TKQLe2IbZgJ_TJXVAEj6w5Qw=s96-c",
-      "google_id": "104759936895463122466",
-      "customer_code": "CUS_a869auzperkrrie",
-      "subscription_status": "expired",
-      "subscription_expiry": "2025-07-30T02:45:40.000000Z",
+      "avatar": null,
+      "google_id": null,
+      "customer_code": null,
+      "subscription_status": "inactive",
+      "subscription_expiry": null,
       "has_active_subscription": false,
-      "plan": "Professional",
-      "plan_code": "PLN_5bc1gpneuno684c",
-      "formatted_amount": "1,500.00",
-      "amount": 150000,
-      "interval": "daily",
-      "active_subscription": {
-        "id": 7,
-        "subscription_code": "SUB_7bv5cuwb9wzp9n4",
-        "status": "active",
-        "quantity": 1,
-        "amount": 83000,
-        "formatted_amount": "830.00",
-        "currency": "NGN",
-        "start_date": "2025-07-16T02:45:16.000000Z",
-        "next_payment_date": "2025-07-30T02:45:40.000000Z",
-        "cron_expression": "45 2 * * *",
-        "invoice_limit": 0,
-        "is_active": false,
-        "is_expired": true,
-        "can_be_cancelled": true,
-        "plan": {
-          "id": 14,
-          "name": "Professional",
-          "plan_code": "PLN_5bc1gpneuno684c",
-          "description": null,
-          "amount": 150000,
-          "formatted_amount": "1,500.00",
-          "currency": "NGN",
-          "interval": "daily",
-          "invoice_limit": 0,
-          "send_invoices": true,
-          "send_sms": false,
-          "hosted_page": false,
-          "is_active": true,
-          "created_at": "2025-07-13T18:49:09.000000Z",
-          "updated_at": "2025-07-18T18:55:20.000000Z"
-        },
-        "created_at": "2025-07-16T02:45:17.000000Z",
-        "updated_at": "2025-07-29T02:45:40.000000Z"
-      },
       "email_verified_at": null,
-      "created_at": "2025-07-06T20:00:55.000000Z",
-      "updated_at": "2025-07-16T02:45:17.000000Z"
+      "created_at": "2025-07-30T01:11:34.000000Z",
+      "updated_at": "2025-07-30T01:11:34.000000Z"
     },
-    "files": [],
+    "files": [
+      {
+        "id": 16,
+        "name": "test-single-request.txt",
+        "filename": "a8788091-2bc6-4edd-9fbc-12b107ea557d.txt",
+        "size": 107,
+        "human_size": "107 B",
+        "mime_type": "text/plain",
+        "extension": "txt",
+        "category": "issue",
+        "url": "https://lawexa-api-files-dev.s3.amazonaws.com/uploads/issue/2025/07/a8788091-2bc6-4edd-9fbc-12b107ea557d.txt",
+        "download_url": "https://lawexa-api-files-dev.s3.amazonaws.com/uploads/issue/2025/07/a8788091-2bc6-4edd-9fbc-12b107ea557d.txt?response-content-disposition=attachment%3B%20filename%3D%22test-single-request.txt%22&response-content-type=text%2Fplain&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVIJPT2UGT6Y6E2FQ%2F20250731%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250731T091142Z&X-Amz-SignedHeaders=host&X-Amz-Expires=3600&X-Amz-Signature=217c5390a0b694d596461a14269cd090d8a7c41a64bf3711b4602a9ee10af810",
+        "is_image": false,
+        "is_document": true,
+        "disk": "s3",
+        "metadata": {
+          "upload_ip": "127.0.0.1",
+          "upload_user_agent": "curl/8.2.1",
+          "expected_size": 107,
+          "initiated_at": "2025-07-31T09:11:41.643958Z",
+          "completed_at": "2025-07-31T09:11:42.821944Z",
+          "s3_etag": "e492321d309056e1da2320da50131d42"
+        },
+        "attached_to": {
+          "type": "App\\Models\\Issue",
+          "id": 5
+        },
+        "uploaded_by": {
+          "id": 53,
+          "name": "Ramiro Labadie II",
+          "email": "Everett59@yahoo.com"
+        },
+        "created_at": "2025-07-31T09:11:41.000000Z",
+        "updated_at": "2025-07-31T09:11:42.000000Z"
+      }
+    ],
     "screenshots": [],
     "resolved_at": null,
-    "created_at": "2025-07-31T00:47:55.000000Z",
-    "updated_at": "2025-07-31T00:47:55.000000Z"
+    "created_at": "2025-07-31T09:11:41.000000Z",
+    "updated_at": "2025-07-31T09:11:41.000000Z"
   }
 }
 ```
@@ -1317,7 +1338,11 @@ DELETE /admin/issues/3
     "priority": ["Invalid priority level selected."],
     "area": ["Invalid area selected."],
     "assigned_to": ["The selected user does not exist."],
-    "file_ids.0": ["One or more selected files do not exist."]
+    "file_ids.0": ["One or more selected files do not exist."],
+    "files.0": ["One or more uploaded files are not valid."],
+    "files.1": ["Each file size cannot exceed 100MB."],
+    "files.2": ["Only the following file types are allowed: pdf,doc,docx,txt,png,jpg,jpeg,gif,webp."],
+    "file_category": ["Invalid file category selected."]
   }
 }
 ```
@@ -1391,7 +1416,7 @@ DELETE /admin/issues/3
 | `human_size` | string | No | Human-readable file size |
 | `mime_type` | string | No | MIME type of the file |
 | `extension` | string | No | File extension |
-| `category` | string | No | File category (for issues: "general" or "case_reports") |
+| `category` | string | No | File category (for issues: "issue", "general", "document", "image", etc.) |
 | `url` | string | No | Direct access URL |
 | `download_url` | string | No | Signed download URL (expires in 1 hour) |
 | `is_image` | boolean | No | Whether file is an image |
@@ -1499,8 +1524,41 @@ curl -X PUT "http://127.0.0.1:8000/api/admin/issues/1" \
 ```
 
 ### File Upload Integration
+
+**Method 1: Single-request with direct file upload (Recommended)**
 ```bash
-# Create issue with file attachment (after uploading files via direct upload)
+# Create issue with direct file upload in one request
+curl -X POST "http://127.0.0.1:8000/api/issues" \
+  -H "Authorization: Bearer {token}" \
+  -F "title=UI Layout Issue with Screenshots" \
+  -F "description=The layout breaks on mobile devices as shown in the attached screenshots" \
+  -F "type=bug" \
+  -F "severity=medium" \
+  -F "area=frontend" \
+  -F "category=ui" \
+  -F "files[]=@screenshot1.png" \
+  -F "files[]=@screenshot2.png" \
+  -F "files[]=@error_log.txt" \
+  -F "file_category=issue"
+
+# Update issue with additional files (using form data)
+curl -X PUT "http://127.0.0.1:8000/api/issues/1" \
+  -H "Authorization: Bearer {token}" \
+  -F "files[]=@new_screenshot.png" \
+  -F "files[]=@updated_log.txt" \
+  -F "file_category=document"
+```
+
+**Method 2: Two-step process with file_ids (Legacy)**
+```bash
+# Step 1: Upload files first
+curl -X POST "http://127.0.0.1:8000/api/upload" \
+  -H "Authorization: Bearer {token}" \
+  -F "files[]=@screenshot1.png" \
+  -F "files[]=@screenshot2.png" \
+  -F "category=issue"
+
+# Step 2: Create issue with file_ids from upload response
 curl -X POST "http://127.0.0.1:8000/api/issues" \
   -H "Authorization: Bearer {token}" \
   -H "Content-Type: application/json" \
@@ -1514,7 +1572,7 @@ curl -X POST "http://127.0.0.1:8000/api/issues" \
     "file_ids": [15, 16, 17]
   }'
 
-# Update issue to add more files
+# Update issue to add more files (using file_ids)
 curl -X PUT "http://127.0.0.1:8000/api/issues/1" \
   -H "Authorization: Bearer {token}" \
   -H "Content-Type: application/json" \
@@ -1557,10 +1615,13 @@ Issues follow a standard lifecycle:
 - **area**: optional field, can be null
 
 ### File Attachments
-- Issues support file attachments via the existing polymorphic file system
-- Screenshots and documents can be attached using the `file_ids` array
-- Files must be uploaded via the Direct Upload system first
+- Issues support file attachments via two methods:
+  1. **Direct Upload (Recommended)**: Upload files directly when creating/updating issues using `files` array in form-data
+  2. **File IDs (Legacy)**: Attach pre-uploaded files using the `file_ids` array in JSON requests
+- Files uploaded with issues are automatically categorized as "issue" by default
+- Custom categories can be specified using the `file_category` parameter
 - Supported formats: images (PNG, JPG, JPEG, GIF, WebP), documents (PDF, DOC, DOCX, TXT)
+- Maximum 10 files per request with size limits enforced by the file upload service
 
 ### AI Analysis Feature
 - **Purpose**: Provides automated insights and recommendations for issue resolution
