@@ -61,6 +61,7 @@ Retrieves a paginated list of legal cases with filtering and search capabilities
 | `level` | string | No | - | Filter by court level |
 | `date_from` | date | No | - | Filter cases from date (YYYY-MM-DD) |
 | `date_to` | date | No | - | Filter cases up to date (YYYY-MM-DD) |
+| `include_cited_cases` | boolean | No | false | Include cited cases data in list view (performance impact) |
 | `page` | integer | No | 1 | Page number |
 | `per_page` | integer | No | 15 | Items per page (max: 100) |
 
@@ -113,6 +114,8 @@ GET /cases?search=constitutional&country=Nigeria&court=Supreme Court&page=1&per_
         "files_count": 1,
         "similar_cases": {},
         "similar_cases_count": {},
+        "cited_cases": {},
+        "cited_cases_count": {},
         "created_at": "2025-07-24T17:24:35.000000Z",
         "updated_at": "2025-07-24T17:24:35.000000Z"
       }
@@ -205,6 +208,27 @@ GET /cases/test-id-based-update
         }
       ],
       "similar_cases_count": 2,
+      "cited_cases": [
+        {
+          "id": 1,
+          "title": "4 Eng Ltd v Harper & Anor, (2008) 3 WLR 892",
+          "slug": "4-eng-ltd-v-harper-anor-2008-3-wlr-892-1",
+          "court": "High Court",
+          "date": "2008-04-29",
+          "country": "United Kingdom",
+          "citation": "(2008) 3 WLR 892"
+        },
+        {
+          "id": 3,
+          "title": "A and others v National Blood Authority, (2001) 3 All ER 289",
+          "slug": "a-and-others-v-national-blood-authority-2001-3-all-er-289-3",
+          "court": null,
+          "date": null,
+          "country": null,
+          "citation": null
+        }
+      ],
+      "cited_cases_count": 2,
       "created_at": "2025-07-24T17:18:48.000000Z",
       "updated_at": "2025-07-24T20:20:21.000000Z"
     }
@@ -258,6 +282,7 @@ Retrieves a paginated list of legal cases with admin-specific filtering options.
 | `date_to` | date | No | - | Filter cases up to date (YYYY-MM-DD) |
 | `created_by` | integer | No | - | Filter by creator user ID (admin only) |
 | `include_similar_cases` | boolean | No | false | Include similar cases data in list view (performance impact) |
+| `include_cited_cases` | boolean | No | false | Include cited cases data in list view (performance impact) |
 | `page` | integer | No | 1 | Page number |
 | `per_page` | integer | No | 15 | Items per page (max: 100) |
 
@@ -332,6 +357,8 @@ GET /admin/cases?search=constitutional&created_by=36&page=1&per_page=15
         "files_count": 1,
         "similar_cases": {},
         "similar_cases_count": {},
+        "cited_cases": {},
+        "cited_cases_count": {},
         "created_at": "2025-07-24T17:24:35.000000Z",
         "updated_at": "2025-07-24T17:24:35.000000Z"
       }
@@ -424,6 +451,27 @@ GET /admin/cases/1
         }
       ],
       "similar_cases_count": 2,
+      "cited_cases": [
+        {
+          "id": 1,
+          "title": "4 Eng Ltd v Harper & Anor, (2008) 3 WLR 892",
+          "slug": "4-eng-ltd-v-harper-anor-2008-3-wlr-892-1",
+          "court": "High Court",
+          "date": "2008-04-29",
+          "country": "United Kingdom",
+          "citation": "(2008) 3 WLR 892"
+        },
+        {
+          "id": 5,
+          "title": "A v B, (a company), [2002] 2 All ER 545",
+          "slug": "a-v-b-a-company-2002-2-all-er-545-5",
+          "court": null,
+          "date": null,
+          "country": null,
+          "citation": null
+        }
+      ],
+      "cited_cases_count": 2,
       "created_at": "2025-07-24T17:18:48.000000Z",
       "updated_at": "2025-07-24T20:20:21.000000Z"
     }
@@ -465,6 +513,7 @@ Creates a new legal case record with optional file attachments.
 | `judicial_precedent` | string | No | nullable, max:255 | Precedent strength |
 | `case_report_text` | string | No | nullable | Full detailed case report text in HTML format (stored separately for performance) |
 | `similar_case_ids` | integer array | No | max:50 items, each must exist | Array of case IDs to link as similar cases |
+| `cited_case_ids` | integer array | No | max:50 items, each must exist | Array of case IDs that this case cites (legal citations) |
 | `files` | file array | No | max:10, each max:100MB | Case report files (PDF, DOC, TXT, etc.) |
 
 #### Example Request (JSON)
@@ -484,7 +533,8 @@ Creates a new legal case record with optional file attachments.
   "judges": "Justice Olukoya, Justice Adeola",
   "judicial_precedent": "Strong",
   "case_report_text": "<p><span style=\"font-size: 24pt;\"><strong>NEW CONSTITUTIONAL CASE [2024] SCNJ 123</strong></span></p><p>&nbsp;</p><p><strong><span style=\"font-size: 14pt;\">Between:</span></strong></p><p><strong><span style=\"font-size: 14pt;\">The Attorney General<span style=\"white-space: pre;\"> </span>Applicant</span></strong></p><p>&nbsp;</p><p><strong>AND</strong></p><p><strong><span style=\"font-size: 14pt;\">1.<span style=\"white-space: pre;\"> </span>Citizens Rights Group</span></strong></p><p><strong><span style=\"font-size: 14pt;\">2.<span style=\"white-space: pre;\"> </span>Freedom Foundation<span style=\"white-space: pre;\"> </span>Respondents</span></strong></p><p>&nbsp;</p><p><strong>JUDGMENT</strong></p><p>This case establishes fundamental principles regarding constitutional rights and freedoms under the Nigerian Constitution...</p>",
-  "similar_case_ids": [15, 25, 30]
+  "similar_case_ids": [15, 25, 30],
+  "cited_case_ids": [1, 3, 5]
 }
 ```
 
@@ -500,6 +550,9 @@ curl -X POST "/admin/cases" \
   -F "case_report_text=<p><span style=\"font-size: 24pt;\"><strong>NEW CONSTITUTIONAL CASE WITH DOCUMENTS [2024] SCNJ 123</strong></span></p><p>&nbsp;</p><p><strong><span style=\"font-size: 14pt;\">Between:</span></strong></p><p><strong><span style=\"font-size: 14pt;\">The Attorney General<span style=\"white-space: pre;\"> </span>Applicant</span></strong></p><p>&nbsp;</p><p><strong>AND</strong></p><p><strong><span style=\"font-size: 14pt;\">1.<span style=\"white-space: pre;\"> </span>Citizens Rights Group<span style=\"white-space: pre;\"> </span>Respondents</span></strong></p><p>&nbsp;</p><p><strong>JUDGMENT</strong></p><p>This comprehensive case report establishes key constitutional principles...</p>" \
   -F "similar_case_ids[]=15" \
   -F "similar_case_ids[]=25" \
+  -F "cited_case_ids[]=1" \
+  -F "cited_case_ids[]=3" \
+  -F "cited_case_ids[]=5" \
   -F "files[]=@case-report.pdf" \
   -F "files[]=@supporting-document.docx"
 ```
@@ -554,6 +607,36 @@ curl -X POST "/admin/cases" \
         }
       ],
       "similar_cases_count": 2,
+      "cited_cases": [
+        {
+          "id": 1,
+          "title": "4 Eng Ltd v Harper & Anor, (2008) 3 WLR 892",
+          "slug": "4-eng-ltd-v-harper-anor-2008-3-wlr-892-1",
+          "court": "High Court",
+          "date": "2008-04-29",
+          "country": "United Kingdom",
+          "citation": "(2008) 3 WLR 892"
+        },
+        {
+          "id": 3,
+          "title": "A and others v National Blood Authority, (2001) 3 All ER 289",
+          "slug": "a-and-others-v-national-blood-authority-2001-3-all-er-289-3",
+          "court": null,
+          "date": null,
+          "country": null,
+          "citation": null
+        },
+        {
+          "id": 5,
+          "title": "A v B, (a company), [2002] 2 All ER 545",
+          "slug": "a-v-b-a-company-2002-2-all-er-545-5",
+          "court": null,
+          "date": null,
+          "country": null,
+          "citation": null
+        }
+      ],
+      "cited_cases_count": 3,
       "created_at": "2025-07-24T20:45:00.000000Z",
       "updated_at": "2025-07-24T20:45:00.000000Z"
     }
@@ -593,6 +676,7 @@ Same as Create Case endpoint (all fields optional for updates), including:
   - Provide empty string `""` to delete existing case report
   - Omit field to leave case report unchanged
 - `similar_case_ids[]` array to update linked similar cases (optional - replaces existing links)
+- `cited_case_ids[]` array to update cited cases (optional - replaces existing citations)
 - `files[]` array for new file uploads (optional)
 
 #### Example Request (JSON)
@@ -602,7 +686,8 @@ Same as Create Case endpoint (all fields optional for updates), including:
   "body": "Updated case description",
   "topic": "Updated Legal Topic",
   "case_report_text": "<p><span style=\"font-size: 24pt;\"><strong>UPDATED CASE TITLE [2023] SCNJ 456</strong></span></p><p>&nbsp;</p><p><strong><span style=\"font-size: 14pt;\">Between:</span></strong></p><p><strong><span style=\"font-size: 14pt;\">The State<span style=\"white-space: pre;\"> </span>Prosecutor</span></strong></p><p>&nbsp;</p><p><strong>AND</strong></p><p><strong><span style=\"font-size: 14pt;\">1.<span style=\"white-space: pre;\"> </span>Defendant Name<span style=\"white-space: pre;\"> </span>Defendant</span></strong></p><p>&nbsp;</p><p><strong>UPDATED JUDGMENT</strong></p><p>This updated case report includes additional legal analysis and revised judicial reasoning...</p>",
-  "similar_case_ids": [10, 20, 35]
+  "similar_case_ids": [10, 20, 35],
+  "cited_case_ids": [4, 5]
 }
 ```
 
@@ -616,6 +701,8 @@ curl -X POST "/admin/cases/1" \
   -F "case_report_text=<p><span style=\"font-size: 24pt;\"><strong>UPDATED CASE TITLE WITH NEW FILES [2023] SCNJ 456</strong></span></p><p>&nbsp;</p><p><strong><span style=\"font-size: 14pt;\">Between:</span></strong></p><p><strong><span style=\"font-size: 14pt;\">Updated Plaintiff<span style=\"white-space: pre;\"> </span>Claimant</span></strong></p><p>&nbsp;</p><p><strong>AND</strong></p><p><strong><span style=\"font-size: 14pt;\">1.<span style=\"white-space: pre;\"> </span>Updated Defendant<span style=\"white-space: pre;\"> </span>Respondent</span></strong></p><p>&nbsp;</p><p><strong>AMENDED JUDGMENT</strong></p><p>This updated case report with additional files includes comprehensive legal analysis...</p>" \
   -F "similar_case_ids[]=10" \
   -F "similar_case_ids[]=20" \
+  -F "cited_case_ids[]=4" \
+  -F "cited_case_ids[]=5" \
   -F "files[]=@additional-report.pdf" \
   -F "files[]=@supporting-document.docx"
 ```
@@ -672,6 +759,27 @@ curl -X POST "/admin/cases/1" \
         }
       ],
       "similar_cases_count": 2,
+      "cited_cases": [
+        {
+          "id": 4,
+          "title": "A v B, (2007)",
+          "slug": "a-v-b-2007-4",
+          "court": null,
+          "date": null,
+          "country": null,
+          "citation": null
+        },
+        {
+          "id": 5,
+          "title": "A v B, (a company), [2002] 2 All ER 545",
+          "slug": "a-v-b-a-company-2002-2-all-er-545-5",
+          "court": null,
+          "date": null,
+          "country": null,
+          "citation": null
+        }
+      ],
+      "cited_cases_count": 2,
       "created_at": "2025-07-24T17:18:48.000000Z",
       "updated_at": "2025-07-24T20:50:00.000000Z"
     }
@@ -747,7 +855,9 @@ DELETE /admin/cases/1
     "title": ["Case title is required"],
     "body": ["Case body is required"],
     "similar_case_ids.0": ["One or more similar case IDs do not exist"],
-    "similar_case_ids": ["A case cannot be marked as similar to itself"]
+    "similar_case_ids": ["A case cannot be marked as similar to itself"],
+    "cited_case_ids.0": ["One or more cited case IDs do not exist"],
+    "cited_case_ids": ["Maximum of 50 cited cases allowed per case"]
   }
 }
 ```
@@ -781,6 +891,8 @@ DELETE /admin/cases/1
 | `files_count` | integer | No | Total number of attached case report files |
 | `similar_cases` | array | No | Array of similar/related cases (empty object `{}` in list views, array in single case views) |
 | `similar_cases_count` | integer/object | No | Number of similar cases (empty object `{}` in list views, integer in single case views) |
+| `cited_cases` | array | No | Array of cases that this case cites (empty object `{}` in list views, array in single case views) |
+| `cited_cases_count` | integer/object | No | Number of cited cases (empty object `{}` in list views, integer in single case views) |
 | `created_at` | string | Yes | ISO timestamp of creation |
 | `updated_at` | string | Yes | ISO timestamp of last update |
 
@@ -804,6 +916,20 @@ DELETE /admin/cases/1
 | `date` | string | Yes | Similar case date (YYYY-MM-DD format) |
 | `country` | string | Yes | Country where the similar case was heard |
 | `citation` | string | Yes | Legal citation of the similar case |
+
+### Cited Case Object
+
+**Note**: Cited cases represent legal citations where one case specifically references another case in its legal reasoning or precedent analysis. They appear as an array in single case views and as empty objects `{}` in list views for performance optimization.
+
+| Field | Type | Nullable | Description |
+|-------|------|----------|-------------|
+| `id` | integer | No | Cited case ID |
+| `title` | string | No | Cited case title |
+| `slug` | string | No | Cited case slug for URL routing |
+| `court` | string | Yes | Court name where the cited case was heard |
+| `date` | string | Yes | Cited case date (YYYY-MM-DD format) |
+| `country` | string | Yes | Country where the cited case was heard |
+| `citation` | string | Yes | Legal citation of the cited case |
 
 ### File Object
 
@@ -962,6 +1088,53 @@ PUT /admin/cases/1
 GET /admin/cases?include_similar_cases=true&per_page=10
 ```
 
+### Cited Cases Management
+```bash
+# Create case with cited cases
+curl -X POST "http://127.0.0.1:8000/api/admin/cases" \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Test Case with Citations",
+    "body": "This test case cites several other cases to demonstrate the cited cases functionality.",
+    "court": "Test Appeals Court",
+    "country": "Nigeria",
+    "citation": "TEST/CITED/2025/001",
+    "cited_case_ids": [1, 3, 5]
+  }'
+
+# Update case citations only
+curl -X PUT "http://127.0.0.1:8000/api/admin/cases/123" \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "cited_case_ids": [4, 5]
+  }'
+
+# Clear all cited cases
+curl -X PUT "http://127.0.0.1:8000/api/admin/cases/123" \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "cited_case_ids": []
+  }'
+
+# Get admin cases with cited cases included
+GET /admin/cases?include_cited_cases=true&per_page=10
+
+# Get user cases with cited cases included
+GET /cases?include_cited_cases=true&per_page=10
+
+# Self-citation prevention example (this will be filtered out automatically)
+curl -X PUT "http://127.0.0.1:8000/api/admin/cases/123" \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "cited_case_ids": [123, 4, 5]
+  }'
+# Result: Only cases 4 and 5 will be saved, case 123 citing itself is prevented
+```
+
 ---
 
 ## HTTP Status Codes
@@ -1005,6 +1178,27 @@ GET /admin/cases?include_similar_cases=true&per_page=10
   - A case cannot be marked as similar to itself
   - Empty array `[]` can be used to clear all similar case links
 - **Use Cases**: Helps legal researchers find related precedents and comparable cases for comprehensive legal analysis
+
+### Cited Cases Feature
+- **Legal Citations**: Cited cases represent formal legal citations where one case specifically references or relies upon another case in its legal reasoning, precedent analysis, or judicial decision-making
+- **Manual Management**: Administrators can link cited cases using the `cited_case_ids` field during case creation or updates to establish formal citation relationships
+- **Performance Optimization**: 
+  - In list views (`/cases` and `/admin/cases`): `cited_cases` and `cited_cases_count` appear as empty objects `{}` for faster loading
+  - In single case views (`/cases/{slug}` and `/admin/cases/{id}`): Full cited cases data is included as an array
+  - Use `include_cited_cases=true` query parameter in list views to include cited cases data (impacts performance)
+- **Data Structure**: Each cited case includes `id`, `title`, `slug`, `court`, `date`, `country`, and `citation`
+- **Validation Rules**:
+  - Maximum 50 cited cases per case
+  - Case IDs must exist in the database
+  - A case cannot cite itself (self-citation prevention with automatic filtering)
+  - Empty array `[]` can be used to clear all citation links
+  - Foreign key constraints prevent citing non-existent cases
+- **Bidirectional Relationships**: 
+  - Cases can cite other cases (forward citations)
+  - Cases can be cited by other cases (backward citations)
+  - Both relationships are automatically maintained in the database
+- **Use Cases**: Essential for legal research, precedent tracking, case law analysis, and understanding judicial reasoning chains
+- **Difference from Similar Cases**: While similar cases are related/comparable cases, cited cases represent formal legal citations and precedent references
 
 ### Case Report Text Feature
 - **Purpose**: Stores comprehensive full case report text separately from main case data for performance optimization

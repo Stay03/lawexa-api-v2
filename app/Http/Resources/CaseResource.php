@@ -109,6 +109,48 @@ class CaseResource extends JsonResource
                     return $count;
                 }
             ),
+            'cited_cases' => $this->when(
+                $this->relationLoaded('citedCases') || $this->relationLoaded('casesThatCiteThis'),
+                function () {
+                    $citedCases = collect();
+                    
+                    // Add cases this case cites
+                    if ($this->relationLoaded('citedCases')) {
+                        $citedCases = $citedCases->merge($this->citedCases);
+                    }
+                    
+                    // Add cases that cite this case
+                    if ($this->relationLoaded('casesThatCiteThis')) {
+                        $citedCases = $citedCases->merge($this->casesThatCiteThis);
+                    }
+                    
+                    // Remove duplicates and map to desired format
+                    return $citedCases->unique('id')->map(function ($citedCase) {
+                        return [
+                            'id' => $citedCase->id,
+                            'title' => $citedCase->title,
+                            'slug' => $citedCase->slug,
+                            'court' => $citedCase->court,
+                            'date' => $citedCase->date?->format('Y-m-d'),
+                            'country' => $citedCase->country,
+                            'citation' => $citedCase->citation,
+                        ];
+                    })->values();
+                }
+            ),
+            'cited_cases_count' => $this->when(
+                $this->relationLoaded('citedCases') || $this->relationLoaded('casesThatCiteThis'),
+                function () {
+                    $count = 0;
+                    if ($this->relationLoaded('citedCases')) {
+                        $count += $this->citedCases->count();
+                    }
+                    if ($this->relationLoaded('casesThatCiteThis')) {
+                        $count += $this->casesThatCiteThis->count();
+                    }
+                    return $count;
+                }
+            ),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

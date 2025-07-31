@@ -137,4 +137,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(Note::class);
     }
+
+    public function issues(): HasMany
+    {
+        return $this->hasMany(Issue::class);
+    }
+
+    public function assignedIssues(): HasMany
+    {
+        return $this->hasMany(Issue::class, 'assigned_to');
+    }
 }

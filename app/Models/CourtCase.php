@@ -83,6 +83,23 @@ class CourtCase extends Model
         return $this->similarCases()->union($this->casesWhereThisIsSimilar());
     }
 
+    public function citedCases(): BelongsToMany
+    {
+        return $this->belongsToMany(CourtCase::class, 'cited_cases', 'case_id', 'cited_case_id')
+                    ->withTimestamps();
+    }
+
+    public function casesThatCiteThis(): BelongsToMany
+    {
+        return $this->belongsToMany(CourtCase::class, 'cited_cases', 'cited_case_id', 'case_id')
+                    ->withTimestamps();
+    }
+
+    public function allCitedCases()
+    {
+        return $this->citedCases()->union($this->casesThatCiteThis());
+    }
+
     public function scopeByCountry($query, $country)
     {
         return $query->where('country', $country);

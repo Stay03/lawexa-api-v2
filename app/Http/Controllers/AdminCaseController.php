@@ -18,11 +18,16 @@ class AdminCaseController extends Controller
     public function index(Request $request): JsonResponse
     {
         $includeSimilarCases = $request->boolean('include_similar_cases', false);
+        $includeCitedCases = $request->boolean('include_cited_cases', false);
         
         $with = ['creator:id,name', 'files'];
         if ($includeSimilarCases) {
             $with[] = 'similarCases:id,title,slug,court,date,country,citation';
             $with[] = 'casesWhereThisIsSimilar:id,title,slug,court,date,country,citation';
+        }
+        if ($includeCitedCases) {
+            $with[] = 'citedCases:id,title,slug,court,date,country,citation';
+            $with[] = 'casesThatCiteThis:id,title,slug,court,date,country,citation';
         }
         
         $query = CourtCase::with($with);
@@ -83,6 +88,11 @@ class AdminCaseController extends Controller
                 $this->syncSimilarCases($case, $request->similar_case_ids);
             }
             
+            // Handle cited cases if present
+            if ($request->has('cited_case_ids') && is_array($request->cited_case_ids)) {
+                $this->syncCitedCases($case, $request->cited_case_ids);
+            }
+            
             // Handle file uploads if present
             if ($request->hasFile('files')) {
                 $this->handleDirectS3FileUploads($request, $case, 'files', 'case_reports', $request->user()->id);
@@ -100,7 +110,9 @@ class AdminCaseController extends Controller
                 'files',
                 'caseReport',
                 'similarCases:id,title,slug,court,date,country,citation',
-                'casesWhereThisIsSimilar:id,title,slug,court,date,country,citation'
+                'casesWhereThisIsSimilar:id,title,slug,court,date,country,citation',
+                'citedCases:id,title,slug,court,date,country,citation',
+                'casesThatCiteThis:id,title,slug,court,date,country,citation'
             ]);
 
             return ApiResponse::success([
@@ -118,7 +130,9 @@ class AdminCaseController extends Controller
             'files',
             'caseReport',
             'similarCases:id,title,slug,court,date,country,citation',
-            'casesWhereThisIsSimilar:id,title,slug,court,date,country,citation'
+            'casesWhereThisIsSimilar:id,title,slug,court,date,country,citation',
+            'citedCases:id,title,slug,court,date,country,citation',
+            'casesThatCiteThis:id,title,slug,court,date,country,citation'
         ])->findOrFail($id);
         
         return ApiResponse::success([
@@ -138,6 +152,12 @@ class AdminCaseController extends Controller
             if ($request->has('similar_case_ids')) {
                 $similarCaseIds = is_array($request->similar_case_ids) ? $request->similar_case_ids : [];
                 $this->syncSimilarCases($case, $similarCaseIds);
+            }
+            
+            // Handle cited cases if present
+            if ($request->has('cited_case_ids')) {
+                $citedCaseIds = is_array($request->cited_case_ids) ? $request->cited_case_ids : [];
+                $this->syncCitedCases($case, $citedCaseIds);
             }
             
             // Handle file uploads if present
@@ -164,7 +184,9 @@ class AdminCaseController extends Controller
                 'files',
                 'caseReport',
                 'similarCases:id,title,slug,court,date,country,citation',
-                'casesWhereThisIsSimilar:id,title,slug,court,date,country,citation'
+                'casesWhereThisIsSimilar:id,title,slug,court,date,country,citation',
+                'citedCases:id,title,slug,court,date,country,citation',
+                'casesThatCiteThis:id,title,slug,court,date,country,citation'
             ]);
 
             return ApiResponse::success([
@@ -206,5 +228,22 @@ class AdminCaseController extends Controller
 
         // Sync the relationships - this will add new ones and remove old ones
         $case->similarCases()->sync($similarCaseIds);
+    }
+
+    /**
+     * Sync cited cases for a given case
+     */
+    private function syncCitedCases(CourtCase $case, array $citedCaseIds): void
+    {
+        // Remove the case itself from the list to prevent self-referencing
+        $citedCaseIds = array_filter($citedCaseIds, function($id) use ($case) {
+            return $id != $case->id;
+        });
+
+        // Remove duplicates
+        $citedCaseIds = array_unique($citedCaseIds);
+
+        // Sync the relationships - this will add new ones and remove old ones
+        $case->citedCases()->sync($citedCaseIds);
     }
 }

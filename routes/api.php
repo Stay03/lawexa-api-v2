@@ -15,6 +15,8 @@ use App\Http\Controllers\DirectUploadController;
 use App\Http\Controllers\S3WebhookController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\AdminNoteController;
+use App\Http\Controllers\IssueController;
+use App\Http\Controllers\AdminIssueController;
 
 // Configure route model bindings - admin routes use ID, user routes use slug
 Route::bind('case', function ($value, $route) {
@@ -114,6 +116,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('{note}', [NoteController::class, 'destroy']);
     });
 
+    // User issue routes
+    Route::prefix('issues')->group(function () {
+        Route::get('/', [IssueController::class, 'index']);
+        Route::post('/', [IssueController::class, 'store']);
+        Route::get('{issue}', [IssueController::class, 'show'])->where('issue', '[0-9]+');
+        Route::put('{issue}', [IssueController::class, 'update'])->where('issue', '[0-9]+');
+        Route::delete('{issue}', [IssueController::class, 'destroy'])->where('issue', '[0-9]+');
+    });
+
     Route::middleware('role:admin,researcher,superadmin')->prefix('admin')->group(function () {
         Route::get('dashboard', [App\Http\Controllers\AdminController::class, 'dashboard']);
         Route::get('users', [App\Http\Controllers\AdminController::class, 'getUsers']);
@@ -175,6 +186,16 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('{note}', [AdminNoteController::class, 'show'])->where('note', '[0-9]+');
             Route::put('{note}', [AdminNoteController::class, 'update'])->where('note', '[0-9]+')->middleware('role:admin,superadmin');
             Route::delete('{note}', [AdminNoteController::class, 'destroy'])->where('note', '[0-9]+')->middleware('role:admin,superadmin');
+        });
+        
+        // Admin issue management routes
+        Route::prefix('issues')->group(function () {
+            Route::get('/', [AdminIssueController::class, 'index']);
+            Route::get('stats', [AdminIssueController::class, 'stats']);
+            Route::get('{issue}', [AdminIssueController::class, 'show'])->where('issue', '[0-9]+');
+            Route::put('{issue}', [AdminIssueController::class, 'update'])->where('issue', '[0-9]+');
+            Route::delete('{issue}', [AdminIssueController::class, 'destroy'])->where('issue', '[0-9]+')->middleware('role:admin,superadmin');
+            Route::post('{issue}/ai-analyze', [AdminIssueController::class, 'aiAnalyze'])->where('issue', '[0-9]+');
         });
     });
 });

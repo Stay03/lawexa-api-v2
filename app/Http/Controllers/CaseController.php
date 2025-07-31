@@ -14,11 +14,16 @@ class CaseController extends Controller
     public function index(Request $request): JsonResponse
     {
         $includeSimilarCases = $request->boolean('include_similar_cases', false);
+        $includeCitedCases = $request->boolean('include_cited_cases', false);
         
         $with = ['creator:id,name', 'files'];
         if ($includeSimilarCases) {
             $with[] = 'similarCases:id,title,slug,court,date,country,citation';
             $with[] = 'casesWhereThisIsSimilar:id,title,slug,court,date,country,citation';
+        }
+        if ($includeCitedCases) {
+            $with[] = 'citedCases:id,title,slug,court,date,country,citation';
+            $with[] = 'casesThatCiteThis:id,title,slug,court,date,country,citation';
         }
         
         $query = CourtCase::with($with);
@@ -69,7 +74,9 @@ class CaseController extends Controller
             'files',
             'caseReport',
             'similarCases:id,title,slug,court,date,country,citation',
-            'casesWhereThisIsSimilar:id,title,slug,court,date,country,citation'
+            'casesWhereThisIsSimilar:id,title,slug,court,date,country,citation',
+            'citedCases:id,title,slug,court,date,country,citation',
+            'casesThatCiteThis:id,title,slug,court,date,country,citation'
         ]);
         
         return ApiResponse::success([
