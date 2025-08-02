@@ -41,6 +41,11 @@ Route::bind('note', function ($value, $route) {
     return \App\Models\Note::findOrFail($value);
 });
 
+Route::bind('adminIssue', function ($value, $route) {
+    // Admin issue routes: bind by ID
+    return \App\Models\Issue::findOrFail($value);
+});
+
 Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);

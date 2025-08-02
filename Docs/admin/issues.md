@@ -8,7 +8,7 @@ Authorization: Bearer {token}
 ```
 
 ## Base URL
-- **Local:** `http://127.0.0.1:8000/api`
+- **Local:** `http://localhost:8000/api`
 - **Production:** `https://rest.lawexa.com/api`
 
 ## User Roles & Permissions
@@ -1593,9 +1593,12 @@ GET /admin/issues?area=backend&assigned_to=unassigned&severity=critical&sort_by=
 ```
 
 ### Issue Management Workflow
+
+**Note:** Replace `{token}` with the actual API token from `.env.text` file (e.g., `136|HhTGnjP0jskid7RRV9cnHZba1WqhW8eQBd4sJ7Llc2864d2e`)
+
 ```bash
 # 1. User creates an issue
-curl -X POST "http://127.0.0.1:8000/api/issues" \
+curl -X POST "http://localhost:8000/api/issues" \
   -H "Authorization: Bearer {token}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -1608,7 +1611,7 @@ curl -X POST "http://127.0.0.1:8000/api/issues" \
   }'
 
 # 2. Admin assigns the issue
-curl -X PUT "http://127.0.0.1:8000/api/admin/issues/1" \
+curl -X PUT "http://localhost:8000/api/admin/issues/1" \
   -H "Authorization: Bearer {admin_token}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -1619,12 +1622,12 @@ curl -X PUT "http://127.0.0.1:8000/api/admin/issues/1" \
   }'
 
 # 3. Generate AI analysis
-curl -X POST "http://127.0.0.1:8000/api/admin/issues/1/ai-analyze" \
+curl -X POST "http://localhost:8000/api/admin/issues/1/ai-analyze" \
   -H "Authorization: Bearer {admin_token}" \
   -H "Content-Type: application/json"
 
 # 4. Mark as resolved
-curl -X PUT "http://127.0.0.1:8000/api/admin/issues/1" \
+curl -X PUT "http://localhost:8000/api/admin/issues/1" \
   -H "Authorization: Bearer {admin_token}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -1638,7 +1641,7 @@ curl -X PUT "http://127.0.0.1:8000/api/admin/issues/1" \
 **Method 1: Single-request with direct file upload (Recommended)**
 ```bash
 # Create issue with direct file upload in one request
-curl -X POST "http://127.0.0.1:8000/api/issues" \
+curl -X POST "http://localhost:8000/api/issues" \
   -H "Authorization: Bearer {token}" \
   -F "title=UI Layout Issue with Screenshots" \
   -F "description=The layout breaks on mobile devices as shown in the attached screenshots" \
@@ -1652,7 +1655,7 @@ curl -X POST "http://127.0.0.1:8000/api/issues" \
   -F "file_category=issue"
 
 # Update issue with additional files (using form data)
-curl -X PUT "http://127.0.0.1:8000/api/issues/1" \
+curl -X PUT "http://localhost:8000/api/issues/1" \
   -H "Authorization: Bearer {token}" \
   -F "files[]=@new_screenshot.png" \
   -F "files[]=@updated_log.txt" \
@@ -1662,14 +1665,14 @@ curl -X PUT "http://127.0.0.1:8000/api/issues/1" \
 **Method 2: Two-step process with file_ids (Legacy)**
 ```bash
 # Step 1: Upload files first
-curl -X POST "http://127.0.0.1:8000/api/upload" \
+curl -X POST "http://localhost:8000/api/upload" \
   -H "Authorization: Bearer {token}" \
   -F "files[]=@screenshot1.png" \
   -F "files[]=@screenshot2.png" \
   -F "category=issue"
 
 # Step 2: Create issue with file_ids from upload response
-curl -X POST "http://127.0.0.1:8000/api/issues" \
+curl -X POST "http://localhost:8000/api/issues" \
   -H "Authorization: Bearer {token}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -1683,7 +1686,7 @@ curl -X POST "http://127.0.0.1:8000/api/issues" \
   }'
 
 # Update issue to add more files (using file_ids)
-curl -X PUT "http://127.0.0.1:8000/api/issues/1" \
+curl -X PUT "http://localhost:8000/api/issues/1" \
   -H "Authorization: Bearer {token}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -1718,13 +1721,13 @@ Issues follow a standard lifecycle:
 5. **duplicate** - Marked as duplicate of another issue
 
 ### Default Values & Response Behavior
-- **Creation Response**: `priority` and `status` fields return `null` in POST responses, even when defaults would apply
-- **Retrieval Response**: When fetching issues via GET, default values are applied:
+- **Default Values**: When creating issues without specifying optional fields, the following defaults apply:
   - **type**: defaults to "bug"
-  - **severity**: defaults to "medium"  
+  - **severity**: defaults to "medium"
   - **priority**: defaults to "medium"
   - **status**: defaults to "open"
-- **area**: optional field, can be null
+- **Response Behavior**: Both creation (POST) and retrieval (GET) responses return the actual stored values, including applied defaults
+- **Optional Fields**: `area`, `category`, `browser_info`, `environment_info`, and detailed behavior fields can be null
 
 ### Pagination Structure
 All list endpoints (`GET /issues`, `GET /admin/issues`) return paginated responses with the following structure:
@@ -1781,7 +1784,7 @@ All list endpoints (`GET /issues`, `GET /admin/issues`) return paginated respons
 - **Token Authentication**: All endpoints require valid Bearer token
 
 ### Performance Considerations
-- **Pagination**: All list endpoints are paginated (default 15-20 items per page)
+- **Pagination**: All list endpoints are paginated (default 15 items per page for user endpoints, 20 for admin endpoints)
 - **Selective Loading**: User relationships and files are loaded efficiently
 - **Indexing**: Database indexes on status, severity, area, user_id, assigned_to, and created_at
 - **Filtering**: Multiple filter combinations supported without performance impact
