@@ -13,7 +13,11 @@
       "Bash(mkdir:*)",
       "WebFetch(domain:paystack.com)",
       "Bash(curl:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(del test-statute-api.php)",
+      "Bash(sed:*)",
+      "Bash(python:*)",
+      "Bash(sqlite3:*)"
     ],
     "deny": []
   }

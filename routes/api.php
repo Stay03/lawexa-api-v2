@@ -17,6 +17,11 @@ use App\Http\Controllers\NoteController;
 use App\Http\Controllers\AdminNoteController;
 use App\Http\Controllers\IssueController;
 use App\Http\Controllers\AdminIssueController;
+use App\Http\Controllers\StatuteController;
+use App\Http\Controllers\AdminStatuteController;
+use App\Http\Controllers\AdminStatuteDivisionController;
+use App\Http\Controllers\AdminStatuteProvisionController;
+use App\Http\Controllers\AdminStatuteScheduleController;
 
 // Configure route model bindings - admin routes use ID, user routes use slug
 Route::bind('case', function ($value, $route) {
@@ -44,6 +49,45 @@ Route::bind('note', function ($value, $route) {
 Route::bind('adminIssue', function ($value, $route) {
     // Admin issue routes: bind by ID
     return \App\Models\Issue::findOrFail($value);
+});
+
+Route::bind('statute', function ($value, $route) {
+    // Check if this is an admin route by examining the full URI pattern
+    $uri = $route->uri();
+    
+    if (str_contains($uri, 'admin/statutes')) {
+        // Admin routes: bind by ID
+        return \App\Models\Statute::findOrFail($value);
+    }
+    // User routes: bind by slug (default behavior)
+    return \App\Models\Statute::where('slug', $value)->firstOrFail();
+});
+
+Route::bind('statuteDivision', function ($value, $route) {
+    $uri = $route->uri();
+    
+    if (str_contains($uri, 'admin/')) {
+        return \App\Models\StatuteDivision::findOrFail($value);
+    }
+    return \App\Models\StatuteDivision::where('slug', $value)->firstOrFail();
+});
+
+Route::bind('statuteProvision', function ($value, $route) {
+    $uri = $route->uri();
+    
+    if (str_contains($uri, 'admin/')) {
+        return \App\Models\StatuteProvision::findOrFail($value);
+    }
+    return \App\Models\StatuteProvision::where('slug', $value)->firstOrFail();
+});
+
+Route::bind('statuteSchedule', function ($value, $route) {
+    $uri = $route->uri();
+    
+    if (str_contains($uri, 'admin/')) {
+        return \App\Models\StatuteSchedule::findOrFail($value);
+    }
+    return \App\Models\StatuteSchedule::where('slug', $value)->firstOrFail();
 });
 
 Route::prefix('auth')->group(function () {
@@ -130,6 +174,24 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('{issue}', [IssueController::class, 'destroy'])->where('issue', '[0-9]+');
     });
 
+    // User statute routes (slug-based)
+    Route::prefix('statutes')->group(function () {
+        Route::get('/', [StatuteController::class, 'index']);
+        Route::get('{statute}', [StatuteController::class, 'show']);
+        
+        // Statute Divisions
+        Route::get('{statute}/divisions', [StatuteController::class, 'divisions']);
+        Route::get('{statute}/divisions/{divisionSlug}', [StatuteController::class, 'showDivision']);
+        
+        // Statute Provisions
+        Route::get('{statute}/provisions', [StatuteController::class, 'provisions']);
+        Route::get('{statute}/provisions/{provisionSlug}', [StatuteController::class, 'showProvision']);
+        
+        // Statute Schedules
+        Route::get('{statute}/schedules', [StatuteController::class, 'schedules']);
+        Route::get('{statute}/schedules/{scheduleSlug}', [StatuteController::class, 'showSchedule']);
+    });
+
     Route::middleware('role:admin,researcher,superadmin')->prefix('admin')->group(function () {
         Route::get('dashboard', [App\Http\Controllers\AdminController::class, 'dashboard']);
         Route::get('users', [App\Http\Controllers\AdminController::class, 'getUsers']);
@@ -201,6 +263,47 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('{adminIssue}', [AdminIssueController::class, 'update'])->where('adminIssue', '[0-9]+');
             Route::delete('{adminIssue}', [AdminIssueController::class, 'destroy'])->where('adminIssue', '[0-9]+')->middleware('role:admin,superadmin');
             Route::post('{adminIssue}/ai-analyze', [AdminIssueController::class, 'aiAnalyze'])->where('adminIssue', '[0-9]+');
+        });
+        
+        // Admin statute management routes (ID-based)
+        Route::prefix('statutes')->group(function () {
+            Route::get('/', [AdminStatuteController::class, 'index']);
+            Route::post('/', [AdminStatuteController::class, 'store']);
+            Route::get('{id}', [AdminStatuteController::class, 'show'])->where('id', '[0-9]+');
+            Route::put('{id}', [AdminStatuteController::class, 'update'])->where('id', '[0-9]+');
+            Route::delete('{id}', [AdminStatuteController::class, 'destroy'])->where('id', '[0-9]+');
+            
+            // Relationships
+            Route::post('{id}/amendments', [AdminStatuteController::class, 'addAmendment'])->where('id', '[0-9]+');
+            Route::delete('{id}/amendments/{amendmentId}', [AdminStatuteController::class, 'removeAmendment'])->where('id', '[0-9]+')->where('amendmentId', '[0-9]+');
+            
+            Route::post('{id}/citations', [AdminStatuteController::class, 'addCitation'])->where('id', '[0-9]+');
+            Route::delete('{id}/citations/{citationId}', [AdminStatuteController::class, 'removeCitation'])->where('id', '[0-9]+')->where('citationId', '[0-9]+');
+            
+            // Bulk operations
+            Route::post('bulk-update', [AdminStatuteController::class, 'bulkUpdate']);
+            Route::post('bulk-delete', [AdminStatuteController::class, 'bulkDelete']);
+            
+            // Divisions CRUD
+            Route::get('{statuteId}/divisions', [AdminStatuteDivisionController::class, 'index'])->where('statuteId', '[0-9]+');
+            Route::post('{statuteId}/divisions', [AdminStatuteDivisionController::class, 'store'])->where('statuteId', '[0-9]+');
+            Route::get('{statuteId}/divisions/{divisionId}', [AdminStatuteDivisionController::class, 'show'])->where(['statuteId' => '[0-9]+', 'divisionId' => '[0-9]+']);
+            Route::put('{statuteId}/divisions/{divisionId}', [AdminStatuteDivisionController::class, 'update'])->where(['statuteId' => '[0-9]+', 'divisionId' => '[0-9]+']);
+            Route::delete('{statuteId}/divisions/{divisionId}', [AdminStatuteDivisionController::class, 'destroy'])->where(['statuteId' => '[0-9]+', 'divisionId' => '[0-9]+']);
+            
+            // Provisions CRUD
+            Route::get('{statuteId}/provisions', [AdminStatuteProvisionController::class, 'index'])->where('statuteId', '[0-9]+');
+            Route::post('{statuteId}/provisions', [AdminStatuteProvisionController::class, 'store'])->where('statuteId', '[0-9]+');
+            Route::get('{statuteId}/provisions/{provisionId}', [AdminStatuteProvisionController::class, 'show'])->where(['statuteId' => '[0-9]+', 'provisionId' => '[0-9]+']);
+            Route::put('{statuteId}/provisions/{provisionId}', [AdminStatuteProvisionController::class, 'update'])->where(['statuteId' => '[0-9]+', 'provisionId' => '[0-9]+']);
+            Route::delete('{statuteId}/provisions/{provisionId}', [AdminStatuteProvisionController::class, 'destroy'])->where(['statuteId' => '[0-9]+', 'provisionId' => '[0-9]+']);
+            
+            // Schedules CRUD
+            Route::get('{statuteId}/schedules', [AdminStatuteScheduleController::class, 'index'])->where('statuteId', '[0-9]+');
+            Route::post('{statuteId}/schedules', [AdminStatuteScheduleController::class, 'store'])->where('statuteId', '[0-9]+');
+            Route::get('{statuteId}/schedules/{scheduleId}', [AdminStatuteScheduleController::class, 'show'])->where(['statuteId' => '[0-9]+', 'scheduleId' => '[0-9]+']);
+            Route::put('{statuteId}/schedules/{scheduleId}', [AdminStatuteScheduleController::class, 'update'])->where(['statuteId' => '[0-9]+', 'scheduleId' => '[0-9]+']);
+            Route::delete('{statuteId}/schedules/{scheduleId}', [AdminStatuteScheduleController::class, 'destroy'])->where(['statuteId' => '[0-9]+', 'scheduleId' => '[0-9]+']);
         });
     });
 });
