@@ -45,11 +45,14 @@ class StatuteDivisionResource extends JsonResource
             }),
             
             'provisions' => $this->whenLoaded('provisions', function () {
-                return StatuteProvisionResource::collection($this->provisions);
+                return StatuteProvisionResource::collection(
+                    $this->provisions->whereNull('parent_provision_id')
+                );
             }),
             
             'child_divisions_count' => $this->when($this->relationLoaded('childDivisions'), $this->childDivisions->count()),
-            'provisions_count' => $this->when($this->relationLoaded('provisions'), $this->provisions->count()),
+            'provisions_count' => $this->when($this->relationLoaded('provisions'), 
+                $this->provisions->whereNull('parent_provision_id')->count()),
         ];
     }
 }

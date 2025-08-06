@@ -1,0 +1,9 @@
+@echo off
+echo Stopping running PHP processes...
+taskkill /F /IM php.exe >nul 2>&1
+echo Waiting 3 seconds for processes to terminate...
+timeout /t 3 /nobreak >nul
+echo Running migration...
+php scripts/migrate-statutes-safe.php --verbose
+echo Migration complete!
+pause

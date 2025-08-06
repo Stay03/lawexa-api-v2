@@ -17,7 +17,8 @@
       "Bash(del test-statute-api.php)",
       "Bash(sed:*)",
       "Bash(python:*)",
-      "Bash(sqlite3:*)"
+      "Bash(sqlite3:*)",
+      "Bash(php:*)"
     ],
     "deny": []
   }
