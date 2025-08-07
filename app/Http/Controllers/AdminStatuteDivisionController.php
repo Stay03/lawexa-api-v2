@@ -66,8 +66,8 @@ class AdminStatuteDivisionController extends Controller
         $statute = Statute::findOrFail($statuteId);
         $division = $statute->divisions()->with([
             'parentDivision:id,division_title',
-            'childDivisions:id,division_title,division_number',
-            'provisions:id,provision_title,provision_number'
+            'childDivisions:id,parent_division_id,division_title,division_number',
+            'provisions:id,division_id,provision_title,provision_number'
         ])->findOrFail($divisionId);
         
         return ApiResponse::success([

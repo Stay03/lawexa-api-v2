@@ -77,7 +77,7 @@ class AdminStatuteProvisionController extends Controller
         $provision = $statute->provisions()->with([
             'division:id,division_title',
             'parentProvision:id,provision_title',
-            'childProvisions:id,provision_title,provision_number'
+            'childProvisions:id,parent_provision_id,provision_title,provision_number'
         ])->findOrFail($provisionId);
         
         return ApiResponse::success([
