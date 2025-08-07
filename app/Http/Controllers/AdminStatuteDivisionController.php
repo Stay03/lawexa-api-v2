@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Statute;
 use App\Models\StatuteDivision;
+use App\Models\StatuteProvision;
 use App\Http\Responses\ApiResponse;
 use App\Http\Resources\StatuteDivisionCollection;
 use Illuminate\Http\Request;
@@ -158,6 +159,64 @@ class AdminStatuteDivisionController extends Controller
         ]);
         
         return $breadcrumb;
+    }
+    
+    public function provisions(Request $request, $statuteId, $divisionId): JsonResponse
+    {
+        $statute = Statute::findOrFail($statuteId);
+        $division = $statute->divisions()->findOrFail($divisionId);
+        
+        // Get provisions for this division with pagination
+        $query = StatuteProvision::where('division_id', $divisionId)
+                                 ->with(['parentProvision:id,provision_title,provision_number']);
+        
+        // Apply filters
+        if ($request->has('status')) {
+            $query->byStatus($request->status);
+        }
+        
+        if ($request->has('provision_type')) {
+            $query->byType($request->provision_type);
+        }
+        
+        if ($request->has('search')) {
+            $query->search($request->search);
+        }
+        
+        // Get provisions with pagination
+        $provisions = $query->orderBy('sort_order')
+                           ->paginate($request->get('per_page', 15));
+        
+        // Build breadcrumb trail
+        $breadcrumb = $this->buildBreadcrumb($division);
+        
+        return ApiResponse::success([
+            'division' => [
+                'id' => $division->id,
+                'title' => $division->division_title,
+                'number' => $division->division_number,
+                'type' => $division->division_type,
+                'level' => $division->level,
+                'breadcrumb' => $breadcrumb
+            ],
+            'provisions' => $provisions->items(),
+            'meta' => [
+                'division_id' => $divisionId,
+                'statute_id' => $statuteId,
+                'current_page' => $provisions->currentPage(),
+                'from' => $provisions->firstItem(),
+                'last_page' => $provisions->lastPage(),
+                'per_page' => $provisions->perPage(),
+                'to' => $provisions->lastItem(),
+                'total' => $provisions->total(),
+            ],
+            'links' => [
+                'first' => $provisions->url(1),
+                'last' => $provisions->url($provisions->lastPage()),
+                'prev' => $provisions->previousPageUrl(),
+                'next' => $provisions->nextPageUrl(),
+            ]
+        ], 'Division provisions retrieved successfully');
     }
     
     public function update(Request $request, $statuteId, $divisionId): JsonResponse
