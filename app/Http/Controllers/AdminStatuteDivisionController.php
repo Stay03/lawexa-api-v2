@@ -96,9 +96,9 @@ class AdminStatuteDivisionController extends Controller
             $query->byType($request->division_type);
         }
         
-        // Get children
+        // Get children with pagination
         $children = $query->orderBy('sort_order')
-                         ->get();
+                         ->paginate($request->get('per_page', 15));
         
         // Build breadcrumb trail
         $breadcrumb = $this->buildBreadcrumb($parentDivision);
@@ -112,11 +112,23 @@ class AdminStatuteDivisionController extends Controller
                 'level' => $parentDivision->level,
                 'breadcrumb' => $breadcrumb
             ],
-            'children' => $children,
+            'children' => $children->items(),
             'meta' => [
-                'has_children' => $children->count() > 0,
+                'has_children' => $children->total() > 0,
                 'child_level' => $parentDivision->level + 1,
-                'statute_id' => $statuteId
+                'statute_id' => $statuteId,
+                'current_page' => $children->currentPage(),
+                'from' => $children->firstItem(),
+                'last_page' => $children->lastPage(),
+                'per_page' => $children->perPage(),
+                'to' => $children->lastItem(),
+                'total' => $children->total(),
+            ],
+            'links' => [
+                'first' => $children->url(1),
+                'last' => $children->url($children->lastPage()),
+                'prev' => $children->previousPageUrl(),
+                'next' => $children->nextPageUrl(),
             ]
         ], 'Division children retrieved successfully');
     }
