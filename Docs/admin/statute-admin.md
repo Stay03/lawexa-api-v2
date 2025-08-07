@@ -290,7 +290,13 @@ Divisions are organizational units that structure legal documents hierarchically
 
 **GET** `/admin/statutes/{statuteId}/divisions`
 
-Retrieves all divisions for a specific statute.
+Retrieves all divisions for a specific statute with pagination support.
+
+**Query Parameters:**
+- `per_page` (optional): Number of divisions per page (default: 15)
+- `page` (optional): Page number (default: 1)
+- `status` (optional): Filter by division status
+- `division_type` (optional): Filter by division type
 
 **Response:**
 ```json
@@ -317,7 +323,21 @@ Retrieves all divisions for a specific statute.
         "updated_at": "2025-08-05T22:00:44.000000Z",
         "parent_division": null
       }
-    ]
+    ],
+    "meta": {
+      "current_page": 1,
+      "from": 1,
+      "last_page": 1,
+      "per_page": 15,
+      "to": 4,
+      "total": 4
+    },
+    "links": {
+      "first": "https://rest.lawexa.com/api/admin/statutes/18/divisions?page=1",
+      "last": "https://rest.lawexa.com/api/admin/statutes/18/divisions?page=1",
+      "prev": null,
+      "next": null
+    }
   }
 }
 ```
@@ -422,7 +442,13 @@ Retrieves detailed information about a specific division including its children 
 
 **GET** `/admin/statutes/{statuteId}/divisions/{divisionId}/children`
 
-Retrieves all child divisions of a specific division with breadcrumb navigation.
+Retrieves all child divisions of a specific division with breadcrumb navigation and pagination support.
+
+**Query Parameters:**
+- `per_page` (optional): Number of children per page (default: 15)
+- `page` (optional): Page number (default: 1)
+- `status` (optional): Filter by division status
+- `division_type` (optional): Filter by division type
 
 **Response:**
 ```json
@@ -477,7 +503,19 @@ Retrieves all child divisions of a specific division with breadcrumb navigation.
     "meta": {
       "has_children": true,
       "child_level": 2,
-      "statute_id": "18"
+      "statute_id": "18",
+      "current_page": 1,
+      "from": 1,
+      "last_page": 1,
+      "per_page": 15,
+      "to": 3,
+      "total": 3
+    },
+    "links": {
+      "first": "https://rest.lawexa.com/api/admin/statutes/18/divisions/27/children?page=1",
+      "last": "https://rest.lawexa.com/api/admin/statutes/18/divisions/27/children?page=1",
+      "prev": null,
+      "next": null
     }
   }
 }
