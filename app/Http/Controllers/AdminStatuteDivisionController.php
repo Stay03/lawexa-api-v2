@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Statute;
 use App\Models\StatuteDivision;
 use App\Http\Responses\ApiResponse;
+use App\Http\Resources\StatuteDivisionCollection;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -25,11 +26,14 @@ class AdminStatuteDivisionController extends Controller
         }
         
         $divisions = $query->orderBy('sort_order')
-                          ->get();
+                          ->paginate($request->get('per_page', 15));
         
-        return ApiResponse::success([
-            'divisions' => $divisions
-        ], 'Statute divisions retrieved successfully');
+        $divisionCollection = new StatuteDivisionCollection($divisions);
+        
+        return ApiResponse::success(
+            $divisionCollection->toArray($request),
+            'Statute divisions retrieved successfully'
+        );
     }
     
     public function store(Request $request, $statuteId): JsonResponse
