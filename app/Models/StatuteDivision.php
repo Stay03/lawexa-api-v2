@@ -71,6 +71,11 @@ class StatuteDivision extends Model
         return $query->where('status', 'active');
     }
 
+    public function scopeTopLevel($query)
+    {
+        return $query->whereNull('parent_division_id');
+    }
+
     public function getRouteKeyName()
     {
         return 'slug';

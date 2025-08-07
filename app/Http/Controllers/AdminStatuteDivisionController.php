@@ -14,7 +14,7 @@ class AdminStatuteDivisionController extends Controller
     {
         $statute = Statute::findOrFail($statuteId);
         
-        $query = $statute->divisions()->with(['parentDivision:id,division_title']);
+        $query = $statute->divisions()->topLevel()->with(['parentDivision:id,division_title']);
         
         if ($request->has('status')) {
             $query->byStatus($request->status);
