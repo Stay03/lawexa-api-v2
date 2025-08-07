@@ -288,6 +288,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('{statuteId}/divisions', [AdminStatuteDivisionController::class, 'index'])->where('statuteId', '[0-9]+');
             Route::post('{statuteId}/divisions', [AdminStatuteDivisionController::class, 'store'])->where('statuteId', '[0-9]+');
             Route::get('{statuteId}/divisions/{divisionId}', [AdminStatuteDivisionController::class, 'show'])->where(['statuteId' => '[0-9]+', 'divisionId' => '[0-9]+']);
+            Route::get('{statuteId}/divisions/{divisionId}/children', [AdminStatuteDivisionController::class, 'children'])->where(['statuteId' => '[0-9]+', 'divisionId' => '[0-9]+']);
             Route::put('{statuteId}/divisions/{divisionId}', [AdminStatuteDivisionController::class, 'update'])->where(['statuteId' => '[0-9]+', 'divisionId' => '[0-9]+']);
             Route::delete('{statuteId}/divisions/{divisionId}', [AdminStatuteDivisionController::class, 'destroy'])->where(['statuteId' => '[0-9]+', 'divisionId' => '[0-9]+']);
             

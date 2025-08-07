@@ -75,6 +75,76 @@ class AdminStatuteDivisionController extends Controller
         ], 'Division retrieved successfully');
     }
     
+    public function children(Request $request, $statuteId, $divisionId): JsonResponse
+    {
+        $statute = Statute::findOrFail($statuteId);
+        $parentDivision = $statute->divisions()->findOrFail($divisionId);
+        
+        // Get children divisions with their parent info loaded
+        $query = StatuteDivision::where('parent_division_id', $divisionId)
+                                ->with(['parentDivision:id,division_title,division_number']);
+        
+        // Apply filters
+        if ($request->has('status')) {
+            $query->byStatus($request->status);
+        }
+        
+        if ($request->has('division_type')) {
+            $query->byType($request->division_type);
+        }
+        
+        // Get paginated children
+        $children = $query->orderBy('sort_order')
+                         ->paginate($request->get('per_page', 50));
+        
+        // Build breadcrumb trail
+        $breadcrumb = $this->buildBreadcrumb($parentDivision);
+        
+        return ApiResponse::success([
+            'parent' => [
+                'id' => $parentDivision->id,
+                'title' => $parentDivision->division_title,
+                'number' => $parentDivision->division_number,
+                'type' => $parentDivision->division_type,
+                'level' => $parentDivision->level,
+                'breadcrumb' => $breadcrumb
+            ],
+            'children' => $children,
+            'meta' => [
+                'has_children' => $children->count() > 0,
+                'child_level' => $parentDivision->level + 1,
+                'statute_id' => $statuteId
+            ]
+        ], 'Division children retrieved successfully');
+    }
+    
+    private function buildBreadcrumb(StatuteDivision $division): array
+    {
+        $breadcrumb = [];
+        $current = $division;
+        
+        // Build breadcrumb from current division up to root
+        while ($current) {
+            array_unshift($breadcrumb, [
+                'id' => $current->id,
+                'title' => $current->division_title,
+                'number' => $current->division_number,
+                'type' => $current->division_type
+            ]);
+            
+            $current = $current->parentDivision;
+        }
+        
+        // Add statute as root
+        array_unshift($breadcrumb, [
+            'id' => $division->statute->id,
+            'title' => $division->statute->title,
+            'type' => 'statute'
+        ]);
+        
+        return $breadcrumb;
+    }
+    
     public function update(Request $request, $statuteId, $divisionId): JsonResponse
     {
         $validated = $request->validate([
