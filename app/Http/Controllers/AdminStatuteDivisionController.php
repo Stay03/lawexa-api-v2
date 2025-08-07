@@ -25,12 +25,11 @@ class AdminStatuteDivisionController extends Controller
         }
         
         $divisions = $query->orderBy('sort_order')
-                          ->paginate($request->get('per_page', 50));
+                          ->get();
         
-        return ApiResponse::success(
-            $divisions,
-            'Statute divisions retrieved successfully'
-        );
+        return ApiResponse::success([
+            'divisions' => $divisions
+        ], 'Statute divisions retrieved successfully');
     }
     
     public function store(Request $request, $statuteId): JsonResponse
@@ -93,9 +92,9 @@ class AdminStatuteDivisionController extends Controller
             $query->byType($request->division_type);
         }
         
-        // Get paginated children
+        // Get children
         $children = $query->orderBy('sort_order')
-                         ->paginate($request->get('per_page', 50));
+                         ->get();
         
         // Build breadcrumb trail
         $breadcrumb = $this->buildBreadcrumb($parentDivision);

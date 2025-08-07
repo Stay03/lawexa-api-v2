@@ -284,11 +284,49 @@ Creates a new statute with basic metadata. This is always the first step.
 
 ### 2. Division Management
 
+Divisions are organizational units that structure legal documents hierarchically. This API provides complete CRUD operations for division management.
+
+#### List All Divisions
+
+**GET** `/admin/statutes/{statuteId}/divisions`
+
+Retrieves all divisions for a specific statute.
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Statute divisions retrieved successfully",
+  "data": {
+    "divisions": [
+      {
+        "id": 27,
+        "slug": "first-chapter",
+        "statute_id": 18,
+        "parent_division_id": null,
+        "division_type": "chapter",
+        "division_number": "1",
+        "division_title": "First Chapter",
+        "division_subtitle": null,
+        "content": null,
+        "sort_order": 1,
+        "level": 1,
+        "status": "active",
+        "effective_date": null,
+        "created_at": "2025-08-05T22:00:44.000000Z",
+        "updated_at": "2025-08-05T22:00:44.000000Z",
+        "parent_division": null
+      }
+    ]
+  }
+}
+```
+
 #### Create Division
 
-**POST** `/admin/statutes/{statute_id}/divisions`
+**POST** `/admin/statutes/{statuteId}/divisions`
 
-Divisions are organizational units. Choose the appropriate `division_type` and `level` based on your document structure.
+Creates a new division within a statute. Choose appropriate `division_type` and `level` based on document structure.
 
 **Level Assignment Guidelines:**
 - **Level 1**: Primary divisions (Parts, Books, Titles)
@@ -296,32 +334,17 @@ Divisions are organizational units. Choose the appropriate `division_type` and `
 - **Level 3**: Tertiary divisions (Sections as divisions, Sub-articles)
 - **Level 4+**: Further nested divisions as needed
 
-**Request for Primary Division (Part):**
-```json
-{
-  "division_type": "part",
-  "division_number": "1",
-  "division_title": "PRELIMINARY", 
-  "division_subtitle": null,
-  "content": "This part contains preliminary provisions relating to the purpose and application of the Administration of Criminal Justice Act.",
-  "parent_division_id": null,
-  "sort_order": 1,
-  "level": 1,
-  "status": "active"
-}
-```
-
-**Request for Nested Division (Chapter under Part):**
+**Request for Primary Division:**
 ```json
 {
   "division_type": "chapter",
-  "division_number": "A",
-  "division_title": "General Provisions",
-  "division_subtitle": "Scope and Application", 
-  "content": "This chapter outlines the general provisions...",
-  "parent_division_id": 7,
-  "sort_order": 1,
-  "level": 2,
+  "division_number": "5",
+  "division_title": "Test Division for Documentation",
+  "division_subtitle": "API Testing",
+  "content": "This division was created for testing the API endpoints.",
+  "parent_division_id": null,
+  "sort_order": 25,
+  "level": 1,
   "status": "active"
 }
 ```
@@ -333,17 +356,188 @@ Divisions are organizational units. Choose the appropriate `division_type` and `
   "message": "Division created successfully",
   "data": {
     "division": {
-      "id": 7,
-      "division_type": "part",
-      "division_number": "1",
-      "division_title": "PRELIMINARY",
+      "division_type": "chapter",
+      "division_number": "5",
+      "division_title": "Test Division for Documentation",
+      "division_subtitle": "API Testing",
+      "content": "This division was created for testing the API endpoints.",
+      "parent_division_id": null,
+      "sort_order": 25,
       "level": 1,
-      "sort_order": 1,
-      "statute_id": 5,
-      "slug": "preliminary",
-      "created_at": "2025-08-05T01:44:25.000000Z"
+      "status": "active",
+      "statute_id": 18,
+      "slug": "test-division-for-documentation",
+      "updated_at": "2025-08-07T13:14:09.000000Z",
+      "created_at": "2025-08-07T13:14:09.000000Z",
+      "id": 40
     }
   }
+}
+```
+
+#### Get Specific Division
+
+**GET** `/admin/statutes/{statuteId}/divisions/{divisionId}`
+
+Retrieves detailed information about a specific division including its children and provisions.
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Division retrieved successfully",
+  "data": {
+    "division": {
+      "id": 27,
+      "slug": "first-chapter",
+      "statute_id": 18,
+      "parent_division_id": null,
+      "division_type": "chapter",
+      "division_number": "1",
+      "division_title": "First Chapter",
+      "division_subtitle": null,
+      "content": null,
+      "sort_order": 1,
+      "level": 1,
+      "status": "active",
+      "effective_date": null,
+      "created_at": "2025-08-05T22:00:44.000000Z",
+      "updated_at": "2025-08-05T22:00:44.000000Z",
+      "parent_division": null,
+      "child_divisions": [
+        {
+          "id": 29,
+          "parent_division_id": 27,
+          "division_title": "First Part",
+          "division_number": "I"
+        }
+      ],
+      "provisions": []
+    }
+  }
+}
+```
+
+#### Get Division Children
+
+**GET** `/admin/statutes/{statuteId}/divisions/{divisionId}/children`
+
+Retrieves all child divisions of a specific division with breadcrumb navigation.
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Division children retrieved successfully",
+  "data": {
+    "parent": {
+      "id": 27,
+      "title": "First Chapter",
+      "number": "1",
+      "type": "chapter",
+      "level": 1,
+      "breadcrumb": [
+        {
+          "id": 18,
+          "title": "The statute",
+          "type": "statute"
+        },
+        {
+          "id": 27,
+          "title": "First Chapter",
+          "number": "1",
+          "type": "chapter"
+        }
+      ]
+    },
+    "children": [
+      {
+        "id": 29,
+        "slug": "first-part",
+        "statute_id": 18,
+        "parent_division_id": 27,
+        "division_type": "part",
+        "division_number": "I",
+        "division_title": "First Part",
+        "division_subtitle": null,
+        "content": null,
+        "sort_order": 1,
+        "level": 2,
+        "status": "active",
+        "effective_date": null,
+        "created_at": "2025-08-05T22:01:43.000000Z",
+        "updated_at": "2025-08-05T22:01:43.000000Z",
+        "parent_division": {
+          "id": 27,
+          "division_title": "First Chapter",
+          "division_number": "1"
+        }
+      }
+    ],
+    "meta": {
+      "has_children": true,
+      "child_level": 2,
+      "statute_id": "18"
+    }
+  }
+}
+```
+
+#### Update Division
+
+**PUT** `/admin/statutes/{statuteId}/divisions/{divisionId}`
+
+Updates an existing division. You can update any field except the statute_id and id.
+
+**Request:**
+```json
+{
+  "division_title": "Updated Test Division for Documentation",
+  "division_subtitle": "Updated API Testing",
+  "content": "This division was updated to test the PUT endpoint.",
+  "sort_order": 26
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Division updated successfully",
+  "data": {
+    "division": {
+      "id": 40,
+      "slug": "updated-test-division-for-documentation",
+      "statute_id": 18,
+      "parent_division_id": null,
+      "division_type": "chapter",
+      "division_number": "5",
+      "division_title": "Updated Test Division for Documentation",
+      "division_subtitle": "Updated API Testing",
+      "content": "This division was updated to test the PUT endpoint.",
+      "sort_order": 26,
+      "level": 1,
+      "status": "active",
+      "effective_date": null,
+      "created_at": "2025-08-07T13:14:09.000000Z",
+      "updated_at": "2025-08-07T13:14:16.000000Z"
+    }
+  }
+}
+```
+
+#### Delete Division
+
+**DELETE** `/admin/statutes/{statuteId}/divisions/{divisionId}`
+
+Permanently deletes a division. **Warning**: This will also delete all child divisions and provisions within this division.
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Division deleted successfully",
+  "data": []
 }
 ```
 
@@ -362,11 +556,55 @@ Divisions are organizational units. Choose the appropriate `division_type` and `
 
 ### 3. Provision Management
 
-#### Create Provision (Section)
+Provisions contain the actual legal text and form the core content of statutes. This API provides complete CRUD operations for provision management.
 
-**POST** `/admin/statutes/{statute_id}/provisions`
+#### List All Provisions
 
-Provisions contain the actual legal text. Choose appropriate `provision_type` and `level`.
+**GET** `/admin/statutes/{statuteId}/provisions`
+
+Retrieves all provisions for a specific statute, including their relationships to divisions and parent provisions.
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Statute provisions retrieved successfully",
+  "data": {
+    "provisions": [
+      {
+        "id": 5,
+        "slug": "purpose",
+        "statute_id": 5,
+        "division_id": 7,
+        "parent_provision_id": null,
+        "provision_type": "section",
+        "provision_number": "1",
+        "provision_title": "Purpose",
+        "provision_text": "This section establishes the purpose and compliance requirements for the administration of criminal justice.",
+        "marginal_note": "Purpose of Act",
+        "interpretation_note": "This section defines the overall objectives of the ACJA 2015",
+        "sort_order": 1,
+        "level": 2,
+        "status": "active",
+        "effective_date": null,
+        "created_at": "2025-08-05T01:44:39.000000Z",
+        "updated_at": "2025-08-05T01:44:39.000000Z",
+        "division": {
+          "id": 7,
+          "division_title": "PRELIMINARY"
+        },
+        "parent_provision": null
+      }
+    ]
+  }
+}
+```
+
+#### Create Provision
+
+**POST** `/admin/statutes/{statuteId}/provisions`
+
+Creates a new provision within a statute. Choose appropriate `provision_type` and `level` based on document structure.
 
 **Level Assignment Guidelines:**
 - **Level 2**: Primary provisions (Sections, Paragraphs)
@@ -374,34 +612,19 @@ Provisions contain the actual legal text. Choose appropriate `provision_type` an
 - **Level 4**: Tertiary provisions (Clauses, Items)
 - **Level 5+**: Further nested provisions
 
-**Request for Section:**
+**Request:**
 ```json
 {
   "provision_type": "section",
-  "provision_number": "1", 
-  "provision_title": "Purpose",
-  "provision_text": "This section establishes the purpose and compliance requirements for the administration of criminal justice.",
-  "marginal_note": "Purpose of Act",
-  "interpretation_note": "This section defines the overall objectives of the ACJA 2015",
+  "provision_number": "99",
+  "provision_title": "Test Provision for Documentation",
+  "provision_text": "This is a test provision created for documenting the API endpoints. It demonstrates the creation of new legal provisions.",
+  "marginal_note": "Test provision for API docs",
+  "interpretation_note": "This provision was created to test the POST endpoint functionality",
   "division_id": 7,
   "parent_provision_id": null,
-  "sort_order": 1,
+  "sort_order": 99,
   "level": 2,
-  "status": "active"
-}
-```
-
-**Request for Subsection (Child Provision):**
-```json
-{
-  "provision_type": "subsection",
-  "provision_number": "(1)",
-  "provision_title": null,
-  "provision_text": "The purpose of this Act is to ensure that the system of administration of criminal justice in Nigeria promotes efficient management of criminal justice institutions, speedy dispensation of justice, protection of the society from crime and protection of the rights and interests of the suspect, the defendant, and the victim.",
-  "division_id": 7,
-  "parent_provision_id": 5,
-  "sort_order": 1,
-  "level": 3,
   "status": "active"
 }
 ```
@@ -409,22 +632,142 @@ Provisions contain the actual legal text. Choose appropriate `provision_type` an
 **Response:**
 ```json
 {
-  "status": "success", 
+  "status": "success",
   "message": "Provision created successfully",
   "data": {
     "provision": {
-      "id": 6,
-      "provision_type": "subsection",
-      "provision_number": "(1)",
-      "provision_text": "The purpose of this Act is to ensure...",
-      "level": 3,
-      "sort_order": 1,
-      "parent_provision_id": 5,
+      "provision_type": "section",
+      "provision_number": "99",
+      "provision_title": "Test Provision for Documentation",
+      "provision_text": "This is a test provision created for documenting the API endpoints. It demonstrates the creation of new legal provisions.",
+      "marginal_note": "Test provision for API docs",
+      "interpretation_note": "This provision was created to test the POST endpoint functionality",
       "division_id": 7,
+      "parent_provision_id": null,
+      "sort_order": 99,
+      "level": 2,
+      "status": "active",
       "statute_id": 5,
-      "created_at": "2025-08-05T01:44:46.000000Z"
+      "slug": "test-provision-for-documentation",
+      "updated_at": "2025-08-07T13:14:37.000000Z",
+      "created_at": "2025-08-07T13:14:37.000000Z",
+      "id": 26
     }
   }
+}
+```
+
+#### Get Specific Provision
+
+**GET** `/admin/statutes/{statuteId}/provisions/{provisionId}`
+
+Retrieves detailed information about a specific provision including its relationships and child provisions.
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Provision retrieved successfully",
+  "data": {
+    "provision": {
+      "id": 5,
+      "slug": "purpose",
+      "statute_id": 5,
+      "division_id": 7,
+      "parent_provision_id": null,
+      "provision_type": "section",
+      "provision_number": "1",
+      "provision_title": "Purpose",
+      "provision_text": "This section establishes the purpose and compliance requirements for the administration of criminal justice.",
+      "marginal_note": "Purpose of Act",
+      "interpretation_note": "This section defines the overall objectives of the ACJA 2015",
+      "sort_order": 1,
+      "level": 2,
+      "status": "active",
+      "effective_date": null,
+      "created_at": "2025-08-05T01:44:39.000000Z",
+      "updated_at": "2025-08-05T01:44:39.000000Z",
+      "division": {
+        "id": 7,
+        "division_title": "PRELIMINARY"
+      },
+      "parent_provision": null,
+      "child_provisions": [
+        {
+          "id": 6,
+          "parent_provision_id": 5,
+          "provision_title": null,
+          "provision_number": "(1)"
+        },
+        {
+          "id": 7,
+          "parent_provision_id": 5,
+          "provision_title": null,
+          "provision_number": "(2)"
+        }
+      ]
+    }
+  }
+}
+```
+
+#### Update Provision
+
+**PUT** `/admin/statutes/{statuteId}/provisions/{provisionId}`
+
+Updates an existing provision. You can update any field except the statute_id and id.
+
+**Request:**
+```json
+{
+  "provision_title": "Updated Test Provision for Documentation",
+  "provision_text": "This test provision has been updated to demonstrate the PUT endpoint functionality for provisions.",
+  "marginal_note": "Updated test provision for API docs",
+  "interpretation_note": "This provision was updated to test the PUT endpoint functionality"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Provision updated successfully",
+  "data": {
+    "provision": {
+      "id": 26,
+      "slug": "updated-test-provision-for-documentation",
+      "statute_id": 5,
+      "division_id": 7,
+      "parent_provision_id": null,
+      "provision_type": "section",
+      "provision_number": "99",
+      "provision_title": "Updated Test Provision for Documentation",
+      "provision_text": "This test provision has been updated to demonstrate the PUT endpoint functionality for provisions.",
+      "marginal_note": "Updated test provision for API docs",
+      "interpretation_note": "This provision was updated to test the PUT endpoint functionality",
+      "sort_order": 99,
+      "level": 2,
+      "status": "active",
+      "effective_date": null,
+      "created_at": "2025-08-07T13:14:37.000000Z",
+      "updated_at": "2025-08-07T13:14:43.000000Z"
+    }
+  }
+}
+```
+
+#### Delete Provision
+
+**DELETE** `/admin/statutes/{statuteId}/provisions/{provisionId}`
+
+Permanently deletes a provision. **Warning**: This will also delete all child provisions within this provision.
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Provision deleted successfully",
+  "data": []
 }
 ```
 

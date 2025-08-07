@@ -33,12 +33,11 @@ class AdminStatuteProvisionController extends Controller
         }
         
         $provisions = $query->orderBy('sort_order')
-                           ->paginate($request->get('per_page', 100));
+                           ->get();
         
-        return ApiResponse::success(
-            $provisions,
-            'Statute provisions retrieved successfully'
-        );
+        return ApiResponse::success([
+            'provisions' => $provisions
+        ], 'Statute provisions retrieved successfully');
     }
     
     public function store(Request $request, $statuteId): JsonResponse
