@@ -19,7 +19,7 @@ return new class extends Migration
             $table->text('amendment_description')->nullable();
             $table->timestamps();
             
-            $table->unique(['original_statute_id', 'amending_statute_id']);
+            $table->unique(['original_statute_id', 'amending_statute_id'], 'stat_amend_unique');
             $table->index(['effective_date']);
         });
     }

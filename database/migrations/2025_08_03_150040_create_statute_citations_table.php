@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('citation_context')->nullable();
             $table->timestamps();
             
-            $table->unique(['citing_statute_id', 'cited_statute_id']);
+            $table->unique(['citing_statute_id', 'cited_statute_id'], 'stat_cite_unique');
         });
     }
 
