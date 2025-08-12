@@ -52,7 +52,7 @@ class Issue extends Model
 
     public function screenshots(): MorphMany
     {
-        return $this->files()->where('file_type', 'LIKE', 'image/%');
+        return $this->files()->where('mime_type', 'LIKE', 'image/%');
     }
 
     public function isOpen(): bool

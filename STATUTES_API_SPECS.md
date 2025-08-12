@@ -886,7 +886,7 @@ class StatuteResource extends JsonResource
                             'id' => $file->id,
                             'name' => $file->original_name,
                             'size' => $file->size,
-                            'type' => $file->file_type
+                            'type' => $file->mime_type
                         ];
                     });
                 }
