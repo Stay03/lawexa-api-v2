@@ -24,6 +24,7 @@ class StatuteDivisionResource extends JsonResource
             'division_title' => $this->division_title,
             'division_subtitle' => $this->division_subtitle,
             'content' => $this->content,
+            'range' => $this->range,
             'sort_order' => $this->sort_order,
             'level' => $this->level,
             'status' => $this->status,

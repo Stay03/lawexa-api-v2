@@ -26,6 +26,7 @@ class StatuteProvisionResource extends JsonResource
             'provision_text' => $this->provision_text,
             'marginal_note' => $this->marginal_note,
             'interpretation_note' => $this->interpretation_note,
+            'range' => $this->range,
             'sort_order' => $this->sort_order,
             'level' => $this->level,
             'status' => $this->status,

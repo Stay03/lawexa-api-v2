@@ -12,7 +12,7 @@ class StatuteDivision extends Model
     protected $fillable = [
         'slug', 'statute_id', 'parent_division_id', 'division_type',
         'division_number', 'division_title', 'division_subtitle',
-        'content', 'sort_order', 'level', 'status', 'effective_date'
+        'content', 'range', 'sort_order', 'level', 'status', 'effective_date'
     ];
 
     protected $casts = [
