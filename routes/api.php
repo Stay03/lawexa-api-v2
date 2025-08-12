@@ -179,13 +179,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [StatuteController::class, 'index']);
         Route::get('{statute}', [StatuteController::class, 'show']);
         
-        // Statute Divisions
+        // Statute Divisions - Hierarchical Navigation
         Route::get('{statute}/divisions', [StatuteController::class, 'divisions']);
         Route::get('{statute}/divisions/{divisionSlug}', [StatuteController::class, 'showDivision']);
+        Route::get('{statute}/divisions/{divisionSlug}/children', [StatuteController::class, 'divisionChildren']);
+        Route::get('{statute}/divisions/{divisionSlug}/provisions', [StatuteController::class, 'divisionProvisions']);
         
-        // Statute Provisions
+        // Statute Provisions - Hierarchical Navigation
         Route::get('{statute}/provisions', [StatuteController::class, 'provisions']);
         Route::get('{statute}/provisions/{provisionSlug}', [StatuteController::class, 'showProvision']);
+        Route::get('{statute}/provisions/{provisionSlug}/children', [StatuteController::class, 'provisionChildren']);
         
         // Statute Schedules
         Route::get('{statute}/schedules', [StatuteController::class, 'schedules']);
