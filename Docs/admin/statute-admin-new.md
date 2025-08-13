@@ -76,6 +76,26 @@ Notice that some types can be **either** divisions or provisions:
 - **Division**: Structural container organizing content (no legal text)
 - **Provision**: Actual legal content with text
 
+#### **Range Field Support:**
+
+Both divisions and provisions support an optional `range` field for indicating scope:
+
+**Division Range Examples:**
+- `"Chapter I - X"` - Indicates chapters 1 through 10
+- `"Parts 1-49"` - Covers parts 1 through 49
+- `"Book I - III"` - Spans books 1 through 3
+
+**Provision Range Examples:**
+- `"Section 1-10"` - Sections 1 through 10
+- `"Article 1-50"` - Articles 1 through 50  
+- `"Clause (a)-(z)"` - Clauses a through z
+
+**Usage Notes:**
+- Range field is optional (can be `null`)
+- Useful for indicating coverage scope
+- Displayed in all list and detail responses
+- Can be searched and filtered
+
 #### **Flexible Structure Examples:**
 
 ```
@@ -305,6 +325,7 @@ GET /admin/statutes/18/divisions?per_page=5
         "division_type": "chapter",
         "division_number": "1",
         "division_title": "First Chapter",
+        "range": null,
         "level": 1,
         "status": "active",
         "sort_order": 1
@@ -379,6 +400,7 @@ GET /admin/statutes/18/divisions/27/children
         "division_type": "part",
         "division_number": "I",
         "division_title": "First Part",
+        "range": "Chapter I - X",
         "level": 2,
         "parent_division_id": 27
       },
@@ -387,6 +409,7 @@ GET /admin/statutes/18/divisions/27/children
         "division_type": "part",
         "division_number": "II",
         "division_title": "Second Part",
+        "range": null,
         "level": 2,
         "parent_division_id": 27
       }
@@ -474,6 +497,7 @@ GET /admin/statutes/18/divisions/29/provisions
         "provision_number": "(1)",
         "provision_title": "First section",
         "provision_text": "lorem",
+        "range": "Section 1-10",
         "level": 3,
         "parent_provision_id": null,
         "sort_order": 1
@@ -567,6 +591,7 @@ GET /admin/statutes/18/provisions/18/children
         "provision_number": "(a)",
         "provision_title": "subone",
         "provision_text": "subsection one",
+        "range": null,
         "level": 4,
         "parent_provision_id": 18,
         "sort_order": 10
@@ -577,6 +602,7 @@ GET /admin/statutes/18/provisions/18/children
         "provision_number": "(b)",
         "provision_title": "subtwo",
         "provision_text": "subsection two",
+        "range": null,
         "level": 4,
         "parent_provision_id": 18,
         "sort_order": 10
@@ -628,9 +654,9 @@ GET /admin/statutes/18/divisions
   "status": "success",
   "data": {
     "divisions": [
-      {"id": 27, "division_type": "chapter", "division_number": "1", "division_title": "First Chapter", "level": 1},
-      {"id": 28, "division_type": "chapter", "division_number": "2", "division_title": "Second Chapter", "level": 1},
-      {"id": 31, "division_type": "chapter", "division_number": "3", "division_title": "Test", "level": 1}
+      {"id": 27, "division_type": "chapter", "division_number": "1", "division_title": "First Chapter", "range": null, "level": 1},
+      {"id": 28, "division_type": "chapter", "division_number": "2", "division_title": "Second Chapter", "range": "Chapter I - X", "level": 1},
+      {"id": 31, "division_type": "chapter", "division_number": "3", "division_title": "Test", "range": null, "level": 1}
     ],
     "meta": {"total": 3, "per_page": 15},
     "links": {"next": null}
@@ -655,9 +681,9 @@ GET /admin/statutes/18/divisions/27/children
       ]
     },
     "children": [
-      {"id": 29, "division_type": "part", "division_number": "I", "division_title": "First Part", "level": 2},
-      {"id": 30, "division_type": "part", "division_number": "II", "division_title": "Second Part", "level": 2},
-      {"id": 32, "division_type": "part", "division_number": "III", "division_title": "Third part", "level": 2}
+      {"id": 29, "division_type": "part", "division_number": "I", "division_title": "First Part", "range": "Chapter I - V", "level": 2},
+      {"id": 30, "division_type": "part", "division_number": "II", "division_title": "Second Part", "range": null, "level": 2},
+      {"id": 32, "division_type": "part", "division_number": "III", "division_title": "Third part", "range": null, "level": 2}
     ],
     "meta": {"total": 3, "child_level": 2}
   }
@@ -682,7 +708,7 @@ GET /admin/statutes/18/divisions/29/provisions
       ]
     },
     "provisions": [
-      {"id": 18, "provision_type": "section", "provision_number": "(1)", "provision_title": "First section", "level": 3}
+      {"id": 18, "provision_type": "section", "provision_number": "(1)", "provision_title": "First section", "range": "Section 1-10", "level": 3}
     ],
     "meta": {"total": 3, "division_id": "29"}
   }
@@ -708,8 +734,8 @@ GET /admin/statutes/18/provisions/18/children
       ]
     },
     "children": [
-      {"id": 21, "provision_type": "subsection", "provision_number": "(a)", "provision_title": "subone", "level": 4},
-      {"id": 23, "provision_type": "subsection", "provision_number": "(b)", "provision_title": "subtwo", "level": 4}
+      {"id": 21, "provision_type": "subsection", "provision_number": "(a)", "provision_title": "subone", "range": null, "level": 4},
+      {"id": 23, "provision_type": "subsection", "provision_number": "(b)", "provision_title": "subtwo", "range": null, "level": 4}
     ],
     "meta": {"total": 2, "child_level": 4}
   }
@@ -1318,6 +1344,7 @@ Plan your numbering system before implementation:
   "division_type": "chapter",
   "division_title": "Fundamental Rights",
   "content": null,  // No legal text
+  "range": "Chapter I - VIII",
   "level": 1
 }
 ```
@@ -1328,6 +1355,7 @@ Plan your numbering system before implementation:
   "provision_type": "article", 
   "provision_title": "Right to Life",
   "provision_text": "Every person has a right to life...",  // Legal text
+  "range": "Article 1-50",
   "level": 3
 }
 ```

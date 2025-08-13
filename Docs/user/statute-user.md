@@ -36,6 +36,7 @@ The User Statute API provides **complete hierarchical navigation** through publi
 4. **SEO-Friendly URLs**: All routes use slugs instead of IDs
 5. **Filtering Support**: Search and status filtering throughout
 6. **Adaptive Structure**: Accommodates various legal document patterns
+7. **Range Support**: Optional range indicators showing coverage scope (e.g., "Chapter I - X", "Section 1-10")
 
 ---
 
@@ -43,11 +44,11 @@ The User Statute API provides **complete hierarchical navigation** through publi
 
 Currently available published statutes include:
 - **The Statute** (`the-statute`) - Test statute with hierarchical structure
-- **Companies and Allied Matters Act** (`companies-and-allied-matters-act`) - CAMA 2020
-- **Constitution of the Federal Republic of Nigeria** (`constitution-of-the-federal-republic-of-nigeria-1999`)
-- **Administration of Criminal Justice Act** (`administration-of-criminal-justice-act-2015`)
-- **Test Statute for API Validation** (`test-statute-for-api-validation`)
-- **Test Statute Act 2024** (`test-statute-act-2024`)
+- **Companies and Allied Matters Act** (`companies-and-allied-matters-act`) - CAMA 2020, Range: "Sections 1-870"
+- **Constitution of the Federal Republic of Nigeria** (`constitution-of-the-federal-republic-of-nigeria-1999`) - Range: "Chapters I-VIII"
+- **Administration of Criminal Justice Act** (`administration-of-criminal-justice-act-2015`) - Range: "Parts 1-49"
+- **Test Statute for API Validation** (`test-statute-for-api-validation`) - Range: "Sections 1-10"
+- **Test Statute Act 2024** (`test-statute-act-2024`) - Range: "Sections 1-50"
 
 ---
 
@@ -91,7 +92,7 @@ curl -H "Authorization: Bearer {token}" \
         "sector": null,
         "tags": [],
         "description": "Lorem ipsum sit dolor amet",
-        "range": null,
+        "range": "Sections 1-50",
         "creator": {
           "id": 2,
           "name": "Stay Njokede"
@@ -151,6 +152,7 @@ curl -H "Authorization: Bearer {token}" \
       "jurisdiction": "Federal",
       "country": "Nigeria",
       "description": "Lorem ipsum sit dolor amet",
+      "range": "Sections 1-50",
       "creator": {
         "id": 2,
         "name": "Stay Njokede"
@@ -215,6 +217,7 @@ curl -H "Authorization: Bearer {token}" \
         "division_title": "First Chapter",
         "division_subtitle": null,
         "content": null,
+        "range": null,
         "sort_order": 1,
         "level": 1,
         "status": "active",
@@ -274,6 +277,7 @@ curl -H "Authorization: Bearer {token}" \
       "division_title": "First Chapter",
       "division_subtitle": null,
       "content": null,
+      "range": null,
       "sort_order": 1,
       "level": 1,
       "status": "active",
@@ -350,6 +354,7 @@ curl -H "Authorization: Bearer {token}" \
         "division_title": "First Part",
         "division_subtitle": null,
         "content": null,
+        "range": "Chapter I - X",
         "sort_order": 1,
         "level": 2,
         "status": "active",
@@ -452,6 +457,7 @@ curl -H "Authorization: Bearer {token}" \
         "provision_text": "lorem",
         "marginal_note": null,
         "interpretation_note": null,
+        "range": "Section 1-10",
         "sort_order": 1,
         "level": 3,
         "status": "active",
@@ -529,6 +535,7 @@ curl -H "Authorization: Bearer {token}" \
         "provision_text": "lorem",
         "marginal_note": null,
         "interpretation_note": null,
+        "range": "Section 1-10",
         "sort_order": 1,
         "level": 3,
         "status": "active",
@@ -590,6 +597,7 @@ curl -H "Authorization: Bearer {token}" \
       "provision_text": "lorem",
       "marginal_note": null,
       "interpretation_note": null,
+      "range": "Section 1-10",
       "sort_order": 1,
       "level": 3,
       "status": "active",
@@ -686,6 +694,7 @@ curl -H "Authorization: Bearer {token}" \
         "provision_text": "subsection one",
         "marginal_note": null,
         "interpretation_note": null,
+        "range": null,
         "sort_order": 10,
         "level": 4,
         "status": "active",
@@ -942,3 +951,29 @@ GET /statutes/the-statute/provisions/first-section/children?provision_type=subse
 - Implement client-side caching for frequently accessed endpoints
 - Use search parameters for content filtering
 - Leverage slug-based URLs for SEO-friendly web applications
+- Display range information to show content scope to users
+
+---
+
+## Range Field Usage
+
+### Understanding Range Fields
+
+The `range` field is an optional indicator that shows the scope or coverage of a statute, division, or provision:
+
+#### **Examples:**
+- **Statute level**: `"Sections 1-870"` - Indicates the statute contains sections 1 through 870
+- **Division level**: `"Chapter I - X"` - Shows the division covers chapters 1 through 10 
+- **Provision level**: `"Section 1-10"` - Indicates the provision spans sections 1 through 10
+
+#### **Common Range Formats:**
+- Numeric: `"Section 1-10"`, `"Parts 1-49"`
+- Roman numerals: `"Chapter I - VIII"`, `"Book I - III"`
+- Alphabetic: `"Clause (a)-(z)"`, `"Item A-Z"`
+- Mixed: `"Article 1(a)-5(z)"`
+
+#### **Usage Notes:**
+- Range field can be `null` if not applicable
+- Displayed in all list and detail responses where present
+- Useful for understanding document scope and navigation
+- Not used for filtering or searching (use other fields for that)

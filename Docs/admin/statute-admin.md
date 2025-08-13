@@ -315,6 +315,7 @@ Retrieves all divisions for a specific statute with pagination support.
         "division_title": "First Chapter",
         "division_subtitle": null,
         "content": null,
+        "range": null,
         "sort_order": 1,
         "level": 1,
         "status": "active",
@@ -362,6 +363,7 @@ Creates a new division within a statute. Choose appropriate `division_type` and 
   "division_title": "Test Division for Documentation",
   "division_subtitle": "API Testing",
   "content": "This division was created for testing the API endpoints.",
+  "range": "Chapter I - X",
   "parent_division_id": null,
   "sort_order": 25,
   "level": 1,
@@ -381,6 +383,7 @@ Creates a new division within a statute. Choose appropriate `division_type` and 
       "division_title": "Test Division for Documentation",
       "division_subtitle": "API Testing",
       "content": "This division was created for testing the API endpoints.",
+      "range": "Chapter I - X",
       "parent_division_id": null,
       "sort_order": 25,
       "level": 1,
@@ -417,6 +420,7 @@ Retrieves detailed information about a specific division including its children 
       "division_title": "First Chapter",
       "division_subtitle": null,
       "content": null,
+      "range": null,
       "sort_order": 1,
       "level": 1,
       "status": "active",
@@ -429,7 +433,8 @@ Retrieves detailed information about a specific division including its children 
           "id": 29,
           "parent_division_id": 27,
           "division_title": "First Part",
-          "division_number": "I"
+          "division_number": "I",
+          "range": null
         }
       ],
       "provisions": []
@@ -487,6 +492,7 @@ Retrieves all child divisions of a specific division with breadcrumb navigation 
         "division_title": "First Part",
         "division_subtitle": null,
         "content": null,
+        "range": null,
         "sort_order": 1,
         "level": 2,
         "status": "active",
@@ -533,6 +539,7 @@ Updates an existing division. You can update any field except the statute_id and
   "division_title": "Updated Test Division for Documentation",
   "division_subtitle": "Updated API Testing",
   "content": "This division was updated to test the PUT endpoint.",
+  "range": "Chapter I - XII",
   "sort_order": 26
 }
 ```
@@ -553,6 +560,7 @@ Updates an existing division. You can update any field except the statute_id and
       "division_title": "Updated Test Division for Documentation",
       "division_subtitle": "Updated API Testing",
       "content": "This division was updated to test the PUT endpoint.",
+      "range": "Chapter I - XII",
       "sort_order": 26,
       "level": 1,
       "status": "active",
@@ -621,6 +629,7 @@ Retrieves all provisions for a specific statute, including their relationships t
         "provision_text": "This section establishes the purpose and compliance requirements for the administration of criminal justice.",
         "marginal_note": "Purpose of Act",
         "interpretation_note": "This section defines the overall objectives of the ACJA 2015",
+        "range": null,
         "sort_order": 1,
         "level": 2,
         "status": "active",
@@ -659,6 +668,7 @@ Creates a new provision within a statute. Choose appropriate `provision_type` an
   "provision_text": "This is a test provision created for documenting the API endpoints. It demonstrates the creation of new legal provisions.",
   "marginal_note": "Test provision for API docs",
   "interpretation_note": "This provision was created to test the POST endpoint functionality",
+  "range": "Section 1-10",
   "division_id": 7,
   "parent_provision_id": null,
   "sort_order": 99,
@@ -680,6 +690,7 @@ Creates a new provision within a statute. Choose appropriate `provision_type` an
       "provision_text": "This is a test provision created for documenting the API endpoints. It demonstrates the creation of new legal provisions.",
       "marginal_note": "Test provision for API docs",
       "interpretation_note": "This provision was created to test the POST endpoint functionality",
+      "range": "Section 1-10",
       "division_id": 7,
       "parent_provision_id": null,
       "sort_order": 99,
@@ -719,6 +730,7 @@ Retrieves detailed information about a specific provision including its relation
       "provision_text": "This section establishes the purpose and compliance requirements for the administration of criminal justice.",
       "marginal_note": "Purpose of Act",
       "interpretation_note": "This section defines the overall objectives of the ACJA 2015",
+      "range": null,
       "sort_order": 1,
       "level": 2,
       "status": "active",
@@ -761,7 +773,8 @@ Updates an existing provision. You can update any field except the statute_id an
   "provision_title": "Updated Test Provision for Documentation",
   "provision_text": "This test provision has been updated to demonstrate the PUT endpoint functionality for provisions.",
   "marginal_note": "Updated test provision for API docs",
-  "interpretation_note": "This provision was updated to test the PUT endpoint functionality"
+  "interpretation_note": "This provision was updated to test the PUT endpoint functionality",
+  "range": "Section 1-20"
 }
 ```
 
@@ -783,6 +796,7 @@ Updates an existing provision. You can update any field except the statute_id an
       "provision_text": "This test provision has been updated to demonstrate the PUT endpoint functionality for provisions.",
       "marginal_note": "Updated test provision for API docs",
       "interpretation_note": "This provision was updated to test the PUT endpoint functionality",
+      "range": "Section 1-20",
       "sort_order": 99,
       "level": 2,
       "status": "active",
