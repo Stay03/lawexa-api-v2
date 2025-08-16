@@ -25,13 +25,13 @@ class StatuteDivision extends Model
         
         static::creating(function ($division) {
             if (empty($division->slug)) {
-                $division->slug = Str::slug($division->division_title);
+                $division->slug = Str::slug($division->division_title) . '-' . Str::random(8);
             }
         });
 
         static::updating(function ($division) {
             if ($division->isDirty('division_title')) {
-                $division->slug = Str::slug($division->division_title);
+                $division->slug = Str::slug($division->division_title) . '-' . Str::random(8);
             }
         });
     }

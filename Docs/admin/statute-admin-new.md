@@ -69,7 +69,7 @@ The system supports **completely flexible hierarchical structures** for legal do
 
 Notice that some types can be **either** divisions or provisions:
 
-**Division Types**: `part`, `chapter`, `article`, `title`, `book`, `division`, `section`, `subsection`
+**Division Types**: `part`, `chapter`, `article`, `title`, `book`, `division`, `section`, `subsection`, `order`
 **Provision Types**: `section`, `subsection`, `paragraph`, `subparagraph`, `clause`, `subclause`, `item`
 
 **Key Insight**: A "section" can be either:
@@ -283,7 +283,7 @@ Test Statute (ID: 18)
 
 | Element | Usually Division | Usually Provision | Context Matters |
 |---------|-----------------|-------------------|-----------------|
-| Book, Title | ✅ | | Major structural containers |
+| Book, Title, Order | ✅ | | Major structural containers |
 | Chapter, Part | ✅ | | Thematic groupings |  
 | Article | ✅ | ✅ | Depends on document tradition |
 | Section | ✅ | ✅ | **Key decision point** |

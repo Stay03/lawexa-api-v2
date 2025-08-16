@@ -26,14 +26,14 @@ class StatuteProvision extends Model
         static::creating(function ($provision) {
             if (empty($provision->slug)) {
                 $title = $provision->provision_title ?: $provision->provision_number;
-                $provision->slug = Str::slug($title);
+                $provision->slug = Str::slug($title) . '-' . Str::random(8);
             }
         });
 
         static::updating(function ($provision) {
             if ($provision->isDirty('provision_title') || $provision->isDirty('provision_number')) {
                 $title = $provision->provision_title ?: $provision->provision_number;
-                $provision->slug = Str::slug($title);
+                $provision->slug = Str::slug($title) . '-' . Str::random(8);
             }
         });
     }
