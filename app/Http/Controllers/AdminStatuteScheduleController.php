@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Statute;
-use App\Models\StatuteSchedule;
+use App\Models\StatuteDivision;
 use App\Http\Responses\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -21,7 +21,7 @@ class AdminStatuteScheduleController extends Controller
         }
         
         if ($request->has('schedule_type')) {
-            $query->byType($request->schedule_type);
+            $query->byScheduleType($request->schedule_type);
         }
 
         if ($request->has('search')) {
@@ -52,7 +52,20 @@ class AdminStatuteScheduleController extends Controller
         $statute = Statute::findOrFail($statuteId);
         
         try {
-            $schedule = $statute->schedules()->create($validated);
+            // Map schedule fields to division fields
+            $divisionData = [
+                'division_type' => 'schedule',
+                'division_number' => $validated['schedule_number'],
+                'division_title' => $validated['schedule_title'],
+                'division_subtitle' => $validated['schedule_type'] ?? null,
+                'content' => $validated['content'],
+                'sort_order' => $validated['sort_order'] ?? 0,
+                'status' => $validated['status'] ?? 'active',
+                'effective_date' => $validated['effective_date'] ?? null,
+                'level' => 1, // Schedules are typically top-level
+            ];
+            
+            $schedule = $statute->divisions()->create($divisionData);
             
             return ApiResponse::success([
                 'schedule' => $schedule
@@ -88,7 +101,31 @@ class AdminStatuteScheduleController extends Controller
         $schedule = $statute->schedules()->findOrFail($scheduleId);
         
         try {
-            $schedule->update($validated);
+            // Map schedule fields to division fields
+            $divisionData = [];
+            if (isset($validated['schedule_number'])) {
+                $divisionData['division_number'] = $validated['schedule_number'];
+            }
+            if (isset($validated['schedule_title'])) {
+                $divisionData['division_title'] = $validated['schedule_title'];
+            }
+            if (isset($validated['schedule_type'])) {
+                $divisionData['division_subtitle'] = $validated['schedule_type'];
+            }
+            if (isset($validated['content'])) {
+                $divisionData['content'] = $validated['content'];
+            }
+            if (isset($validated['sort_order'])) {
+                $divisionData['sort_order'] = $validated['sort_order'];
+            }
+            if (isset($validated['status'])) {
+                $divisionData['status'] = $validated['status'];
+            }
+            if (isset($validated['effective_date'])) {
+                $divisionData['effective_date'] = $validated['effective_date'];
+            }
+            
+            $schedule->update($divisionData);
             
             return ApiResponse::success([
                 'schedule' => $schedule

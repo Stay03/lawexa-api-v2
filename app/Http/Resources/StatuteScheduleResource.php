@@ -14,14 +14,17 @@ class StatuteScheduleResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        // Handle both StatuteSchedule (legacy) and StatuteDivision (new) models
+        $isScheduleDivision = isset($this->division_type) && $this->division_type === 'schedule';
+        
         return [
             'id' => $this->id,
             'slug' => $this->slug,
             'statute_id' => $this->statute_id,
-            'schedule_number' => $this->schedule_number,
-            'schedule_title' => $this->schedule_title,
+            'schedule_number' => $isScheduleDivision ? $this->division_number : $this->schedule_number,
+            'schedule_title' => $isScheduleDivision ? $this->division_title : $this->schedule_title,
             'content' => $this->content,
-            'schedule_type' => $this->schedule_type,
+            'schedule_type' => $isScheduleDivision ? $this->division_subtitle : $this->schedule_type,
             'sort_order' => $this->sort_order,
             'status' => $this->status,
             'effective_date' => $this->effective_date?->format('Y-m-d'),

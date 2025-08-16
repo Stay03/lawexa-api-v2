@@ -60,7 +60,7 @@ class Statute extends Model
 
     public function schedules(): HasMany
     {
-        return $this->hasMany(StatuteSchedule::class)->orderBy('sort_order');
+        return $this->hasMany(StatuteDivision::class)->where('division_type', 'schedule')->orderBy('sort_order');
     }
 
     public function parentStatute(): BelongsTo

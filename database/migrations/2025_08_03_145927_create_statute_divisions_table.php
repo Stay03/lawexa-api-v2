@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('slug');
             $table->foreignId('statute_id')->constrained('statutes')->onDelete('cascade');
             $table->foreignId('parent_division_id')->nullable()->constrained('statute_divisions')->onDelete('cascade');
-            $table->enum('division_type', ['part', 'chapter', 'article', 'title', 'book', 'division', 'section', 'subsection']);
+            $table->enum('division_type', ['part', 'chapter', 'article', 'title', 'book', 'division', 'section', 'subsection', 'schedule']);
             $table->string('division_number');
             $table->string('division_title');
             $table->string('division_subtitle')->nullable();

@@ -76,6 +76,24 @@ class StatuteDivision extends Model
         return $query->whereNull('parent_division_id');
     }
 
+    public function scopeSchedules($query)
+    {
+        return $query->where('division_type', 'schedule');
+    }
+
+    public function scopeByScheduleType($query, $type)
+    {
+        return $query->where('division_type', 'schedule')
+                    ->where('division_subtitle', $type);
+    }
+
+    public function scopeSearch($query, $search)
+    {
+        return $query->where('division_title', 'like', "%{$search}%")
+                    ->orWhere('content', 'like', "%{$search}%")
+                    ->orWhere('division_number', 'like', "%{$search}%");
+    }
+
     public function getRouteKeyName()
     {
         return 'slug';

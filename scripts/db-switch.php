@@ -2,6 +2,9 @@
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
+// Increase memory limit for database migration
+ini_set('memory_limit', '512M');
+
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -143,10 +146,12 @@ class DatabaseSwitcher
         // Initialize Laravel database connection
         $this->initializeDatabase();
         
-        $data = [];
-        
         // Get all tables
         $tables = $this->getTables();
+        
+        // Start JSON file
+        file_put_contents($backupFile, "{\n");
+        $firstTable = true;
         
         foreach ($tables as $table) {
             if (in_array($table, ['migrations'])) {
@@ -156,15 +161,81 @@ class DatabaseSwitcher
             $this->verbose("Exporting table: $table");
             
             try {
-                $records = Capsule::table($table)->get()->toArray();
-                $data[$table] = $records;
-                $this->verbose("  Exported " . count($records) . " records");
+                $totalRecords = Capsule::table($table)->count();
+                
+                if (!$firstTable) {
+                    file_put_contents($backupFile, ",\n", FILE_APPEND);
+                }
+                $firstTable = false;
+                
+                // Write table header
+                file_put_contents($backupFile, "  \"$table\": [\n", FILE_APPEND);
+                
+                // Process in chunks of 100 records to reduce memory usage
+                $chunkSize = 100;
+                $offset = 0;
+                $firstRecord = true;
+                $exportedCount = 0;
+                
+                // Use cursor to avoid memory issues with large datasets
+                try {
+                    // Try with id column first
+                    Capsule::table($table)->orderBy('id')->chunk($chunkSize, function($records) use ($backupFile, &$firstRecord, &$exportedCount, $totalRecords) {
+                        foreach ($records as $record) {
+                            if (!$firstRecord) {
+                                file_put_contents($backupFile, ",\n", FILE_APPEND);
+                            }
+                            $firstRecord = false;
+                            
+                            $recordJson = json_encode($record, JSON_PRETTY_PRINT);
+                            // Indent the record JSON
+                            $indentedJson = "    " . str_replace("\n", "\n    ", $recordJson);
+                            file_put_contents($backupFile, $indentedJson, FILE_APPEND);
+                            $exportedCount++;
+                        }
+                        
+                        if ($this->verbose && $exportedCount % 1000 == 0) {
+                            $this->verbose("  Progress: $exportedCount / $totalRecords records");
+                        }
+                    });
+                } catch (Exception $e) {
+                    // Fallback: try without ordering for tables without id
+                    Capsule::table($table)->chunk($chunkSize, function($records) use ($backupFile, &$firstRecord, &$exportedCount, $totalRecords) {
+                        foreach ($records as $record) {
+                            if (!$firstRecord) {
+                                file_put_contents($backupFile, ",\n", FILE_APPEND);
+                            }
+                            $firstRecord = false;
+                            
+                            $recordJson = json_encode($record, JSON_PRETTY_PRINT);
+                            // Indent the record JSON
+                            $indentedJson = "    " . str_replace("\n", "\n    ", $recordJson);
+                            file_put_contents($backupFile, $indentedJson, FILE_APPEND);
+                            $exportedCount++;
+                        }
+                        
+                        if ($this->verbose && $exportedCount % 1000 == 0) {
+                            $this->verbose("  Progress: $exportedCount / $totalRecords records");
+                        }
+                    });
+                }
+                
+                file_put_contents($backupFile, "\n  ]", FILE_APPEND);
+                $this->verbose("  Exported $exportedCount records");
+                
             } catch (Exception $e) {
                 $this->warning("Could not export table $table: " . $e->getMessage());
+                // Add empty array for failed tables
+                if (!$firstTable) {
+                    file_put_contents($backupFile, ",\n", FILE_APPEND);
+                }
+                $firstTable = false;
+                file_put_contents($backupFile, "  \"$table\": []", FILE_APPEND);
             }
         }
         
-        file_put_contents($backupFile, json_encode($data, JSON_PRETTY_PRINT));
+        // Close JSON file
+        file_put_contents($backupFile, "\n}\n", FILE_APPEND);
         $this->info("Data exported to: $backupFile");
         
         return $backupFile;
@@ -178,12 +249,6 @@ class DatabaseSwitcher
         
         $this->initializeDatabase();
         
-        $data = json_decode(file_get_contents($backupFile), true);
-        
-        if (!$data) {
-            throw new Exception("Invalid backup data");
-        }
-        
         // Disable foreign key checks temporarily
         if ($this->currentConnection === 'mysql') {
             Capsule::statement('SET FOREIGN_KEY_CHECKS=0');
@@ -191,32 +256,92 @@ class DatabaseSwitcher
             Capsule::statement('PRAGMA foreign_keys=OFF');
         }
         
-        foreach ($data as $tableName => $records) {
-            $this->verbose("Importing table: $tableName");
+        // Parse JSON file in streaming fashion
+        $handle = fopen($backupFile, 'r');
+        if (!$handle) {
+            throw new Exception("Could not open backup file");
+        }
+        
+        $buffer = '';
+        $currentTable = null;
+        $recordsBuffer = [];
+        $inTableArray = false;
+        $braceDepth = 0;
+        $recordBuffer = '';
+        $inRecord = false;
+        
+        while (($line = fgets($handle)) !== false) {
+            $trimmedLine = trim($line);
             
-            try {
-                // Clear existing data
-                Capsule::table($tableName)->truncate();
+            // Skip empty lines and opening/closing braces
+            if (empty($trimmedLine) || $trimmedLine === '{' || $trimmedLine === '}') {
+                continue;
+            }
+            
+            // Detect table start
+            if (preg_match('/^"([^"]+)":\s*\[$/', $trimmedLine, $matches)) {
+                $currentTable = $matches[1];
+                $this->verbose("Importing table: $currentTable");
                 
-                // Insert data in chunks
-                if (!empty($records)) {
-                    $chunks = array_chunk($records, 100);
-                    foreach ($chunks as $chunk) {
-                        // Convert objects to arrays
-                        $chunk = array_map(function($record) {
-                            return (array) $record;
-                        }, $chunk);
-                        
-                        Capsule::table($tableName)->insert($chunk);
-                    }
+                try {
+                    // Clear existing data
+                    Capsule::table($currentTable)->truncate();
+                } catch (Exception $e) {
+                    $this->warning("Could not truncate table $currentTable: " . $e->getMessage());
                 }
                 
-                $this->verbose("  Imported " . count($records) . " records");
+                $inTableArray = true;
+                $recordsBuffer = [];
+                continue;
+            }
+            
+            // Detect table end
+            if ($trimmedLine === ']' || $trimmedLine === '],') {
+                // Import any remaining records in buffer
+                if (!empty($recordsBuffer)) {
+                    $this->importRecordsChunk($currentTable, $recordsBuffer);
+                }
                 
-            } catch (Exception $e) {
-                $this->warning("Could not import table $tableName: " . $e->getMessage());
+                $this->verbose("  Imported table: $currentTable");
+                $inTableArray = false;
+                $currentTable = null;
+                $recordsBuffer = [];
+                continue;
+            }
+            
+            // Process records within table array
+            if ($inTableArray && $currentTable) {
+                $buffer .= $line;
+                
+                // Count braces to determine when we have a complete record
+                $braceDepth += substr_count($line, '{') - substr_count($line, '}');
+                
+                // If we have a complete record (braces balanced)
+                if ($braceDepth === 0 && !empty(trim($buffer))) {
+                    // Remove trailing comma if present
+                    $recordJson = rtrim(trim($buffer), ',');
+                    
+                    try {
+                        $record = json_decode($recordJson, true);
+                        if ($record) {
+                            $recordsBuffer[] = $record;
+                            
+                            // Import in chunks of 100 records
+                            if (count($recordsBuffer) >= 100) {
+                                $this->importRecordsChunk($currentTable, $recordsBuffer);
+                                $recordsBuffer = [];
+                            }
+                        }
+                    } catch (Exception $e) {
+                        $this->warning("Could not parse record: " . $e->getMessage());
+                    }
+                    
+                    $buffer = '';
+                }
             }
         }
+        
+        fclose($handle);
         
         // Re-enable foreign key checks
         if ($this->currentConnection === 'mysql') {
@@ -226,6 +351,25 @@ class DatabaseSwitcher
         }
         
         $this->info("Data import completed");
+    }
+    
+    private function importRecordsChunk($tableName, $records)
+    {
+        if (empty($records)) {
+            return;
+        }
+        
+        try {
+            // Convert objects to arrays
+            $records = array_map(function($record) {
+                return (array) $record;
+            }, $records);
+            
+            Capsule::table($tableName)->insert($records);
+            $this->verbose("  Imported " . count($records) . " records");
+        } catch (Exception $e) {
+            $this->warning("Could not import records for table $tableName: " . $e->getMessage());
+        }
     }
     
     private function runMigrations()
