@@ -9,13 +9,15 @@ use App\Http\Responses\ApiResponse;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Services\SubscriptionService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class SubscriptionController extends Controller
 {
     public function __construct(
-        private SubscriptionService $subscriptionService
+        private SubscriptionService $subscriptionService,
+        private NotificationService $notificationService
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -59,6 +61,9 @@ class SubscriptionController extends Controller
                     $plan, 
                     $validated['authorization_code']
                 );
+                
+                // Send subscription confirmation email
+                $this->notificationService->sendSubscriptionCreatedEmail($user, $subscription);
                 
                 return ApiResponse::success([
                     'subscription' => new SubscriptionResource($subscription->load('plan'))
@@ -111,6 +116,9 @@ class SubscriptionController extends Controller
 
         try {
             $cancelledSubscription = $this->subscriptionService->cancelSubscription($subscription);
+            
+            // Send cancellation confirmation email
+            $this->notificationService->sendSubscriptionCancelledEmail($user, $cancelledSubscription);
             
             return ApiResponse::success([
                 'subscription' => new SubscriptionResource($cancelledSubscription->load('plan'))

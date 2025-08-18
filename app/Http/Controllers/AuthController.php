@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Http\Resources\UserResource;
 use App\Http\Responses\ApiResponse;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -13,6 +14,10 @@ use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
+    public function __construct(
+        private NotificationService $notificationService
+    ) {}
+
     public function register(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
@@ -34,6 +39,9 @@ class AuthController extends Controller
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        // Send welcome email
+        $this->notificationService->sendWelcomeEmail($user);
 
         return ApiResponse::created([
             'user' => new UserResource($user->load(['activeSubscription', 'subscriptions'])),

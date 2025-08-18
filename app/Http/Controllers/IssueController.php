@@ -9,6 +9,7 @@ use App\Http\Resources\IssueResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Issue;
 use App\Models\File;
+use App\Services\NotificationService;
 use App\Traits\HandlesDirectS3Uploads;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,11 @@ use Illuminate\Support\Facades\DB;
 class IssueController extends Controller
 {
     use HandlesDirectS3Uploads;
+
+    public function __construct(
+        private NotificationService $notificationService
+    ) {}
+
     /**
      * Display a listing of the user's issues.
      */
@@ -85,6 +91,9 @@ class IssueController extends Controller
             
             DB::commit();
             
+            // Send email notifications
+            $this->notificationService->sendIssueCreatedEmail($user, $issue);
+            
             return ApiResponse::created(
                 new IssueResource($issue),
                 'Issue created successfully'
@@ -121,6 +130,10 @@ class IssueController extends Controller
         DB::beginTransaction();
         
         try {
+            // Track changes for email notification
+            $originalAttributes = $issue->getOriginal();
+            $changes = [];
+            
             $issue->update($request->validated());
             
             if ($request->has('file_ids')) {
@@ -141,9 +154,26 @@ class IssueController extends Controller
                 }
             }
             
+            // Detect changes for email notification
+            $updatedAttributes = $issue->getAttributes();
+            foreach (['title', 'status', 'description', 'type', 'severity', 'area'] as $field) {
+                if (isset($originalAttributes[$field], $updatedAttributes[$field]) && 
+                    $originalAttributes[$field] !== $updatedAttributes[$field]) {
+                    $changes[$field] = [
+                        'from' => $originalAttributes[$field],
+                        'to' => $updatedAttributes[$field]
+                    ];
+                }
+            }
+            
             $issue->load(['user', 'files', 'screenshots']);
             
             DB::commit();
+            
+            // Send update notification if there are changes
+            if (!empty($changes)) {
+                $this->notificationService->sendIssueUpdatedEmail($issue->user, $issue, $changes);
+            }
             
             return ApiResponse::success(
                 new IssueResource($issue),
