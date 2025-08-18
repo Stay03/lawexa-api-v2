@@ -138,9 +138,35 @@ class AdminIssueController extends Controller
             
             DB::commit();
             
-            // Send update notification to the original issue submitter if there are changes
-            if (!empty($changes) && $adminIssue->user) {
-                $this->notificationService->sendIssueUpdatedEmail($adminIssue->user, $adminIssue, $changes);
+            // Send update notifications if there are changes
+            if (!empty($changes)) {
+                // 1. Notify the original issue submitter
+                if ($adminIssue->user) {
+                    $this->notificationService->sendIssueUpdatedEmail($adminIssue->user, $adminIssue, $changes);
+                }
+                
+                // 2. Notify all admin accounts about the admin update
+                $adminEmails = $this->notificationService->getAdminEmails();
+                foreach ($adminEmails as $adminEmail) {
+                    // Don't send duplicate email if the original user is also an admin
+                    if (!$adminIssue->user || $adminEmail !== $adminIssue->user->email) {
+                        \Illuminate\Support\Facades\Mail::to($adminEmail)
+                            ->queue(new \App\Mail\IssueUpdatedEmail($adminIssue->user ?? new \App\Models\User([
+                                'name' => 'System User',
+                                'email' => 'system@lawexa.com'
+                            ]), $adminIssue, array_merge($changes, [
+                                'updated_by_admin' => 'This issue was updated by an administrator'
+                            ])));
+                    }
+                }
+                
+                \Illuminate\Support\Facades\Log::info('Admin issue update - notifications sent', [
+                    'issue_id' => $adminIssue->id,
+                    'original_user_notified' => $adminIssue->user ? $adminIssue->user->email : null,
+                    'admin_notifications_sent_to' => $adminEmails,
+                    'changes_made' => array_keys($changes),
+                    'total_notifications' => ($adminIssue->user ? 1 : 0) + count($adminEmails)
+                ]);
             }
             
             return ApiResponse::success(
