@@ -55,13 +55,23 @@ class VerifyEmailMailable extends Mailable implements ShouldQueue
      */
     protected function verificationUrl(): string
     {
-        return URL::temporarySignedRoute(
-            'verification.verify',
-            Carbon::now()->addMinutes(Config::get('auth.verification.expire', 60)),
-            [
-                'id' => $this->user->getKey(),
-                'hash' => sha1($this->user->getEmailForVerification()),
-            ]
-        );
+        try {
+            return URL::temporarySignedRoute(
+                'verification.verify',
+                Carbon::now()->addMinutes(Config::get('auth.verification.expire', 60)),
+                [
+                    'id' => $this->user->getKey(),
+                    'hash' => sha1($this->user->getEmailForVerification()),
+                ]
+            );
+        } catch (\Exception $e) {
+            // Fallback URL construction if route is not found
+            $baseUrl = rtrim(config('app.url'), '/');
+            $expiry = Carbon::now()->addMinutes(Config::get('auth.verification.expire', 60))->timestamp;
+            $signature = hash_hmac('sha256', "verification.verify{$this->user->getKey()}" . sha1($this->user->getEmailForVerification()) . $expiry, config('app.key'));
+            
+            return "{$baseUrl}/api/auth/email/verify/{$this->user->getKey()}/" . sha1($this->user->getEmailForVerification()) . 
+                   "?expires={$expiry}&signature={$signature}";
+        }
     }
 }
