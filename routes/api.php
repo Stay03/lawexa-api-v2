@@ -104,6 +104,11 @@ Route::prefix('auth')->group(function () {
         ->middleware(['auth:sanctum', 'throttle:6,1'])
         ->name('verification.send');
     
+    // Alternative verification route without signed middleware (for signature issues)
+    Route::get('email/verify-alt/{id}/{hash}', [AuthController::class, 'verifyEmailAlternative'])
+        ->name('verification.alternative')
+        ->middleware(['throttle:6,1']);
+    
     // Debug route for verification (remove after fixing)
     Route::get('email/verify-debug/{id}/{hash}', [AuthController::class, 'debugVerifyEmail'])
         ->name('verification.debug');

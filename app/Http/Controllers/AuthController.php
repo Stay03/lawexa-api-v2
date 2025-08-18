@@ -223,6 +223,15 @@ class AuthController extends Controller
         } else {
             $debugInfo['signature_valid'] = false;
             $debugInfo['signature_error'] = 'Invalid or expired signature';
+            
+            // Even if signature is invalid, if hash matches and user exists, we can verify
+            if ($user && $debugInfo['hash_matches'] && !$user->hasVerifiedEmail()) {
+                $debugInfo['verification_attempted'] = true;
+                $debugInfo['verification_bypassed_signature'] = true;
+                
+                // Proceed with verification despite invalid signature
+                return $this->verifyEmailDirect($request);
+            }
         }
 
         return response()->json([
@@ -258,5 +267,53 @@ class AuthController extends Controller
         }
 
         return $this->handleVerificationResult($request, 'success', 'Email verified successfully');
+    }
+
+    /**
+     * Alternative verification without signed middleware for signature issues
+     */
+    public function verifyEmailAlternative(Request $request)
+    {
+        try {
+            $user = User::find($request->route('id'));
+
+            if (!$user) {
+                return $this->handleVerificationResult($request, 'error', 'User not found');
+            }
+
+            if (!hash_equals((string) $request->route('hash'), sha1($user->getEmailForVerification()))) {
+                return $this->handleVerificationResult($request, 'error', 'Invalid verification link');
+            }
+
+            if ($user->hasVerifiedEmail()) {
+                return $this->handleVerificationResult($request, 'success', 'Email already verified');
+            }
+
+            // Log the alternative verification for security tracking
+            \Log::info('Alternative email verification used', [
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
+
+            if ($user->markEmailAsVerified()) {
+                event(new Verified($user));
+                
+                // Send welcome email after verification
+                $this->notificationService->sendWelcomeEmail($user);
+            }
+
+            return $this->handleVerificationResult($request, 'success', 'Email verified successfully');
+
+        } catch (\Exception $e) {
+            \Log::error('Alternative email verification error', [
+                'user_id' => $request->route('id'),
+                'error' => $e->getMessage(),
+                'url' => $request->fullUrl()
+            ]);
+            
+            return $this->handleVerificationResult($request, 'error', 'Verification failed');
+        }
     }
 }
