@@ -42,7 +42,7 @@ class IssueController extends Controller
             $query->where('area', $request->area);
         }
         
-        $issues = $query->orderBy('created_at', 'desc')->paginate(15);
+        $issues = $query->orderBy('created_at', 'desc')->paginate($request->get('per_page', 15));
         
         return ApiResponse::collection(
             new IssueCollection($issues),

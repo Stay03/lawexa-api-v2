@@ -59,7 +59,7 @@ class AdminIssueController extends Controller
         $sortBy = $request->get('sort_by', 'created_at');
         $sortOrder = $request->get('sort_order', 'desc');
         
-        $issues = $query->orderBy($sortBy, $sortOrder)->paginate(20);
+        $issues = $query->orderBy($sortBy, $sortOrder)->paginate($request->get('per_page', 20));
         
         return ApiResponse::collection(
             new IssueCollection($issues),
