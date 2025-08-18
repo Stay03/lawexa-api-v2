@@ -6,11 +6,14 @@ use App\Models\User;
 use App\Http\Resources\UserResource;
 use App\Http\Responses\ApiResponse;
 use App\Services\NotificationService;
+use App\Mail\VerifyEmailMailable;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Auth\Events\Verified;
 
 class AuthController extends Controller
 {
@@ -40,13 +43,14 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        // Send welcome email
-        $this->notificationService->sendWelcomeEmail($user);
+        // Send email verification
+        Mail::to($user->email)->queue(new VerifyEmailMailable($user));
 
         return ApiResponse::created([
             'user' => new UserResource($user->load(['activeSubscription', 'subscriptions'])),
-            'token' => $token
-        ], 'User registered successfully');
+            'token' => $token,
+            'message' => 'Registration successful. Please check your email to verify your account.'
+        ], 'User registered successfully. Email verification required.');
     }
 
     public function login(Request $request): JsonResponse
@@ -111,5 +115,44 @@ class AuthController extends Controller
         return ApiResponse::success([
             'user' => new UserResource($user->fresh()->load(['activeSubscription', 'subscriptions']))
         ], 'Profile updated successfully');
+    }
+
+    public function verifyEmail(Request $request): JsonResponse
+    {
+        $user = User::find($request->route('id'));
+
+        if (!$user) {
+            return ApiResponse::notFound('User not found');
+        }
+
+        if (!hash_equals((string) $request->route('hash'), sha1($user->getEmailForVerification()))) {
+            return ApiResponse::unauthorized('Invalid verification link');
+        }
+
+        if ($user->hasVerifiedEmail()) {
+            return ApiResponse::success(null, 'Email already verified');
+        }
+
+        if ($user->markEmailAsVerified()) {
+            event(new Verified($user));
+            
+            // Send welcome email after verification
+            $this->notificationService->sendWelcomeEmail($user);
+        }
+
+        return ApiResponse::success([
+            'user' => new UserResource($user->fresh()->load(['activeSubscription', 'subscriptions']))
+        ], 'Email verified successfully');
+    }
+
+    public function sendVerificationEmail(Request $request): JsonResponse
+    {
+        if ($request->user()->hasVerifiedEmail()) {
+            return ApiResponse::success(null, 'Email already verified');
+        }
+
+        Mail::to($request->user()->email)->queue(new VerifyEmailMailable($request->user()));
+
+        return ApiResponse::success(null, 'Verification email sent');
     }
 }

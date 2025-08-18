@@ -17,6 +17,7 @@ class UserResource extends JsonResource
             'avatar' => $this->avatar,
             'google_id' => $this->google_id,
             'customer_code' => $this->customer_code,
+            'email_verified' => $this->hasVerifiedEmail(),
             'subscription_status' => $this->subscription_status,
             'subscription_expiry' => $this->subscription_expiry,
             'has_active_subscription' => $this->hasActiveSubscription(),

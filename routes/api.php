@@ -96,6 +96,14 @@ Route::prefix('auth')->group(function () {
     Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
     Route::get('me', [AuthController::class, 'me'])->middleware('auth:sanctum');
     
+    // Email verification routes
+    Route::get('email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
+        ->name('verification.verify')
+        ->middleware(['signed', 'throttle:6,1']);
+    Route::post('email/verification-notification', [AuthController::class, 'sendVerificationEmail'])
+        ->middleware(['auth:sanctum', 'throttle:6,1'])
+        ->name('verification.send');
+    
     Route::get('google', [GoogleAuthController::class, 'redirectToGoogle']);
     Route::get('google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
     Route::post('google/exchange', [GoogleAuthController::class, 'exchangeCodeForToken']);
@@ -136,8 +144,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('profile', [AuthController::class, 'updateProfile']);
     });
 
-    // User subscription routes
-    Route::prefix('subscriptions')->group(function () {
+    // User subscription routes (require email verification)
+    Route::prefix('subscriptions')->middleware('verified')->group(function () {
         Route::get('/', [SubscriptionController::class, 'index']);
         Route::post('/', [SubscriptionController::class, 'store']);
         Route::get('{subscription}', [SubscriptionController::class, 'show']);
@@ -159,19 +167,19 @@ Route::middleware('auth:sanctum')->group(function () {
     // User note routes
     Route::prefix('notes')->group(function () {
         Route::get('/', [NoteController::class, 'index']);
-        Route::post('/', [NoteController::class, 'store']);
+        Route::post('/', [NoteController::class, 'store'])->middleware('verified');
         Route::get('{note}', [NoteController::class, 'show']);
-        Route::put('{note}', [NoteController::class, 'update']);
-        Route::delete('{note}', [NoteController::class, 'destroy']);
+        Route::put('{note}', [NoteController::class, 'update'])->middleware('verified');
+        Route::delete('{note}', [NoteController::class, 'destroy'])->middleware('verified');
     });
 
     // User issue routes
     Route::prefix('issues')->group(function () {
         Route::get('/', [IssueController::class, 'index']);
-        Route::post('/', [IssueController::class, 'store']);
+        Route::post('/', [IssueController::class, 'store'])->middleware('verified');
         Route::get('{issue}', [IssueController::class, 'show'])->where('issue', '[0-9]+');
-        Route::put('{issue}', [IssueController::class, 'update'])->where('issue', '[0-9]+');
-        Route::delete('{issue}', [IssueController::class, 'destroy'])->where('issue', '[0-9]+');
+        Route::put('{issue}', [IssueController::class, 'update'])->where('issue', '[0-9]+')->middleware('verified');
+        Route::delete('{issue}', [IssueController::class, 'destroy'])->where('issue', '[0-9]+')->middleware('verified');
     });
 
     // User statute routes (slug-based)
