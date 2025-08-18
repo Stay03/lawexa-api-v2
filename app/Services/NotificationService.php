@@ -22,7 +22,8 @@ class NotificationService
             
             Log::info('Welcome email queued successfully', [
                 'user_id' => $user->id,
-                'email' => $user->email
+                'user_name' => $user->name,
+                'welcome_email_sent_to' => $user->email
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to queue welcome email', [
@@ -41,8 +42,11 @@ class NotificationService
             
             Log::info('Subscription created email queued successfully', [
                 'user_id' => $user->id,
+                'user_email' => $user->email,
                 'subscription_id' => $subscription->id,
-                'plan' => $subscription->plan->name
+                'plan_name' => $subscription->plan->name,
+                'subscription_email_sent_to' => $user->email,
+                'amount' => $subscription->amount
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to queue subscription created email', [
@@ -61,8 +65,11 @@ class NotificationService
             
             Log::info('Subscription cancelled email queued successfully', [
                 'user_id' => $user->id,
+                'user_email' => $user->email,
                 'subscription_id' => $subscription->id,
-                'plan' => $subscription->plan->name
+                'plan_name' => $subscription->plan->name,
+                'cancellation_email_sent_to' => $user->email,
+                'cancelled_at' => $subscription->updated_at
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to queue subscription cancelled email', [
@@ -87,10 +94,13 @@ class NotificationService
             
             Log::info('Issue created emails queued successfully', [
                 'user_id' => $user->id,
+                'user_email' => $user->email,
                 'issue_id' => $issue->id,
+                'issue_title' => $issue->title,
                 'issue_severity' => $issue->severity,
-                'admin_emails_count' => count($adminEmails),
-                'admin_emails' => $adminEmails
+                'user_confirmation_sent_to' => $user->email,
+                'admin_notifications_sent_to' => $adminEmails,
+                'total_admin_emails' => count($adminEmails)
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to queue issue created emails', [
@@ -108,8 +118,12 @@ class NotificationService
             
             Log::info('Issue updated email queued successfully', [
                 'user_id' => $user->id,
+                'user_email' => $user->email,
                 'issue_id' => $issue->id,
-                'status' => $issue->status,
+                'issue_title' => $issue->title,
+                'current_status' => $issue->status,
+                'changes_made' => array_keys($changes),
+                'update_notification_sent_to' => $user->email,
                 'changes_count' => count($changes)
             ]);
         } catch (\Exception $e) {
@@ -133,14 +147,19 @@ class NotificationService
                 $adminEmails = array_merge($adminEmails, $emailList);
             }
 
-            // Also get admin users from database
-            $adminUsers = User::whereIn('role', ['admin', 'superadmin'])->pluck('email')->toArray();
-            $adminEmails = array_merge($adminEmails, $adminUsers);
+            // Also get superadmin users from database
+            $superAdminUsers = User::where('role', 'superadmin')->pluck('email')->toArray();
+            $adminEmails = array_merge($adminEmails, $superAdminUsers);
 
             // Remove duplicates and empty values
             $adminEmails = array_unique(array_filter($adminEmails));
 
-            Log::debug('Admin emails retrieved', ['count' => count($adminEmails), 'emails' => $adminEmails]);
+            Log::info('Admin emails discovered for notifications', [
+                'total_count' => count($adminEmails),
+                'config_emails' => $configEmails ? explode(',', $configEmails) : [],
+                'superadmin_users' => $superAdminUsers,
+                'final_email_list' => $adminEmails
+            ]);
 
             return $adminEmails;
         } catch (\Exception $e) {
