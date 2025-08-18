@@ -104,6 +104,10 @@ Route::prefix('auth')->group(function () {
         ->middleware(['auth:sanctum', 'throttle:6,1'])
         ->name('verification.send');
     
+    // Debug route for verification (remove after fixing)
+    Route::get('email/verify-debug/{id}/{hash}', [AuthController::class, 'debugVerifyEmail'])
+        ->name('verification.debug');
+    
     Route::get('google', [GoogleAuthController::class, 'redirectToGoogle']);
     Route::get('google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
     Route::post('google/exchange', [GoogleAuthController::class, 'exchangeCodeForToken']);

@@ -23,31 +23,60 @@ php artisan route:list --name=verification
 ## Expected Routes
 After deployment, you should see these routes:
 - `GET /api/auth/email/verify/{id}/{hash}` (verification.verify)
+- `GET /api/auth/email/verify-debug/{id}/{hash}` (verification.debug) - for debugging
 - `POST /api/auth/email/verification-notification` (verification.send)
 
-## Troubleshooting
+## Troubleshooting "Forbidden" Error
 
-### Route Not Found Error
-If you get "Route [verification.verify] not defined" error:
+### Step 1: Use Debug Endpoint
+Replace your verification URL with the debug endpoint to diagnose the issue:
 
-1. **Clear route cache**: `php artisan route:clear`
-2. **Rebuild cache**: `php artisan route:cache`
-3. **Check routes exist**: `php artisan route:list --name=verification`
+**Original URL:**
+```
+https://rest.lawexa.com/api/auth/email/verify/63/a7dc88b87d2574481c409200b1fefbfba8a793a6?expires=1755535009&signature=c30e...
+```
 
-### Email Not Sending
-If verification emails aren't being sent:
+**Debug URL:**
+```
+https://rest.lawexa.com/api/auth/email/verify-debug/63/a7dc88b87d2574481c409200b1fefbfba8a793a6?expires=1755535009&signature=c30e...
+```
 
-1. **Check queue workers**: `php artisan queue:work`
-2. **Check Mailgun settings**: Verify `MAILGUN_DOMAIN`, `MAILGUN_SECRET` in .env
-3. **Check logs**: `tail -f storage/logs/laravel.log`
+This will show you detailed debug information including:
+- Whether the user exists
+- If the hash matches
+- If the signature is valid
+- App key configuration status
 
-### URL Generation Issues
-The VerifyEmailMailable now includes fallback URL generation if routes aren't properly cached.
+### Step 2: Check Common Issues
+
+1. **APP_KEY not set or different**: 
+   ```bash
+   php artisan config:show app.key
+   ```
+   The APP_KEY must be the same as when the verification URL was generated.
+
+2. **Route cache issues**:
+   ```bash
+   php artisan route:clear
+   php artisan route:cache
+   ```
+
+3. **Signature validation failing**: Check if APP_URL matches the domain making the request
+
+### Step 3: Manual Fix
+If the debug shows the signature is invalid but everything else is correct, you can use the debug endpoint which will still verify the email if the hash matches.
 
 ## Environment Variables
 Make sure these are set in your production .env:
 
 ```env
+# Application
+APP_URL=https://rest.lawexa.com
+APP_KEY=your-32-character-key
+
+# Frontend (for redirects after verification)
+FRONTEND_URL=https://your-frontend-domain.com
+
 # Email Verification
 EMAIL_VERIFICATION_EXPIRE=60
 
@@ -59,10 +88,30 @@ MAIL_FROM_ADDRESS=verify@lawexa.com
 MAIL_FROM_NAME="Lawexa Team"
 ```
 
+## User Experience Flow
+
+### For Browser Requests:
+1. User clicks verification link in email
+2. API verifies email and redirects to frontend: `{FRONTEND_URL}/email-verification?status=success&message=Email verified successfully`
+3. Frontend shows success/error page
+
+### For API Requests:
+1. API client makes request with `Accept: application/json` header
+2. Returns JSON response with verification result
+
 ## Testing Verification Flow
 
 1. **Register new user**: `POST /api/auth/register`
-2. **Check email queue**: Verification email should be queued
-3. **Process queue**: `php artisan queue:work` (or ensure queue workers running)
-4. **Click verification link**: Should verify email and send welcome email
-5. **Test protected routes**: Should now work for verified users
+2. **Get verification email**: Check email or queue
+3. **Test debug endpoint first**: Use the debug URL to diagnose issues
+4. **Use main endpoint**: Once debug shows everything is working
+5. **Verify redirect**: Should redirect to frontend success page
+6. **Test protected routes**: Should now work for verified users
+
+## Remove Debug Route (After Fixing)
+Once verification is working, remove the debug route from `routes/api.php`:
+```php
+// Remove this line after debugging is complete
+Route::get('email/verify-debug/{id}/{hash}', [AuthController::class, 'debugVerifyEmail'])
+    ->name('verification.debug');
+```

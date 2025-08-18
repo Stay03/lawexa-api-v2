@@ -117,32 +117,65 @@ class AuthController extends Controller
         ], 'Profile updated successfully');
     }
 
-    public function verifyEmail(Request $request): JsonResponse
+    public function verifyEmail(Request $request)
     {
-        $user = User::find($request->route('id'));
+        try {
+            $user = User::find($request->route('id'));
 
-        if (!$user) {
-            return ApiResponse::notFound('User not found');
-        }
+            if (!$user) {
+                return $this->handleVerificationResult($request, 'error', 'User not found');
+            }
 
-        if (!hash_equals((string) $request->route('hash'), sha1($user->getEmailForVerification()))) {
-            return ApiResponse::unauthorized('Invalid verification link');
-        }
+            if (!hash_equals((string) $request->route('hash'), sha1($user->getEmailForVerification()))) {
+                return $this->handleVerificationResult($request, 'error', 'Invalid verification link');
+            }
 
-        if ($user->hasVerifiedEmail()) {
-            return ApiResponse::success(null, 'Email already verified');
-        }
+            if ($user->hasVerifiedEmail()) {
+                return $this->handleVerificationResult($request, 'success', 'Email already verified');
+            }
 
-        if ($user->markEmailAsVerified()) {
-            event(new Verified($user));
+            if ($user->markEmailAsVerified()) {
+                event(new Verified($user));
+                
+                // Send welcome email after verification
+                $this->notificationService->sendWelcomeEmail($user);
+            }
+
+            return $this->handleVerificationResult($request, 'success', 'Email verified successfully');
+
+        } catch (\Exception $e) {
+            \Log::error('Email verification error', [
+                'user_id' => $request->route('id'),
+                'error' => $e->getMessage(),
+                'url' => $request->fullUrl()
+            ]);
             
-            // Send welcome email after verification
-            $this->notificationService->sendWelcomeEmail($user);
+            return $this->handleVerificationResult($request, 'error', 'Verification failed');
+        }
+    }
+
+    /**
+     * Handle verification result - redirect for browser requests, JSON for API
+     */
+    private function handleVerificationResult(Request $request, string $status, string $message)
+    {
+        $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000');
+        
+        // If it's a browser request (not API), redirect to frontend
+        if ($request->hasHeader('Accept') && !str_contains($request->header('Accept'), 'application/json')) {
+            $redirectUrl = "{$frontendUrl}/email-verification?status={$status}&message=" . urlencode($message);
+            return redirect($redirectUrl);
         }
 
-        return ApiResponse::success([
-            'user' => new UserResource($user->fresh()->load(['activeSubscription', 'subscriptions']))
-        ], 'Email verified successfully');
+        // For API requests, return JSON
+        if ($status === 'success') {
+            $user = User::find($request->route('id'));
+            return ApiResponse::success([
+                'user' => $user ? new UserResource($user->fresh()->load(['activeSubscription', 'subscriptions'])) : null
+            ], $message);
+        } else {
+            return ApiResponse::error($message, null, 400);
+        }
     }
 
     public function sendVerificationEmail(Request $request): JsonResponse
@@ -154,5 +187,76 @@ class AuthController extends Controller
         Mail::to($request->user()->email)->queue(new VerifyEmailMailable($request->user()));
 
         return ApiResponse::success(null, 'Verification email sent');
+    }
+
+    /**
+     * Debug verification endpoint without signed middleware
+     */
+    public function debugVerifyEmail(Request $request)
+    {
+        $debugInfo = [
+            'user_id' => $request->route('id'),
+            'hash' => $request->route('hash'),
+            'query_params' => $request->query(),
+            'full_url' => $request->fullUrl(),
+            'app_key_set' => !empty(config('app.key')),
+            'app_env' => config('app.env'),
+            'timestamp' => now()->toISOString(),
+        ];
+
+        // Try to find user
+        $user = User::find($request->route('id'));
+        $debugInfo['user_exists'] = !!$user;
+        
+        if ($user) {
+            $debugInfo['user_email'] = $user->email;
+            $debugInfo['user_verified'] = $user->hasVerifiedEmail();
+            $debugInfo['expected_hash'] = sha1($user->getEmailForVerification());
+            $debugInfo['hash_matches'] = hash_equals((string) $request->route('hash'), sha1($user->getEmailForVerification()));
+        }
+
+        // Check if signature is valid manually
+        if ($request->hasValidSignature()) {
+            $debugInfo['signature_valid'] = true;
+            // If signature is valid, proceed with verification
+            return $this->verifyEmailDirect($request);
+        } else {
+            $debugInfo['signature_valid'] = false;
+            $debugInfo['signature_error'] = 'Invalid or expired signature';
+        }
+
+        return response()->json([
+            'debug_info' => $debugInfo,
+            'message' => 'Debug information for email verification'
+        ]);
+    }
+
+    /**
+     * Direct verification without middleware
+     */
+    private function verifyEmailDirect(Request $request)
+    {
+        $user = User::find($request->route('id'));
+
+        if (!$user) {
+            return $this->handleVerificationResult($request, 'error', 'User not found');
+        }
+
+        if (!hash_equals((string) $request->route('hash'), sha1($user->getEmailForVerification()))) {
+            return $this->handleVerificationResult($request, 'error', 'Invalid verification link');
+        }
+
+        if ($user->hasVerifiedEmail()) {
+            return $this->handleVerificationResult($request, 'success', 'Email already verified');
+        }
+
+        if ($user->markEmailAsVerified()) {
+            event(new Verified($user));
+            
+            // Send welcome email after verification
+            $this->notificationService->sendWelcomeEmail($user);
+        }
+
+        return $this->handleVerificationResult($request, 'success', 'Email verified successfully');
     }
 }
