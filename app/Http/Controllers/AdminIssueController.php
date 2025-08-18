@@ -8,11 +8,16 @@ use App\Http\Resources\IssueCollection;
 use App\Http\Responses\ApiResponse;
 use App\Models\Issue;
 use App\Models\File;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class AdminIssueController extends Controller
 {
+    public function __construct(
+        private NotificationService $notificationService
+    ) {}
+
     /**
      * Display a listing of all issues for admin.
      */
@@ -88,6 +93,10 @@ class AdminIssueController extends Controller
         DB::beginTransaction();
         
         try {
+            // Track changes for email notification
+            $originalAttributes = $adminIssue->getOriginal();
+            $changes = [];
+            
             $data = $request->validated();
             
             if (isset($data['status']) && $data['status'] === 'resolved' && !$adminIssue->resolved_at) {
@@ -95,6 +104,18 @@ class AdminIssueController extends Controller
             }
             
             $adminIssue->update($data);
+            
+            // Detect changes for email notification
+            $updatedAttributes = $adminIssue->getAttributes();
+            foreach (['title', 'status', 'description', 'type', 'severity', 'area', 'assigned_to'] as $field) {
+                if (isset($originalAttributes[$field], $updatedAttributes[$field]) && 
+                    $originalAttributes[$field] !== $updatedAttributes[$field]) {
+                    $changes[$field] = [
+                        'from' => $originalAttributes[$field],
+                        'to' => $updatedAttributes[$field]
+                    ];
+                }
+            }
             
             if ($request->has('file_ids')) {
                 File::where('fileable_type', Issue::class)
@@ -116,6 +137,11 @@ class AdminIssueController extends Controller
             $adminIssue->load(['user', 'assignedTo', 'files', 'screenshots']);
             
             DB::commit();
+            
+            // Send update notification to the original issue submitter if there are changes
+            if (!empty($changes) && $adminIssue->user) {
+                $this->notificationService->sendIssueUpdatedEmail($adminIssue->user, $adminIssue, $changes);
+            }
             
             return ApiResponse::success(
                 new AdminIssueResource($adminIssue),
