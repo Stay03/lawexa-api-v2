@@ -79,9 +79,9 @@ class NotificationService
             // Send confirmation email to user
             Mail::to($user->email)->queue(new IssueCreatedEmail($user, $issue, false));
             
-            // Send notification to admin email
-            $adminEmail = config('mail.admin_email', env('ADMIN_EMAIL'));
-            if ($adminEmail) {
+            // Send notification to all admin emails
+            $adminEmails = $this->getAdminEmails();
+            foreach ($adminEmails as $adminEmail) {
                 Mail::to($adminEmail)->queue(new IssueCreatedEmail($user, $issue, true));
             }
             
@@ -89,7 +89,8 @@ class NotificationService
                 'user_id' => $user->id,
                 'issue_id' => $issue->id,
                 'issue_severity' => $issue->severity,
-                'admin_notified' => !empty($adminEmail)
+                'admin_emails_count' => count($adminEmails),
+                'admin_emails' => $adminEmails
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to queue issue created emails', [
@@ -123,19 +124,25 @@ class NotificationService
     public function getAdminEmails(): array
     {
         try {
-            // Get admin emails from config or database
-            $configEmail = config('mail.admin_email', env('ADMIN_EMAIL'));
             $adminEmails = [];
 
-            if ($configEmail) {
-                $adminEmails[] = $configEmail;
+            // Get admin emails from environment variable (comma-separated)
+            $configEmails = env('ADMIN_EMAILS', env('ADMIN_EMAIL', ''));
+            if ($configEmails) {
+                $emailList = array_map('trim', explode(',', $configEmails));
+                $adminEmails = array_merge($adminEmails, $emailList);
             }
 
             // Also get admin users from database
             $adminUsers = User::whereIn('role', ['admin', 'superadmin'])->pluck('email')->toArray();
             $adminEmails = array_merge($adminEmails, $adminUsers);
 
-            return array_unique(array_filter($adminEmails));
+            // Remove duplicates and empty values
+            $adminEmails = array_unique(array_filter($adminEmails));
+
+            Log::debug('Admin emails retrieved', ['count' => count($adminEmails), 'emails' => $adminEmails]);
+
+            return $adminEmails;
         } catch (\Exception $e) {
             Log::error('Failed to get admin emails', ['error' => $e->getMessage()]);
             return [];
