@@ -7,6 +7,7 @@ use App\Models\OAuthState;
 use App\Http\Resources\UserResource;
 use App\Http\Resources\ErrorResource;
 use App\Http\Responses\ApiResponse;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
@@ -16,6 +17,9 @@ use Illuminate\Support\Str;
 
 class GoogleAuthController extends Controller
 {
+    public function __construct(
+        private NotificationService $notificationService
+    ) {}
     public function redirectToGoogle(): JsonResponse
     {
         $url = Socialite::driver('google')->stateless()->redirect()->getTargetUrl();
@@ -38,7 +42,8 @@ class GoogleAuthController extends Controller
                 if (!$user->google_id) {
                     $user->update([
                         'google_id' => $googleUser->id,
-                        'avatar' => $googleUser->avatar
+                        'avatar' => $googleUser->avatar,
+                        'email_verified_at' => now()
                     ]);
                 }
             } else {
@@ -51,6 +56,9 @@ class GoogleAuthController extends Controller
                     'role' => 'user',
                     'email_verified_at' => now()
                 ]);
+
+                // Send welcome email for new Google users
+                $this->notificationService->sendWelcomeEmail($user);
             }
 
             $token = $user->createToken('google_auth_token')->plainTextToken;
