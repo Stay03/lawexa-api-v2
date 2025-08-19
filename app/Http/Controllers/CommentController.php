@@ -108,23 +108,23 @@ class CommentController extends Controller
         return ApiResponse::success(null, 'Comment deleted successfully');
     }
 
-    public function reply(CreateReplyRequest $request, Comment $parentComment)
+    public function reply(CreateReplyRequest $request, Comment $comment)
     {
-        if (!$parentComment->is_approved) {
+        if (!$comment->is_approved) {
             return ApiResponse::error('Parent comment not found', 404);
         }
 
-        $comment = Comment::create([
+        $reply = Comment::create([
             'user_id' => $request->user()->id,
-            'commentable_type' => $parentComment->commentable_type,
-            'commentable_id' => $parentComment->commentable_id,
-            'parent_id' => $parentComment->id,
+            'commentable_type' => $comment->commentable_type,
+            'commentable_id' => $comment->commentable_id,
+            'parent_id' => $comment->id,
             'content' => $request->input('content'),
             'is_approved' => true,
         ]);
 
         return ApiResponse::success([
-            'comment' => new CommentResource($comment->load(['user']))
+            'comment' => new CommentResource($reply->load(['user']))
         ], 'Reply created successfully', 201);
     }
 }
