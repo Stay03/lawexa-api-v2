@@ -9,29 +9,22 @@ class NoteCollection extends ResourceCollection
 {
     public function toArray(Request $request): array
     {
-        $notes = $this->collection->map(function ($note) use ($request) {
-            $noteResource = new NoteResource($note);
-            return $noteResource->toArray($request);
-        });
-        
-        $result = [
-            'notes' => $notes,
+        return [
+            'data' => NoteResource::collection($this->collection),
             'meta' => [
-                'current_page' => $this->resource->currentPage(),
-                'from' => $this->resource->firstItem(),
-                'last_page' => $this->resource->lastPage(),
-                'per_page' => $this->resource->perPage(),
-                'to' => $this->resource->lastItem(),
-                'total' => $this->resource->total(),
+                'total' => $this->total(),
+                'per_page' => $this->perPage(),
+                'current_page' => $this->currentPage(),
+                'last_page' => $this->lastPage(),
+                'from' => $this->firstItem(),
+                'to' => $this->lastItem(),
             ],
             'links' => [
-                'first' => $this->resource->url(1),
-                'last' => $this->resource->url($this->resource->lastPage()),
-                'prev' => $this->resource->previousPageUrl(),
-                'next' => $this->resource->nextPageUrl(),
+                'first' => $this->url(1),
+                'last' => $this->url($this->lastPage()),
+                'prev' => $this->previousPageUrl(),
+                'next' => $this->nextPageUrl(),
             ],
         ];
-        
-        return $result;
     }
 }
