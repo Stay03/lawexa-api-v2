@@ -22,6 +22,8 @@ use App\Http\Controllers\AdminStatuteController;
 use App\Http\Controllers\AdminStatuteDivisionController;
 use App\Http\Controllers\AdminStatuteProvisionController;
 use App\Http\Controllers\AdminStatuteScheduleController;
+use App\Http\Controllers\CommentController;
+use App\Http\Controllers\AdminCommentController;
 
 // Configure route model bindings - admin routes use ID, user routes use slug
 Route::bind('case', function ($value, $route) {
@@ -212,6 +214,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('{statute}/schedules/{scheduleSlug}', [StatuteController::class, 'showSchedule']);
     });
 
+    // User comment routes
+    Route::prefix('comments')->middleware('verified')->group(function () {
+        Route::get('/', [CommentController::class, 'index']);
+        Route::post('/', [CommentController::class, 'store']);
+        Route::get('{comment}', [CommentController::class, 'show'])->where('comment', '[0-9]+');
+        Route::put('{comment}', [CommentController::class, 'update'])->where('comment', '[0-9]+');
+        Route::delete('{comment}', [CommentController::class, 'destroy'])->where('comment', '[0-9]+');
+        Route::post('{comment}/reply', [CommentController::class, 'reply'])->where('comment', '[0-9]+');
+    });
+
     Route::middleware('role:admin,researcher,superadmin')->prefix('admin')->group(function () {
         Route::get('dashboard', [App\Http\Controllers\AdminController::class, 'dashboard']);
         Route::get('users', [App\Http\Controllers\AdminController::class, 'getUsers']);
@@ -327,6 +339,16 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('{statuteId}/schedules/{scheduleId}', [AdminStatuteScheduleController::class, 'show'])->where(['statuteId' => '[0-9]+', 'scheduleId' => '[0-9]+']);
             Route::put('{statuteId}/schedules/{scheduleId}', [AdminStatuteScheduleController::class, 'update'])->where(['statuteId' => '[0-9]+', 'scheduleId' => '[0-9]+']);
             Route::delete('{statuteId}/schedules/{scheduleId}', [AdminStatuteScheduleController::class, 'destroy'])->where(['statuteId' => '[0-9]+', 'scheduleId' => '[0-9]+']);
+        });
+        
+        // Admin comment management routes
+        Route::prefix('comments')->group(function () {
+            Route::get('/', [AdminCommentController::class, 'index']);
+            Route::get('stats', [AdminCommentController::class, 'stats']);
+            Route::get('{comment}', [AdminCommentController::class, 'show'])->where('comment', '[0-9]+');
+            Route::post('{comment}/approve', [AdminCommentController::class, 'approve'])->where('comment', '[0-9]+');
+            Route::post('{comment}/reject', [AdminCommentController::class, 'reject'])->where('comment', '[0-9]+');
+            Route::delete('{comment}', [AdminCommentController::class, 'destroy'])->where('comment', '[0-9]+')->middleware('role:admin,superadmin');
         });
     });
 });

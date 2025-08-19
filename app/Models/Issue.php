@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\Commentable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Issue extends Model
 {
+    use Commentable;
     protected $fillable = [
         'user_id',
         'title',

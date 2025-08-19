@@ -28,6 +28,9 @@ class NoteResource extends JsonResource
                     'email' => $this->user->email,
                 ];
             }),
+            'comments_count' => $this->when(method_exists($this->resource, 'commentCount'), function () {
+                return $this->commentCount();
+            }),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
