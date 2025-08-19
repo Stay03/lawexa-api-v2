@@ -41,34 +41,38 @@ class AdminCommentController extends Controller
 
         $comments = $query->paginate($request->input('per_page', 15));
 
-        return ApiResponse::success([
-            'comments' => new CommentCollection($comments)
-        ], 'Comments retrieved successfully');
+        return ApiResponse::collection(
+            new CommentCollection($comments),
+            'Comments retrieved successfully'
+        );
     }
 
     public function show(Comment $comment)
     {
-        return ApiResponse::success([
-            'comment' => new CommentResource($comment->load(['user', 'commentable', 'parent', 'replies.user']))
-        ], 'Comment retrieved successfully');
+        return ApiResponse::success(
+            new CommentResource($comment->load(['user', 'commentable', 'parent', 'replies.user'])),
+            'Comment retrieved successfully'
+        );
     }
 
     public function approve(Comment $comment)
     {
         $comment->approve();
 
-        return ApiResponse::success([
-            'comment' => new CommentResource($comment->fresh())
-        ], 'Comment approved successfully');
+        return ApiResponse::success(
+            new CommentResource($comment->fresh()),
+            'Comment approved successfully'
+        );
     }
 
     public function reject(Comment $comment)
     {
         $comment->reject();
 
-        return ApiResponse::success([
-            'comment' => new CommentResource($comment->fresh())
-        ], 'Comment rejected successfully');
+        return ApiResponse::success(
+            new CommentResource($comment->fresh()),
+            'Comment rejected successfully'
+        );
     }
 
     public function destroy(Comment $comment)

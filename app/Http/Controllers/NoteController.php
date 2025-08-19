@@ -55,9 +55,10 @@ class NoteController extends Controller
             $note = Note::create($validated);
             $note->load('user:id,name,email');
 
-            return ApiResponse::success([
-                'note' => new NoteResource($note)
-            ], 'Note created successfully', 201);
+            return ApiResponse::created(
+                new NoteResource($note),
+                'Note created successfully'
+            );
         } catch (\Exception $e) {
             return ApiResponse::error('Failed to create note: ' . $e->getMessage(), 500);
         }
@@ -71,9 +72,10 @@ class NoteController extends Controller
 
         $note->load(['user:id,name,email', 'comments']);
         
-        return ApiResponse::success([
-            'note' => new NoteResource($note)
-        ], 'Note retrieved successfully');
+        return ApiResponse::success(
+            new NoteResource($note),
+            'Note retrieved successfully'
+        );
     }
 
     public function update(UpdateNoteRequest $request, Note $note): JsonResponse
@@ -84,9 +86,10 @@ class NoteController extends Controller
             $note->update($validated);
             $note->load('user:id,name,email');
 
-            return ApiResponse::success([
-                'note' => new NoteResource($note)
-            ], 'Note updated successfully');
+            return ApiResponse::success(
+                new NoteResource($note),
+                'Note updated successfully'
+            );
         } catch (\Exception $e) {
             return ApiResponse::error('Failed to update note: ' . $e->getMessage(), 500);
         }
