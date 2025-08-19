@@ -298,6 +298,17 @@ class AdminController extends Controller
             return ApiResponse::error('Cannot delete your own account.', 400);
         }
 
+        // Log user details for debugging
+        \Log::info("Attempting to delete user with ID: {$targetUser->id}, Name: {$targetUser->name}, Email: {$targetUser->email}");
+        
+        // Verify user exists in database
+        $userExists = \DB::table('users')->where('id', $targetUser->id)->exists();
+        \Log::info("User exists in database: " . ($userExists ? 'yes' : 'no') . " for ID: {$targetUser->id}");
+        
+        if (!$userExists) {
+            return ApiResponse::error('User not found in database', 404);
+        }
+
         // Capture user data immediately before any operations
         $deletedUserData = [
             'id' => $targetUser->id,
