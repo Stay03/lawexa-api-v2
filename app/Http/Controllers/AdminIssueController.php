@@ -67,8 +67,10 @@ class AdminIssueController extends Controller
         
         $issues = $query->orderBy($sortBy, $sortOrder)->paginate($request->get('per_page', 20));
         
-        return ApiResponse::collection(
-            new IssueCollection($issues),
+        $issueCollection = new IssueCollection($issues);
+        
+        return ApiResponse::success(
+            $issueCollection->toArray($request),
             'Issues retrieved successfully'
         );
     }

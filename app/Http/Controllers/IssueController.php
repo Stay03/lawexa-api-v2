@@ -51,8 +51,10 @@ class IssueController extends Controller
         
         $issues = $query->orderBy('created_at', 'desc')->paginate($request->get('per_page', 15));
         
-        return ApiResponse::collection(
-            new IssueCollection($issues),
+        $issueCollection = new IssueCollection($issues);
+        
+        return ApiResponse::success(
+            $issueCollection->toArray($request),
             'Issues retrieved successfully'
         );
     }

@@ -15,7 +15,7 @@ class IssueCollection extends ResourceCollection
     public function toArray(Request $request): array
     {
         $result = [
-            'data' => $this->collection->transform(fn($issue) => new IssueResource($issue)),
+            'issues' => $this->collection->transform(fn($issue) => new IssueResource($issue)),
             'meta' => [
                 'current_page' => $this->resource->currentPage(),
                 'from' => $this->resource->firstItem(),

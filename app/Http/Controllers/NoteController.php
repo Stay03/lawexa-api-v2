@@ -38,8 +38,10 @@ class NoteController extends Controller
         $notes = $query->orderByLatest()
                       ->paginate($request->get('per_page', 15));
 
-        return ApiResponse::collection(
-            new NoteCollection($notes),
+        $noteCollection = new NoteCollection($notes);
+        
+        return ApiResponse::success(
+            $noteCollection->toArray($request),
             'Notes retrieved successfully'
         );
     }

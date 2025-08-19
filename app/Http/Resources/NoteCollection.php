@@ -10,20 +10,20 @@ class NoteCollection extends ResourceCollection
     public function toArray(Request $request): array
     {
         return [
-            'data' => NoteResource::collection($this->collection),
+            'notes' => NoteResource::collection($this->collection),
             'meta' => [
-                'total' => $this->total(),
-                'per_page' => $this->perPage(),
-                'current_page' => $this->currentPage(),
-                'last_page' => $this->lastPage(),
-                'from' => $this->firstItem(),
-                'to' => $this->lastItem(),
+                'current_page' => $this->resource->currentPage(),
+                'from' => $this->resource->firstItem(),
+                'last_page' => $this->resource->lastPage(),
+                'per_page' => $this->resource->perPage(),
+                'to' => $this->resource->lastItem(),
+                'total' => $this->resource->total(),
             ],
             'links' => [
-                'first' => $this->url(1),
-                'last' => $this->url($this->lastPage()),
-                'prev' => $this->previousPageUrl(),
-                'next' => $this->nextPageUrl(),
+                'first' => $this->resource->url(1),
+                'last' => $this->resource->url($this->resource->lastPage()),
+                'prev' => $this->resource->previousPageUrl(),
+                'next' => $this->resource->nextPageUrl(),
             ],
         ];
     }
