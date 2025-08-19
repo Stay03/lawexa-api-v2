@@ -39,7 +39,7 @@ class GoogleAuthController extends Controller
                        ->first();
 
             if ($user) {
-                if (!$user->google_id) {
+                if (!$user->google_id || !$user->hasVerifiedEmail()) {
                     $user->update([
                         'google_id' => $googleUser->id,
                         'avatar' => $googleUser->avatar,
