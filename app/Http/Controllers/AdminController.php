@@ -298,7 +298,7 @@ class AdminController extends Controller
             return ApiResponse::error('Cannot delete your own account.', 400);
         }
 
-        // Capture user data before deletion
+        // Capture user data immediately before any operations
         $deletedUserData = [
             'id' => $targetUser->id,
             'name' => $targetUser->name,
@@ -311,14 +311,34 @@ class AdminController extends Controller
             'updated_at' => $targetUser->updated_at?->toISOString(),
         ];
 
-        // Delete user tokens and user
-        $targetUser->tokens()->delete();
-        $targetUser->delete();
+        try {
+            \DB::transaction(function () use ($targetUser) {
+                // Delete user tokens first
+                $targetUser->tokens()->delete();
+                
+                // Delete the user
+                $deleted = $targetUser->delete();
+                
+                if (!$deleted) {
+                    throw new \Exception('Failed to delete user from database');
+                }
+            });
 
-        return ApiResponse::success(
-            $deletedUserData,
-            'User deleted successfully'
-        );
+            // Verify deletion by checking if user still exists
+            if (User::find($deletedUserData['id'])) {
+                return ApiResponse::error('User deletion failed - user still exists in database', 500);
+            }
+
+            return ApiResponse::success(
+                $deletedUserData,
+                'User deleted successfully'
+            );
+        } catch (\Exception $e) {
+            return ApiResponse::error(
+                'Failed to delete user: ' . $e->getMessage(),
+                500
+            );
+        }
     }
 
     public function getSubscriptions(Request $request, SubscriptionService $subscriptionService): JsonResponse
