@@ -30,7 +30,7 @@ class IssueController extends Controller
         $user = $request->user();
         
         $query = Issue::where('user_id', $user->id)
-            ->with(['files', 'screenshots']);
+            ->with(['files', 'screenshots', 'comments']);
         
         if ($request->has('status')) {
             $query->where('status', $request->status);
@@ -114,7 +114,7 @@ class IssueController extends Controller
             return ApiResponse::forbidden('You can only view your own issues');
         }
         
-        $issue->load(['user', 'files', 'screenshots']);
+        $issue->load(['user', 'files', 'screenshots', 'comments']);
         
         return ApiResponse::success(
             new IssueResource($issue),

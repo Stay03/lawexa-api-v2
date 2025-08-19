@@ -15,7 +15,7 @@ class NoteController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Note::with('user:id,name,email')
+        $query = Note::with(['user:id,name,email', 'comments'])
                     ->forUser($request->user()->id);
 
         if ($request->has('search')) {
@@ -69,7 +69,7 @@ class NoteController extends Controller
             return ApiResponse::forbidden('You can only view your own notes');
         }
 
-        $note->load('user:id,name,email');
+        $note->load(['user:id,name,email', 'comments']);
         
         return ApiResponse::success([
             'note' => new NoteResource($note)

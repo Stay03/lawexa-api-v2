@@ -36,6 +36,7 @@ class IssueResource extends JsonResource
             'comments_count' => $this->when(method_exists($this->resource, 'commentCount'), function () {
                 return $this->commentCount();
             }),
+            'comments' => CommentResource::collection($this->whenLoaded('comments')),
             'resolved_at' => $this->resolved_at?->toISOString(),
             'created_at' => $this->created_at->toISOString(),
             'updated_at' => $this->updated_at->toISOString(),
