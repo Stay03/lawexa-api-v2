@@ -159,7 +159,7 @@ class AuthController extends Controller
      */
     private function handleVerificationResult(Request $request, string $status, string $message)
     {
-        $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000');
+        $frontendUrl = config('app.frontend_url', env('FRONTEND_URL', 'http://localhost:3000'));
         
         // If it's a browser request (not API), redirect to frontend
         if ($request->hasHeader('Accept') && !str_contains($request->header('Accept'), 'application/json')) {
