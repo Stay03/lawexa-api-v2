@@ -317,12 +317,17 @@ class AdminController extends Controller
                 $tokensDeleted = $targetUser->tokens()->delete();
                 \Log::info("Deleted {$tokensDeleted} tokens for user {$targetUser->id}");
                 
-                // Delete the user
-                $deleted = $targetUser->delete();
-                \Log::info("User deletion result: " . ($deleted ? 'success' : 'failed') . " for user {$targetUser->id}");
-                
-                if (!$deleted) {
-                    throw new \Exception('User delete() method returned false');
+                // Try to delete the user using direct database query to get better error info
+                try {
+                    $deleted = \DB::table('users')->where('id', $targetUser->id)->delete();
+                    \Log::info("Direct DB deletion result: {$deleted} rows affected for user {$targetUser->id}");
+                    
+                    if ($deleted === 0) {
+                        throw new \Exception('No rows were deleted from users table');
+                    }
+                } catch (\Illuminate\Database\QueryException $e) {
+                    \Log::error("Database deletion error: " . $e->getMessage());
+                    throw new \Exception('Database constraint error: ' . $e->getMessage());
                 }
             });
 
