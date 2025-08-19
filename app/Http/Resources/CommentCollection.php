@@ -15,14 +15,14 @@ class CommentCollection extends ResourceCollection
     public function toArray(Request $request): array
     {
         return [
-            'data' => CommentResource::collection($this->collection),
+            'comments' => CommentResource::collection($this->collection),
             'meta' => [
-                'total' => $this->total(),
-                'per_page' => $this->perPage(),
                 'current_page' => $this->currentPage(),
-                'last_page' => $this->lastPage(),
                 'from' => $this->firstItem(),
+                'last_page' => $this->lastPage(),
+                'per_page' => $this->perPage(),
                 'to' => $this->lastItem(),
+                'total' => $this->total(),
             ],
             'links' => [
                 'first' => $this->url(1),

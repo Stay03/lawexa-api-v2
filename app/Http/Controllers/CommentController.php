@@ -29,8 +29,10 @@ class CommentController extends Controller
             ->with(['user', 'replies.user'])
             ->paginate(15);
 
-        return ApiResponse::collection(
-            new CommentCollection($comments),
+        $commentCollection = new CommentCollection($comments);
+        
+        return ApiResponse::success(
+            $commentCollection->toArray($request),
             'Comments retrieved successfully'
         );
     }
