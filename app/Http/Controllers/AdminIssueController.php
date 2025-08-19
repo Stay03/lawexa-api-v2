@@ -83,10 +83,9 @@ class AdminIssueController extends Controller
         $adminIssue->load(['user', 'assignedTo', 'files', 'screenshots', 'comments']);
         $adminIssue->loadCount(['comments']);
         
-        return ApiResponse::success(
-            new AdminIssueResource($adminIssue),
-            'Issue retrieved successfully'
-        );
+        return ApiResponse::success([
+            'issue' => new AdminIssueResource($adminIssue)
+        ], 'Issue retrieved successfully');
     }
 
     /**
@@ -173,10 +172,9 @@ class AdminIssueController extends Controller
                 ]);
             }
             
-            return ApiResponse::success(
-                new AdminIssueResource($adminIssue),
-                'Issue updated successfully'
-            );
+            return ApiResponse::success([
+                'issue' => new AdminIssueResource($adminIssue)
+            ], 'Issue updated successfully');
             
         } catch (\Exception $e) {
             DB::rollback();

@@ -97,10 +97,9 @@ class IssueController extends Controller
             // Send email notifications
             $this->notificationService->sendIssueCreatedEmail($user, $issue);
             
-            return ApiResponse::created(
-                new IssueResource($issue),
-                'Issue created successfully'
-            );
+            return ApiResponse::success([
+                'issue' => new IssueResource($issue)
+            ], 'Issue created successfully', 201);
             
         } catch (\Exception $e) {
             DB::rollback();
@@ -119,10 +118,9 @@ class IssueController extends Controller
         
         $issue->load(['user', 'files', 'screenshots', 'comments']);
         
-        return ApiResponse::success(
-            new IssueResource($issue),
-            'Issue retrieved successfully'
-        );
+        return ApiResponse::success([
+            'issue' => new IssueResource($issue)
+        ], 'Issue retrieved successfully');
     }
 
     /**
@@ -178,10 +176,9 @@ class IssueController extends Controller
                 $this->notificationService->sendIssueUpdatedEmail($issue->user, $issue, $changes);
             }
             
-            return ApiResponse::success(
-                new IssueResource($issue),
-                'Issue updated successfully'
-            );
+            return ApiResponse::success([
+                'issue' => new IssueResource($issue)
+            ], 'Issue updated successfully');
             
         } catch (\Exception $e) {
             DB::rollback();
