@@ -19,7 +19,8 @@
       "Bash(python:*)",
       "Bash(sqlite3:*)",
       "Bash(php:*)",
-      "Bash(LIVE_API_URL='https://rest.lawexa.com/api')"
+      "Bash(LIVE_API_URL='https://rest.lawexa.com/api')",
+      "Bash(echo:*)"
     ],
     "deny": []
   }

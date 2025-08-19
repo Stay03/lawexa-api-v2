@@ -18,7 +18,7 @@ class CreateCommentRequest extends FormRequest
     {
         return [
             'content' => ['required', 'string', 'min:1', 'max:2000'],
-            'commentable_type' => ['required', 'string', 'in:Issue,Note'],
+            'commentable_type' => ['required', 'string', 'in:Issue,Note,App\\Models\\Issue,App\\Models\\Note'],
             'commentable_id' => ['required', 'integer', 'min:1'],
             'parent_id' => ['nullable', 'integer', 'exists:comments,id'],
         ];
@@ -31,7 +31,7 @@ class CreateCommentRequest extends FormRequest
             'content.min' => 'Comment must be at least 1 character long.',
             'content.max' => 'Comment cannot exceed 2000 characters.',
             'commentable_type.required' => 'Commentable type is required.',
-            'commentable_type.in' => 'Invalid commentable type. Must be Issue or Note.',
+            'commentable_type.in' => 'Invalid commentable type. Must be Issue, Note, App\\Models\\Issue, or App\\Models\\Note.',
             'commentable_id.required' => 'Commentable ID is required.',
             'commentable_id.integer' => 'Commentable ID must be a valid integer.',
             'parent_id.exists' => 'Parent comment does not exist.',

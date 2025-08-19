@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CreateCommentRequest;
+use App\Http\Requests\CreateReplyRequest;
 use App\Http\Requests\UpdateCommentRequest;
 use App\Http\Resources\CommentCollection;
 use App\Http\Resources\CommentResource;
@@ -37,6 +38,9 @@ class CommentController extends Controller
     {
         $commentableType = $request->input('commentable_type');
         $commentableId = $request->input('commentable_id');
+        
+        // Normalize commentable_type to short format for consistency
+        $commentableType = str_replace('App\\Models\\', '', $commentableType);
         
         $commentableClass = 'App\\Models\\' . $commentableType;
         
@@ -104,7 +108,7 @@ class CommentController extends Controller
         return ApiResponse::success(null, 'Comment deleted successfully');
     }
 
-    public function reply(CreateCommentRequest $request, Comment $parentComment)
+    public function reply(CreateReplyRequest $request, Comment $parentComment)
     {
         if (!$parentComment->is_approved) {
             return ApiResponse::error('Parent comment not found', 404);
