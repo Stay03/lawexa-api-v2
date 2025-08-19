@@ -42,9 +42,13 @@ class GoogleAuthController extends Controller
                 if (!$user->google_id || !$user->hasVerifiedEmail()) {
                     $user->update([
                         'google_id' => $googleUser->id,
-                        'avatar' => $googleUser->avatar,
-                        'email_verified_at' => now()
+                        'avatar' => $googleUser->avatar
                     ]);
+                    
+                    // Auto-verify email for Google users
+                    if (!$user->hasVerifiedEmail()) {
+                        $user->markEmailAsVerified();
+                    }
                 }
             } else {
                 $user = User::create([
@@ -53,9 +57,11 @@ class GoogleAuthController extends Controller
                     'google_id' => $googleUser->id,
                     'avatar' => $googleUser->avatar,
                     'password' => Hash::make(Str::random(16)),
-                    'role' => 'user',
-                    'email_verified_at' => now()
+                    'role' => 'user'
                 ]);
+
+                // Auto-verify email for Google users
+                $user->markEmailAsVerified();
 
                 // Send welcome email for new Google users
                 $this->notificationService->sendWelcomeEmail($user);
