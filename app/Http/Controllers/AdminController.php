@@ -286,12 +286,35 @@ class AdminController extends Controller
         );
     }
 
-    public function deleteUser(Request $request, User $targetUser): JsonResponse
+    public function deleteUser(Request $request, $user = null): JsonResponse
     {
         $currentUser = $request->user();
 
         if (! $currentUser->isSuperAdmin()) {
             return ApiResponse::error('Unauthorized. Only superadmins can delete users.', 403);
+        }
+
+        // Debug route parameters
+        \Log::info("Route parameters: " . json_encode($request->route()->parameters()));
+        \Log::info("User parameter type: " . gettype($user));
+        \Log::info("User parameter value: " . ($user ? json_encode($user) : 'null'));
+
+        // Handle route model binding manually if needed
+        if ($user instanceof User) {
+            $targetUser = $user;
+        } else {
+            // Get user ID from route parameter
+            $userId = $request->route('user');
+            \Log::info("User ID from route: {$userId}");
+            
+            if (!$userId) {
+                return ApiResponse::error('User ID not provided in route', 400);
+            }
+            
+            $targetUser = User::find($userId);
+            if (!$targetUser) {
+                return ApiResponse::error('User not found', 404);
+            }
         }
 
         if ($currentUser->id === $targetUser->id) {
