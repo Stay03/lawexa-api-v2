@@ -23,7 +23,8 @@ class AdminIssueController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Issue::with(['user', 'assignedTo', 'files', 'screenshots']);
+        $query = Issue::with(['user', 'assignedTo', 'files', 'screenshots'])
+            ->withCount(['comments']);
         
         if ($request->has('status')) {
             $query->where('status', $request->status);
@@ -77,7 +78,8 @@ class AdminIssueController extends Controller
      */
     public function show(Issue $adminIssue)
     {
-        $adminIssue->load(['user', 'assignedTo', 'files', 'screenshots']);
+        $adminIssue->load(['user', 'assignedTo', 'files', 'screenshots', 'comments']);
+        $adminIssue->loadCount(['comments']);
         
         return ApiResponse::success(
             new AdminIssueResource($adminIssue),

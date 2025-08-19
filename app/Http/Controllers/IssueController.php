@@ -30,7 +30,8 @@ class IssueController extends Controller
         $user = $request->user();
         
         $query = Issue::where('user_id', $user->id)
-            ->with(['files', 'screenshots', 'comments']);
+            ->with(['files', 'screenshots'])
+            ->withCount(['comments']);
         
         if ($request->has('status')) {
             $query->where('status', $request->status);

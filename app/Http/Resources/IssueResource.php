@@ -33,9 +33,7 @@ class IssueResource extends JsonResource
             'assigned_to' => new UserResource($this->whenLoaded('assignedTo')),
             'files' => FileResource::collection($this->whenLoaded('files')),
             'screenshots' => FileResource::collection($this->whenLoaded('screenshots')),
-            'comments_count' => $this->when(method_exists($this->resource, 'commentCount'), function () {
-                return $this->commentCount();
-            }),
+            'comments_count' => $this->when(isset($this->comments_count), $this->comments_count),
             'comments' => CommentResource::collection($this->whenLoaded('comments')),
             'resolved_at' => $this->resolved_at?->toISOString(),
             'created_at' => $this->created_at->toISOString(),

@@ -33,6 +33,8 @@ class AdminIssueResource extends JsonResource
             'assigned_to' => new UserResource($this->whenLoaded('assignedTo')),
             'files' => FileResource::collection($this->whenLoaded('files')),
             'screenshots' => FileResource::collection($this->whenLoaded('screenshots')),
+            'comments_count' => $this->when(isset($this->comments_count), $this->comments_count),
+            'comments' => CommentResource::collection($this->whenLoaded('comments')),
             'ai_analysis' => $this->ai_analysis,
             'admin_notes' => $this->admin_notes,
             'resolved_at' => $this->resolved_at?->toISOString(),
