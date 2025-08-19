@@ -24,6 +24,11 @@ class CommentController extends Controller
             return ApiResponse::error('Commentable type and ID are required', 400);
         }
 
+        // Normalize commentable_type to full class format for consistency with database
+        if (!str_contains($commentableType, '\\')) {
+            $commentableType = 'App\\Models\\' . $commentableType;
+        }
+
         $comments = Comment::approved()
             ->forCommentable($commentableType, $commentableId)
             ->rootComments()

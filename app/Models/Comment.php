@@ -69,8 +69,15 @@ class Comment extends Model
 
     public function scopeForCommentable(Builder $query, $commentableType, $commentableId): Builder
     {
-        return $query->where('commentable_type', $commentableType)
-                    ->where('commentable_id', $commentableId);
+        // Handle both short format (Issue) and full format (App\Models\Issue)
+        $fullType = str_contains($commentableType, '\\') ? $commentableType : 'App\\Models\\' . $commentableType;
+        $shortType = str_contains($commentableType, '\\') ? class_basename($commentableType) : $commentableType;
+        
+        return $query->where(function ($q) use ($fullType, $shortType) {
+                    $q->where('commentable_type', $fullType)
+                      ->orWhere('commentable_type', $shortType);
+                })
+                ->where('commentable_id', $commentableId);
     }
 
     public function isRootComment(): bool
