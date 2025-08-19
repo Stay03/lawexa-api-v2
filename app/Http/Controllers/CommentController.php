@@ -63,10 +63,9 @@ class CommentController extends Controller
             $request->input('parent_id')
         );
 
-        return ApiResponse::created(
-            new CommentResource($comment->load(['user', 'replies.user'])),
-            'Comment created successfully'
-        );
+        return ApiResponse::created([
+            'comment' => new CommentResource($comment->load(['user', 'replies.user']))
+        ], 'Comment created successfully');
     }
 
     public function show(Comment $comment)
@@ -75,10 +74,9 @@ class CommentController extends Controller
             return ApiResponse::error('Comment not found', 404);
         }
 
-        return ApiResponse::success(
-            new CommentResource($comment->load(['user', 'replies.user'])),
-            'Comment retrieved successfully'
-        );
+        return ApiResponse::success([
+            'comment' => new CommentResource($comment->load(['user', 'replies.user']))
+        ], 'Comment retrieved successfully');
     }
 
     public function update(UpdateCommentRequest $request, Comment $comment)
@@ -97,10 +95,9 @@ class CommentController extends Controller
             $comment->markAsEdited();
         }
 
-        return ApiResponse::success(
-            new CommentResource($comment->fresh()->load(['user', 'replies.user'])),
-            'Comment updated successfully'
-        );
+        return ApiResponse::success([
+            'comment' => new CommentResource($comment->fresh()->load(['user', 'replies.user']))
+        ], 'Comment updated successfully');
     }
 
     public function destroy(Comment $comment)
@@ -129,9 +126,8 @@ class CommentController extends Controller
             'is_approved' => true,
         ]);
 
-        return ApiResponse::created(
-            new CommentResource($reply->load(['user'])),
-            'Reply created successfully'
-        );
+        return ApiResponse::created([
+            'comment' => new CommentResource($reply->load(['user']))
+        ], 'Reply created successfully');
     }
 }
