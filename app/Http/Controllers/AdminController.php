@@ -314,26 +314,32 @@ class AdminController extends Controller
         try {
             \DB::transaction(function () use ($targetUser) {
                 // Delete user tokens first
-                $targetUser->tokens()->delete();
+                $tokensDeleted = $targetUser->tokens()->delete();
+                \Log::info("Deleted {$tokensDeleted} tokens for user {$targetUser->id}");
                 
                 // Delete the user
                 $deleted = $targetUser->delete();
+                \Log::info("User deletion result: " . ($deleted ? 'success' : 'failed') . " for user {$targetUser->id}");
                 
                 if (!$deleted) {
-                    throw new \Exception('Failed to delete user from database');
+                    throw new \Exception('User delete() method returned false');
                 }
             });
 
             // Verify deletion by checking if user still exists
-            if (User::find($deletedUserData['id'])) {
+            $userStillExists = User::find($deletedUserData['id']);
+            if ($userStillExists) {
+                \Log::error("User {$deletedUserData['id']} still exists after deletion attempt");
                 return ApiResponse::error('User deletion failed - user still exists in database', 500);
             }
 
+            \Log::info("User {$deletedUserData['id']} successfully deleted and verified");
             return ApiResponse::success(
                 $deletedUserData,
                 'User deleted successfully'
             );
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            \Log::error("User deletion failed: " . $e->getMessage() . " | File: " . $e->getFile() . " | Line: " . $e->getLine());
             return ApiResponse::error(
                 'Failed to delete user: ' . $e->getMessage(),
                 500
