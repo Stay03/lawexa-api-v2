@@ -9,6 +9,7 @@ use App\Http\Resources\CommentCollection;
 use App\Http\Resources\CommentResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Comment;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
@@ -62,6 +63,10 @@ class CommentController extends Controller
             $request->user()->id,
             $request->input('parent_id')
         );
+
+        // Send email notifications
+        $notificationService = app(NotificationService::class);
+        $notificationService->sendCommentCreatedEmail($comment);
 
         return ApiResponse::created([
             'comment' => new CommentResource($comment->load(['user', 'replies.user']))
@@ -125,6 +130,10 @@ class CommentController extends Controller
             'content' => $request->input('content'),
             'is_approved' => true,
         ]);
+
+        // Send email notifications for the reply
+        $notificationService = app(NotificationService::class);
+        $notificationService->sendCommentCreatedEmail($reply);
 
         return ApiResponse::created([
             'comment' => new CommentResource($reply->load(['user']))

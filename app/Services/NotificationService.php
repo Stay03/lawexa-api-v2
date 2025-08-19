@@ -7,9 +7,11 @@ use App\Mail\SubscriptionCreatedEmail;
 use App\Mail\SubscriptionCancelledEmail;
 use App\Mail\IssueCreatedEmail;
 use App\Mail\IssueUpdatedEmail;
+use App\Mail\CommentCreatedEmail;
 use App\Models\User;
 use App\Models\Subscription;
 use App\Models\Issue;
+use App\Models\Comment;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 
@@ -165,6 +167,62 @@ class NotificationService
         } catch (\Exception $e) {
             Log::error('Failed to get admin emails', ['error' => $e->getMessage()]);
             return [];
+        }
+    }
+
+    public function sendCommentCreatedEmail(Comment $comment): void
+    {
+        try {
+            $comment->load(['user', 'commentable', 'parent.user']);
+            
+            // Get the issue owner (assuming commentable is an Issue)
+            $issueOwner = $comment->commentable->user ?? null;
+            
+            // Don't send notification if commenter is the issue owner
+            if ($issueOwner && $issueOwner->id !== $comment->user_id) {
+                // Send notification to issue owner
+                Mail::to($issueOwner->email)->queue(
+                    new CommentCreatedEmail($comment, $issueOwner, 'issue_owner')
+                );
+            }
+            
+            // If this is a reply, notify the parent comment author
+            if ($comment->isReply() && $comment->parent && $comment->parent->user) {
+                $parentCommentAuthor = $comment->parent->user;
+                
+                // Don't send notification if replier is the parent comment author or issue owner
+                if ($parentCommentAuthor->id !== $comment->user_id && 
+                    (!$issueOwner || $parentCommentAuthor->id !== $issueOwner->id)) {
+                    
+                    Mail::to($parentCommentAuthor->email)->queue(
+                        new CommentCreatedEmail($comment, $parentCommentAuthor, 'reply')
+                    );
+                }
+            }
+            
+            // Send confirmation to the commenter
+            Mail::to($comment->user->email)->queue(
+                new CommentCreatedEmail($comment, $comment->user, 'confirmation')
+            );
+            
+            Log::info('Comment notification emails queued successfully', [
+                'comment_id' => $comment->id,
+                'commenter_id' => $comment->user_id,
+                'issue_id' => $comment->commentable_id,
+                'is_reply' => $comment->isReply(),
+                'issue_owner_notified' => $issueOwner && $issueOwner->id !== $comment->user_id,
+                'parent_author_notified' => $comment->isReply() && 
+                    $comment->parent && 
+                    $comment->parent->user && 
+                    $comment->parent->user->id !== $comment->user_id &&
+                    (!$issueOwner || $comment->parent->user->id !== $issueOwner->id),
+                'confirmation_sent' => true
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to queue comment notification emails', [
+                'comment_id' => $comment->id,
+                'error' => $e->getMessage()
+            ]);
         }
     }
 

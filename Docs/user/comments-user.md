@@ -73,7 +73,7 @@ Future support planned for:
 ```bash
 curl -H "Authorization: Bearer {token}" \
      -H "Accept: application/json" \
-     "https://rest.lawexa.com/api/comments?commentable_type=App%5CModels%5CIssue&commentable_id=45"
+     "https://rest.lawexa.com/api/comments?commentable_type=Issue&commentable_id=48"
 ```
 
 **Response Structure:**
@@ -82,73 +82,79 @@ curl -H "Authorization: Bearer {token}" \
   "status": "success",
   "message": "Comments retrieved successfully",
   "data": {
-    "comments": {
-      "data": [
-        {
-          "id": 1,
-          "content": "Test comment",
-          "is_approved": true,
-          "is_edited": false,
-          "edited_at": null,
-          "created_at": "2025-08-19T02:56:37.000000Z",
-          "updated_at": "2025-08-19T02:56:37.000000Z",
-          "user": {
-            "id": 82,
-            "name": "Chidere",
-            "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
-          },
-          "parent_id": null,
-          "replies_count": 1,
-          "replies": [
-            {
-              "id": 5,
-              "content": "First level reply to original comment",
-              "is_approved": true,
-              "is_edited": false,
-              "edited_at": null,
-              "created_at": "2025-08-19T03:00:41.000000Z",
-              "updated_at": "2025-08-19T03:00:41.000000Z",
-              "user": {
-                "id": 82,
-                "name": "Chidere",
-                "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
-              },
-              "parent_id": 1
-            }
-          ]
+    "comments": [],
+    "meta": {
+      "current_page": 1,
+      "from": null,
+      "last_page": 1,
+      "per_page": 15,
+      "to": null,
+      "total": 0
+    },
+    "links": {
+      "first": "https://rest.lawexa.com/api/comments?page=1",
+      "last": "https://rest.lawexa.com/api/comments?page=1",
+      "prev": null,
+      "next": null
+    }
+  }
+}
+```
+
+**With Comments Response:**
+```json
+{
+  "status": "success",
+  "message": "Comments retrieved successfully",
+  "data": {
+    "comments": [
+      {
+        "id": 27,
+        "content": "This is a test comment",
+        "is_approved": true,
+        "is_edited": false,
+        "edited_at": null,
+        "created_at": "2025-08-19T12:42:42.000000Z",
+        "updated_at": "2025-08-19T12:42:42.000000Z",
+        "user": {
+          "id": 82,
+          "name": "Chidere",
+          "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
         },
-        {
-          "id": 3,
-          "content": "Updated comment: This is now an edited version of my original comment!",
-          "is_approved": true,
-          "is_edited": true,
-          "edited_at": "2025-08-19T02:58:13.000000Z",
-          "created_at": "2025-08-19T02:57:48.000000Z",
-          "updated_at": "2025-08-19T02:58:13.000000Z",
-          "user": {
-            "id": 82,
-            "name": "Chidere",
-            "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
-          },
-          "parent_id": null,
-          "replies_count": 0,
-          "replies": []
-        }
-      ],
-      "meta": {
-        "total": 2,
-        "per_page": 15,
-        "current_page": 1,
-        "last_page": 1,
-        "from": 1,
-        "to": 2
-      },
-      "links": {
-        "first": "https://rest.lawexa.com/api/comments?page=1",
-        "last": "https://rest.lawexa.com/api/comments?page=1",
-        "prev": null,
-        "next": null
+        "parent_id": null,
+        "replies_count": 1,
+        "replies": [
+          {
+            "id": 28,
+            "content": "This is a reply to the comment",
+            "is_approved": true,
+            "is_edited": false,
+            "edited_at": null,
+            "created_at": "2025-08-19T12:42:43.000000Z",
+            "updated_at": "2025-08-19T12:42:43.000000Z",
+            "user": {
+              "id": 82,
+              "name": "Chidere",
+              "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
+            },
+            "parent_id": 27
+          }
+        ]
       }
+    ],
+    "meta": {
+      "current_page": 1,
+      "from": 1,
+      "last_page": 1,
+      "per_page": 15,
+      "to": 1,
+      "total": 1
+    },
+    "links": {
+      "first": "https://rest.lawexa.com/api/comments?page=1",
+      "last": "https://rest.lawexa.com/api/comments?page=1",
+      "prev": null,
+      "next": null
     }
   }
 }
@@ -178,7 +184,7 @@ curl -X POST \
      -H "Authorization: Bearer {token}" \
      -H "Accept: application/json" \
      -H "Content-Type: application/x-www-form-urlencoded" \
-     -d 'content=This is a test comment on the issue&commentable_type=Issue&commentable_id=45' \
+     -d 'content=This is a test comment on the issue&commentable_type=Issue&commentable_id=48' \
      "https://rest.lawexa.com/api/comments"
 ```
 
@@ -187,8 +193,8 @@ curl -X POST \
 curl -X POST \
      -H "Authorization: Bearer {token}" \
      -H "Accept: application/json" \
-     -H "Content-Type: application/x-www-form-urlencoded" \
-     -d 'content=This is a reply to the original comment&commentable_type=Issue&commentable_id=45&parent_id=1' \
+     -H "Content-Type: application/json" \
+     -d '{"content":"This is a reply to the original comment","commentable_type":"Issue","commentable_id":48,"parent_id":27}' \
      "https://rest.lawexa.com/api/comments"
 ```
 
@@ -198,23 +204,21 @@ curl -X POST \
   "status": "success",
   "message": "Comment created successfully",
   "data": {
-    "comment": {
-      "id": 1,
-      "content": "Test comment",
-      "is_approved": true,
-      "is_edited": null,
-      "edited_at": null,
-      "created_at": "2025-08-19T02:56:37.000000Z",
-      "updated_at": "2025-08-19T02:56:37.000000Z",
-      "user": {
-        "id": 82,
-        "name": "Chidere",
-        "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
-      },
-      "parent_id": null,
-      "replies_count": 0,
-      "replies": []
-    }
+    "id": 27,
+    "content": "Test comment for detailed investigation",
+    "is_approved": true,
+    "is_edited": null,
+    "edited_at": null,
+    "created_at": "2025-08-19T12:42:42.000000Z",
+    "updated_at": "2025-08-19T12:42:42.000000Z",
+    "user": {
+      "id": 82,
+      "name": "Chidere",
+      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
+    },
+    "parent_id": null,
+    "replies_count": 0,
+    "replies": []
   }
 }
 ```
@@ -242,7 +246,7 @@ curl -X POST \
      -H "Accept: application/json" \
      -H "Content-Type: application/json" \
      -d '{"content":"This is a reply using the dedicated endpoint"}' \
-     "https://rest.lawexa.com/api/comments/8/reply"
+     "https://rest.lawexa.com/api/comments/27/reply"
 ```
 
 **Response Structure:**
@@ -251,23 +255,21 @@ curl -X POST \
   "status": "success",
   "message": "Reply created successfully",
   "data": {
-    "comment": {
-      "id": 10,
-      "content": "This is a reply using the dedicated endpoint",
-      "is_approved": true,
-      "is_edited": null,
-      "edited_at": null,
-      "created_at": "2025-08-19T03:30:00.000000Z",
-      "updated_at": "2025-08-19T03:30:00.000000Z",
-      "user": {
-        "id": 82,
-        "name": "Chidere",
-        "avatar": "https://..."
-      },
-      "parent_id": 8,
-      "replies_count": 0,
-      "replies": []
-    }
+    "id": 28,
+    "content": "This is a reply using the dedicated endpoint",
+    "is_approved": true,
+    "is_edited": null,
+    "edited_at": null,
+    "created_at": "2025-08-19T12:42:43.000000Z",
+    "updated_at": "2025-08-19T12:42:43.000000Z",
+    "user": {
+      "id": 82,
+      "name": "Chidere",
+      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
+    },
+    "parent_id": 27,
+    "replies_count": 0,
+    "replies": []
   }
 }
 ```
@@ -292,7 +294,7 @@ curl -X POST \
 ```bash
 curl -H "Authorization: Bearer {token}" \
      -H "Accept: application/json" \
-     "https://rest.lawexa.com/api/comments/1"
+     "https://rest.lawexa.com/api/comments/27"
 ```
 
 **Response Structure:**
@@ -301,39 +303,37 @@ curl -H "Authorization: Bearer {token}" \
   "status": "success",
   "message": "Comment retrieved successfully",
   "data": {
-    "comment": {
-      "id": 1,
-      "content": "Test comment",
-      "is_approved": true,
-      "is_edited": false,
-      "edited_at": null,
-      "created_at": "2025-08-19T02:56:37.000000Z",
-      "updated_at": "2025-08-19T02:56:37.000000Z",
-      "user": {
-        "id": 82,
-        "name": "Chidere",
-        "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
-      },
-      "parent_id": null,
-      "replies_count": 1,
-      "replies": [
-        {
-          "id": 5,
-          "content": "First level reply to original comment",
-          "is_approved": true,
-          "is_edited": false,
-          "edited_at": null,
-          "created_at": "2025-08-19T03:00:41.000000Z",
-          "updated_at": "2025-08-19T03:00:41.000000Z",
-          "user": {
-            "id": 82,
-            "name": "Chidere",
-            "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
-          },
-          "parent_id": 1
-        }
-      ]
-    }
+    "id": 27,
+    "content": "Test comment for detailed investigation",
+    "is_approved": true,
+    "is_edited": false,
+    "edited_at": null,
+    "created_at": "2025-08-19T12:42:42.000000Z",
+    "updated_at": "2025-08-19T12:42:42.000000Z",
+    "user": {
+      "id": 82,
+      "name": "Chidere",
+      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
+    },
+    "parent_id": null,
+    "replies_count": 1,
+    "replies": [
+      {
+        "id": 28,
+        "content": "This is a reply to the comment",
+        "is_approved": true,
+        "is_edited": false,
+        "edited_at": null,
+        "created_at": "2025-08-19T12:42:43.000000Z",
+        "updated_at": "2025-08-19T12:42:43.000000Z",
+        "user": {
+          "id": 82,
+          "name": "Chidere",
+          "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
+        },
+        "parent_id": 27
+      }
+    ]
   }
 }
 ```
@@ -359,7 +359,7 @@ curl -X PUT \
      -H "Accept: application/json" \
      -H "Content-Type: application/x-www-form-urlencoded" \
      -d 'content=Updated comment: This is now an edited version of my original comment!' \
-     "https://rest.lawexa.com/api/comments/3"
+     "https://rest.lawexa.com/api/comments/27"
 ```
 
 **Response Structure:**
@@ -368,23 +368,37 @@ curl -X PUT \
   "status": "success",
   "message": "Comment updated successfully",
   "data": {
-    "comment": {
-      "id": 3,
-      "content": "Updated comment: This is now an edited version of my original comment!",
-      "is_approved": true,
-      "is_edited": true,
-      "edited_at": "2025-08-19T02:58:13.000000Z",
-      "created_at": "2025-08-19T02:57:48.000000Z",
-      "updated_at": "2025-08-19T02:58:13.000000Z",
-      "user": {
-        "id": 82,
-        "name": "Chidere",
-        "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
-      },
-      "parent_id": null,
-      "replies_count": 0,
-      "replies": []
-    }
+    "id": 27,
+    "content": "Updated comment: This is now an edited version of my original comment!",
+    "is_approved": true,
+    "is_edited": true,
+    "edited_at": "2025-08-19T12:45:13.000000Z",
+    "created_at": "2025-08-19T12:42:42.000000Z",
+    "updated_at": "2025-08-19T12:45:13.000000Z",
+    "user": {
+      "id": 82,
+      "name": "Chidere",
+      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
+    },
+    "parent_id": null,
+    "replies_count": 1,
+    "replies": [
+      {
+        "id": 28,
+        "content": "This is a reply to the comment",
+        "is_approved": true,
+        "is_edited": false,
+        "edited_at": null,
+        "created_at": "2025-08-19T12:42:43.000000Z",
+        "updated_at": "2025-08-19T12:42:43.000000Z",
+        "user": {
+          "id": 82,
+          "name": "Chidere",
+          "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
+        },
+        "parent_id": 27
+      }
+    ]
   }
 }
 ```
@@ -411,7 +425,7 @@ curl -X PUT \
 curl -X DELETE \
      -H "Authorization: Bearer {token}" \
      -H "Accept: application/json" \
-     "https://rest.lawexa.com/api/comments/4"
+     "https://rest.lawexa.com/api/comments/28"
 ```
 
 **Response Structure:**
@@ -438,24 +452,24 @@ Comments automatically update counts in their parent resources (Issues and Notes
 ### Issue with Comments
 ```json
 {
-  "id": 45,
-  "title": "Comments System Test Issue",
-  "description": "This is a test issue for testing the comments functionality",
-  "comments_count": 4,
-  "created_at": "2025-08-19T02:56:03.000000Z",
-  "updated_at": "2025-08-19T02:56:03.000000Z"
+  "id": 48,
+  "title": "Test Issue for Comments Investigation",
+  "description": "Created for detailed comments API testing",
+  "comments_count": 3,
+  "created_at": "2025-08-19T12:42:41.000000Z",
+  "updated_at": "2025-08-19T12:42:41.000000Z"
 }
 ```
 
 ### Note with Comments
 ```json
 {
-  "id": 10,
-  "title": "Comments System Test Note",
-  "content": "This is a test note for testing the comments functionality",
+  "id": 11,
+  "title": "Test Note for Comments",
+  "content": "This is a test note for commenting functionality",
   "comments_count": 1,
-  "created_at": "2025-08-19T02:56:12.000000Z",
-  "updated_at": "2025-08-19T02:56:12.000000Z"
+  "created_at": "2025-08-19T10:56:12.000000Z",
+  "updated_at": "2025-08-19T10:56:12.000000Z"
 }
 ```
 
@@ -468,13 +482,21 @@ Comments automatically update counts in their parent resources (Issues and Notes
 To create a reply to an existing comment, include the `parent_id` parameter:
 
 ```bash
-# Reply to comment #1
+# Reply to comment #27 using main endpoint
 curl -X POST \
      -H "Authorization: Bearer {token}" \
      -H "Accept: application/json" \
-     -H "Content-Type: application/x-www-form-urlencoded" \
-     -d 'content=This is a reply&commentable_type=Issue&commentable_id=45&parent_id=1' \
+     -H "Content-Type: application/json" \
+     -d '{"content":"This is a reply","commentable_type":"Issue","commentable_id":48,"parent_id":27}' \
      "https://rest.lawexa.com/api/comments"
+
+# Or use the dedicated reply endpoint (simpler)
+curl -X POST \
+     -H "Authorization: Bearer {token}" \
+     -H "Accept: application/json" \
+     -H "Content-Type: application/json" \
+     -d '{"content":"This is a reply"}' \
+     "https://rest.lawexa.com/api/comments/27/reply"
 ```
 
 ### Multi-Level Threading
@@ -482,10 +504,10 @@ curl -X POST \
 Comments support unlimited nesting depth:
 
 ```
-Comment #1 (root)
-├── Reply #5 (level 1)
-    └── Reply #6 (level 2)
-        └── Reply #7 (level 3)
+Comment #27 (root)
+├── Reply #28 (level 1)
+    └── Reply #29 (level 2)
+        └── Reply #30 (level 3)
             └── ... (unlimited depth)
 ```
 
@@ -506,9 +528,10 @@ When listing comments, only root comments are returned at the top level, with re
 - **Required**: Comment content cannot be empty
 - **Length**: Minimum 1 character, maximum 2000 characters
 - **Type**: Must be a string
+- **Unicode Support**: Full UTF-8 support including emojis
 
 ### Commentable Validation
-- **Type**: Must be exactly `Issue` or `Note`
+- **Type**: Must be exactly `Issue` or `Note` (both short and full class formats supported)
 - **ID**: Must be a valid integer referencing an existing resource
 - **Existence**: The target Issue or Note must exist and be accessible
 
@@ -575,7 +598,8 @@ When listing comments, only root comments are returned at the top level, with re
 ```bash
 # Attempt to comment on User model (blocked)
 curl -X POST \
-     -d 'content=Malicious comment&commentable_type=User&commentable_id=1'
+     -d '{"content":"Malicious comment","commentable_type":"User","commentable_id":1}' \
+     "https://rest.lawexa.com/api/comments"
 ```
 **Response:**
 ```json
@@ -592,7 +616,8 @@ curl -X POST \
 ```bash
 # Comment on non-existent Issue
 curl -X POST \
-     -d 'content=Comment on missing&commentable_type=Issue&commentable_id=999999'
+     -d '{"content":"Comment on missing","commentable_type":"Issue","commentable_id":999999}' \
+     "https://rest.lawexa.com/api/comments"
 ```
 **Response:**
 ```json
@@ -608,7 +633,8 @@ curl -X POST \
 ```bash
 # Content over 2000 characters
 curl -X POST \
-     -d 'content=[2001 characters]&commentable_type=Issue&commentable_id=45'
+     -d '{"content":"[2001 characters]","commentable_type":"Issue","commentable_id":48}' \
+     "https://rest.lawexa.com/api/comments"
 ```
 **Response:**
 ```json
@@ -625,7 +651,8 @@ curl -X POST \
 ```bash
 # Reply to non-existent comment
 curl -X POST \
-     -d 'content=Reply to nothing&commentable_type=Issue&commentable_id=45&parent_id=999999'
+     -d '{"content":"Reply to nothing","commentable_type":"Issue","commentable_id":48,"parent_id":999999}' \
+     "https://rest.lawexa.com/api/comments"
 ```
 **Response:**
 ```json
@@ -644,7 +671,7 @@ curl -X POST \
 
 ### Data Format Considerations
 - **Form encoding recommended**: Use `application/x-www-form-urlencoded` for better compatibility
-- **JSON support**: `application/json` is supported but may have parsing edge cases
+- **JSON support**: `application/json` is fully supported
 - **Character encoding**: UTF-8 is fully supported for international characters
 
 ### Commentable Type Format
@@ -702,15 +729,15 @@ curl -X POST \
 ### Basic Comment Flow
 1. **List issues**: `GET /issues` to find an issue to comment on
 2. **Create comment**: `POST /comments` with issue details
-3. **View comments**: `GET /comments?commentable_type=App%5CModels%5CIssue&commentable_id=45`
-4. **Update comment**: `PUT /comments/1` to edit your comment
-5. **Check counts**: `GET /issues/45` to see updated comment count
+3. **View comments**: `GET /comments?commentable_type=Issue&commentable_id=48`
+4. **Update comment**: `PUT /comments/27` to edit your comment
+5. **Check counts**: `GET /issues/48` to see updated comment count
 
 ### Discussion Thread Flow
 1. **Create root comment**: Comment on an issue
 2. **Reply to comment**: Use `parent_id` to create reply
 3. **Nested replies**: Continue threading with deeper replies
-4. **View thread**: `GET /comments/1` to see full thread structure
+4. **View thread**: `GET /comments/27` to see full thread structure
 5. **Manage thread**: Edit or delete your contributions
 
 ### Cross-Model Commenting
@@ -718,6 +745,41 @@ curl -X POST \
 2. **Comment on Note**: `POST /comments` with `commentable_type=Note`
 3. **List all activity**: Check both resource types for complete user activity
 4. **Unified counts**: Each resource type maintains its own comment counts
+
+---
+
+## Content Handling
+
+### Supported Content Types
+- **Plain text**: All standard text content
+- **Unicode characters**: Full UTF-8 support including emojis 🚀 ✅ ❌
+- **International text**: Support for all languages (中文, العربية, etc.)
+- **HTML content**: Raw HTML is preserved but not sanitized
+
+### Content Limitations
+- **Maximum length**: 2000 characters
+- **Minimum length**: 1 character
+- **No sanitization**: HTML/XSS content is stored as-is (handle on frontend)
+- **No file uploads**: Text-only content supported
+
+### Content Examples
+```json
+// Unicode content example
+{
+  "id": 30,
+  "content": "Test with unicode: 🚀 ✅ ❌ 中文 العربية",
+  "is_approved": true,
+  "user": {...}
+}
+
+// HTML content example (requires frontend sanitization)
+{
+  "id": 31,
+  "content": "<script>alert(\"XSS\")</script>",
+  "is_approved": true,
+  "user": {...}
+}
+```
 
 ---
 

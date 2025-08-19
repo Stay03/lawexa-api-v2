@@ -1,0 +1,185 @@
+✓ Using Live API: https://rest.lawexa.com/api
+
+🔍 DETAILED INVESTIGATION OF COMMENTS API ISSUES
+================================================
+
+✓ Created new issue ID: 48
+
+🔍 Investigation 1: Invalid commentable_type handling
+Expected: Should return 400 error for invalid types
+Finding: Returns 200 with empty results
+
+Request: GET /comments?commentable_type=InvalidType&commentable_id=48
+Status: 200
+Response: {
+    "status": "success",
+    "message": "Comments retrieved successfully",
+    "data": {
+        "comments": [],
+        "meta": {
+            "current_page": 1,
+            "from": null,
+            "last_page": 1,
+            "per_page": 15,
+            "to": null,
+            "total": 0
+        },
+        "links": {
+            "first": "https:\/\/rest.lawexa.com\/api\/comments?page=1",
+            "last": "https:\/\/rest.lawexa.com\/api\/comments?page=1",
+            "prev": null,
+            "next": null
+        }
+    }
+}
+
+🔍 Investigation 2: Non-existent resource error code
+Expected: Should return 404 status code
+Finding: Returns 400 status code but with correct error message
+
+Request: POST /comments (with non-existent issue ID 999999)
+Status: 400
+Response: {
+    "status": "error",
+    "message": "Commentable resource not found",
+    "data": null,
+    "errors": 404
+}
+
+🔍 Investigation 3: Authentication without token
+Expected: Should return 401 Unauthorized
+Finding: Returns 0 (connection issue or redirect)
+
+Request: GET /comments (without Authorization header)
+Status: 401
+Response: {"status":"error","message":"Authentication required","data":null}
+Curl Info: {
+    "url": "https:\/\/rest.lawexa.com\/api\/comments?commentable_type=Issue&commentable_id=48",
+    "content_type": "application\/json",
+    "http_code": 401,
+    "header_size": 203,
+    "request_size": 118,
+    "filetime": -1,
+    "ssl_verify_result": 20,
+    "redirect_count": 0,
+    "total_time": 0.575798,
+    "namelookup_time": 0.001378,
+    "connect_time": 0.183795,
+    "pretransfer_time": 0.376669,
+    "size_upload": 0,
+    "size_download": 66,
+    "speed_download": 114,
+    "speed_upload": 0,
+    "download_content_length": -1,
+    "upload_content_length": 0,
+    "starttransfer_time": 0.575764,
+    "redirect_time": 0,
+    "redirect_url": "",
+    "primary_ip": "157.230.182.144",
+    "certinfo": [],
+    "primary_port": 443,
+    "local_ip": "192.168.100.184",
+    "local_port": 61017,
+    "http_version": 3,
+    "protocol": 2,
+    "ssl_verifyresult": 0,
+    "scheme": "HTTPS",
+    "appconnect_time_us": 376487,
+    "connect_time_us": 183795,
+    "namelookup_time_us": 1378,
+    "pretransfer_time_us": 376669,
+    "redirect_time_us": 0,
+    "starttransfer_time_us": 575764,
+    "total_time_us": 575798,
+    "effective_method": "GET"
+}
+
+🔍 Investigation 4: Pagination metadata structure
+Expected: Should have meta and links in pagination response
+Finding: Need to check actual structure
+
+Request: GET /comments with pagination parameters
+Status: 200
+Response Structure:
+status: (string) success
+message: (string) Comments retrieved successfully
+data:
+  comments:
+  meta:
+    current_page: (integer) 1
+    from: (NULL) 
+    last_page: (integer) 1
+    per_page: (integer) 15
+    to: (NULL) 
+    total: (integer) 0
+  links:
+    first: (string) https://rest.lawexa.com/api/comments?page=1
+    last: (string) https://rest.lawexa.com/api/comments?page=1
+    prev: (NULL) 
+    next: (NULL) 
+
+🔍 Investigation 5: Complete comment workflow
+Testing: Create → Show → Update → Reply → Delete
+
+Step 1 - Create Comment:
+Status: 201
+Response: {
+    "status": "success",
+    "message": "Comment created successfully",
+    "data": {
+        "id": 27,
+        "content": "Test comment for detailed investigation",
+        "is_approved": true,
+        "is_edited": null,
+        "edited_at": null,
+        "created_at": "2025-08-19T12:42:42.000000Z",
+        "updated_at": "2025-08-19T12:42:42.000000Z",
+        "user": {
+            "id": 82,
+            "name": "Chidere",
+            "avatar": "https:\/\/lh3.googleusercontent.com\/a\/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
+        },
+        "parent_id": null,
+        "replies_count": 0,
+        "replies": []
+    }
+}
+
+🔍 Investigation 6: Edge cases and special characters
+1-character content:
+Status: 201
+
+2000-character content:
+Status: 201
+
+HTML/XSS content:
+Status: 201
+Response: {
+    "status": "success",
+    "message": "Comment created successfully",
+    "data": {
+        "id": 30,
+        "content": "<script>alert(\"XSS\")<\/script>",
+        "is_approved": true,
+        "is_edited": null,
+        "edited_at": null,
+        "created_at": "2025-08-19T12:42:43.000000Z",
+        "updated_at": "2025-08-19T12:42:43.000000Z",
+        "user": {
+            "id": 82,
+            "name": "Chidere",
+            "avatar": "https:\/\/lh3.googleusercontent.com\/a\/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
+        },
+        "parent_id": null,
+        "replies_count": 0,
+        "replies": []
+    }
+}
+
+🔍 Investigation 7: Different content types (JSON vs Form)
+JSON Request:
+Status: 201
+
+Form Request:
+Status: 201
+

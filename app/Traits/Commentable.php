@@ -3,6 +3,7 @@
 namespace App\Traits;
 
 use App\Models\Comment;
+use App\Services\NotificationService;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 trait Commentable
@@ -45,13 +46,21 @@ trait Commentable
         return $this->commentCount() > 0;
     }
 
-    public function addComment(string $content, int $userId, ?int $parentId = null): Comment
+    public function addComment(string $content, int $userId, ?int $parentId = null, bool $sendNotifications = false): Comment
     {
-        return $this->allComments()->create([
+        $comment = $this->allComments()->create([
             'user_id' => $userId,
             'content' => $content,
             'parent_id' => $parentId,
             'is_approved' => true,
         ]);
+
+        // Send email notifications if requested
+        if ($sendNotifications) {
+            $notificationService = app(NotificationService::class);
+            $notificationService->sendCommentCreatedEmail($comment);
+        }
+
+        return $comment;
     }
 }
