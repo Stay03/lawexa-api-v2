@@ -28,7 +28,7 @@ class AdminUpdateIssueRequest extends FormRequest
             'severity' => 'sometimes|in:low,medium,high,critical',
             'priority' => 'sometimes|in:low,medium,high,urgent',
             'status' => 'sometimes|in:open,in_progress,resolved,closed,duplicate',
-            'area' => 'sometimes|nullable|in:frontend,backend,both',
+            'area' => 'sometimes|nullable|in:frontend,backend,both,ai_ml,research',
             'category' => 'sometimes|nullable|string|max:100',
             'browser_info' => 'sometimes|nullable|array',
             'environment_info' => 'sometimes|nullable|array',

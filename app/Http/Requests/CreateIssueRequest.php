@@ -32,7 +32,7 @@ class CreateIssueRequest extends FormRequest
             'type' => 'nullable|in:bug,feature_request,improvement,other',
             'severity' => 'nullable|in:low,medium,high,critical',
             'priority' => 'nullable|in:low,medium,high,urgent',
-            'area' => 'nullable|in:frontend,backend,both',
+            'area' => 'nullable|in:frontend,backend,both,ai_ml,research',
             'category' => 'nullable|string|max:100',
             'browser_info' => 'nullable|array',
             'environment_info' => 'nullable|array',

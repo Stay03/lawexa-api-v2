@@ -28,7 +28,7 @@ class UpdateIssueRequest extends FormRequest
             'type' => 'sometimes|in:bug,feature_request,improvement,other',
             'severity' => 'sometimes|in:low,medium,high,critical',
             'priority' => 'sometimes|in:low,medium,high,urgent',
-            'area' => 'sometimes|nullable|in:frontend,backend,both',
+            'area' => 'sometimes|nullable|in:frontend,backend,both,ai_ml,research',
             'category' => 'sometimes|nullable|string|max:100',
             'browser_info' => 'sometimes|nullable|array',
             'environment_info' => 'sometimes|nullable|array',
