@@ -51,10 +51,36 @@ class IssueController extends Controller
         
         $issues = $query->orderBy('created_at', 'desc')->paginate($request->get('per_page', 15));
         
+        // Get status counts for the same filtered query
+        $baseQuery = Issue::where('user_id', $user->id);
+        
+        if ($request->has('type')) {
+            $baseQuery->where('type', $request->type);
+        }
+        
+        if ($request->has('severity')) {
+            $baseQuery->where('severity', $request->severity);
+        }
+        
+        if ($request->has('area')) {
+            $baseQuery->where('area', $request->area);
+        }
+        
+        $statusCounts = [
+            'open' => (clone $baseQuery)->where('status', 'open')->count(),
+            'in_progress' => (clone $baseQuery)->where('status', 'in_progress')->count(),
+            'resolved' => (clone $baseQuery)->where('status', 'resolved')->count(),
+            'closed' => (clone $baseQuery)->where('status', 'closed')->count(),
+            'duplicate' => (clone $baseQuery)->where('status', 'duplicate')->count(),
+            'total' => (clone $baseQuery)->count(),
+        ];
+        
         $issueCollection = new IssueCollection($issues);
+        $response = $issueCollection->toArray($request);
+        $response['status_counts'] = $statusCounts;
         
         return ApiResponse::success(
-            $issueCollection->toArray($request),
+            $response,
             'Issues retrieved successfully'
         );
     }

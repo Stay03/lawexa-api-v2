@@ -23,7 +23,7 @@ class IssueCollection extends ResourceCollection
                 'per_page' => $this->resource->perPage(),
                 'to' => $this->resource->lastItem(),
                 'total' => $this->resource->total(),
-                'filters_applied' => $request->only(['status', 'severity', 'area', 'type']),
+                'filters_applied' => $request->only(['status', 'severity', 'area', 'type', 'assigned_to', 'search']),
             ],
             'links' => [
                 'first' => $this->resource->url(1),

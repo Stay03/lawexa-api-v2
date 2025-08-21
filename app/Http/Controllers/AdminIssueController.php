@@ -67,10 +67,56 @@ class AdminIssueController extends Controller
         
         $issues = $query->orderBy($sortBy, $sortOrder)->paginate($request->get('per_page', 20));
         
+        // Get status counts for the same filtered query
+        $baseQuery = Issue::query();
+        
+        if ($request->has('type')) {
+            $baseQuery->where('type', $request->type);
+        }
+        
+        if ($request->has('severity')) {
+            $baseQuery->where('severity', $request->severity);
+        }
+        
+        if ($request->has('area')) {
+            $baseQuery->where('area', $request->area);
+        }
+        
+        if ($request->has('assigned_to')) {
+            if ($request->assigned_to === 'unassigned') {
+                $baseQuery->whereNull('assigned_to');
+            } else {
+                $baseQuery->where('assigned_to', $request->assigned_to);
+            }
+        }
+        
+        if ($request->has('search')) {
+            $search = $request->search;
+            $baseQuery->where(function($q) use ($search) {
+                $q->where('title', 'LIKE', "%{$search}%")
+                  ->orWhere('description', 'LIKE', "%{$search}%")
+                  ->orWhereHas('user', function($userQuery) use ($search) {
+                      $userQuery->where('name', 'LIKE', "%{$search}%")
+                               ->orWhere('email', 'LIKE', "%{$search}%");
+                  });
+            });
+        }
+        
+        $statusCounts = [
+            'open' => (clone $baseQuery)->where('status', 'open')->count(),
+            'in_progress' => (clone $baseQuery)->where('status', 'in_progress')->count(),
+            'resolved' => (clone $baseQuery)->where('status', 'resolved')->count(),
+            'closed' => (clone $baseQuery)->where('status', 'closed')->count(),
+            'duplicate' => (clone $baseQuery)->where('status', 'duplicate')->count(),
+            'total' => (clone $baseQuery)->count(),
+        ];
+        
         $issueCollection = new IssueCollection($issues);
+        $response = $issueCollection->toArray($request);
+        $response['status_counts'] = $statusCounts;
         
         return ApiResponse::success(
-            $issueCollection->toArray($request),
+            $response,
             'Issues retrieved successfully'
         );
     }
