@@ -18,6 +18,8 @@ class CreateReplyRequest extends FormRequest
     {
         return [
             'content' => ['required', 'string', 'min:1', 'max:2000'],
+            'files' => ['nullable', 'array', 'max:10'],
+            'files.*' => ['file', 'max:10240', 'mimes:jpg,jpeg,png,gif,pdf,doc,docx,txt,rtf'],
         ];
     }
 
@@ -27,6 +29,11 @@ class CreateReplyRequest extends FormRequest
             'content.required' => 'Reply content is required.',
             'content.min' => 'Reply must be at least 1 character long.',
             'content.max' => 'Reply cannot exceed 2000 characters.',
+            'files.array' => 'Files must be an array.',
+            'files.max' => 'You cannot upload more than 10 files at once.',
+            'files.*.file' => 'Each file must be a valid file.',
+            'files.*.max' => 'Each file cannot exceed 10MB in size.',
+            'files.*.mimes' => 'Files must be of type: jpg, jpeg, png, gif, pdf, doc, docx, txt, rtf.',
         ];
     }
 }

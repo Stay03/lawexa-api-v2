@@ -9,6 +9,7 @@ use App\Http\Resources\CommentCollection;
 use App\Http\Resources\CommentResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Comment;
+use App\Services\FileUploadService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -32,7 +33,7 @@ class CommentController extends Controller
         $comments = Comment::approved()
             ->forCommentable($commentableType, $commentableId)
             ->rootComments()
-            ->with(['user', 'replies.user'])
+            ->with(['user', 'replies.user', 'files', 'replies.files'])
             ->paginate(15);
 
         $commentCollection = new CommentCollection($comments);
@@ -69,12 +70,33 @@ class CommentController extends Controller
             $request->input('parent_id')
         );
 
+        // Handle file uploads if present
+        if ($request->hasFile('files')) {
+            $fileUploadService = app(FileUploadService::class);
+            
+            $uploadResult = $fileUploadService->uploadFiles(
+                $request->file('files'),
+                'comment-attachment',
+                config('filesystems.default'),
+                [],
+                $request->user()->id
+            );
+            
+            // Associate uploaded files with the comment
+            foreach ($uploadResult['uploaded'] as $file) {
+                $file->update([
+                    'fileable_type' => Comment::class,
+                    'fileable_id' => $comment->id
+                ]);
+            }
+        }
+
         // Send email notifications
         $notificationService = app(NotificationService::class);
         $notificationService->sendCommentCreatedEmail($comment);
 
         return ApiResponse::created([
-            'comment' => new CommentResource($comment->load(['user', 'replies.user']))
+            'comment' => new CommentResource($comment->load(['user', 'replies.user', 'files']))
         ], 'Comment created successfully');
     }
 
@@ -85,7 +107,7 @@ class CommentController extends Controller
         }
 
         return ApiResponse::success([
-            'comment' => new CommentResource($comment->load(['user', 'replies.user']))
+            'comment' => new CommentResource($comment->load(['user', 'replies.user', 'files', 'replies.files']))
         ], 'Comment retrieved successfully');
     }
 
@@ -101,12 +123,33 @@ class CommentController extends Controller
             'content' => $request->input('content')
         ]);
 
+        // Handle file uploads if present
+        if ($request->hasFile('files')) {
+            $fileUploadService = app(FileUploadService::class);
+            
+            $uploadResult = $fileUploadService->uploadFiles(
+                $request->file('files'),
+                'comment-attachment',
+                config('filesystems.default'),
+                [],
+                $request->user()->id
+            );
+            
+            // Associate uploaded files with the comment
+            foreach ($uploadResult['uploaded'] as $file) {
+                $file->update([
+                    'fileable_type' => Comment::class,
+                    'fileable_id' => $comment->id
+                ]);
+            }
+        }
+
         if ($originalContent !== $comment->content) {
             $comment->markAsEdited();
         }
 
         return ApiResponse::success([
-            'comment' => new CommentResource($comment->fresh()->load(['user', 'replies.user']))
+            'comment' => new CommentResource($comment->fresh()->load(['user', 'replies.user', 'files']))
         ], 'Comment updated successfully');
     }
 
@@ -136,12 +179,33 @@ class CommentController extends Controller
             'is_approved' => true,
         ]);
 
+        // Handle file uploads if present
+        if ($request->hasFile('files')) {
+            $fileUploadService = app(FileUploadService::class);
+            
+            $uploadResult = $fileUploadService->uploadFiles(
+                $request->file('files'),
+                'comment-attachment',
+                config('filesystems.default'),
+                [],
+                $request->user()->id
+            );
+            
+            // Associate uploaded files with the reply
+            foreach ($uploadResult['uploaded'] as $file) {
+                $file->update([
+                    'fileable_type' => Comment::class,
+                    'fileable_id' => $reply->id
+                ]);
+            }
+        }
+
         // Send email notifications for the reply
         $notificationService = app(NotificationService::class);
         $notificationService->sendCommentCreatedEmail($reply);
 
         return ApiResponse::created([
-            'comment' => new CommentResource($reply->load(['user']))
+            'comment' => new CommentResource($reply->load(['user', 'files']))
         ], 'Reply created successfully');
     }
 }

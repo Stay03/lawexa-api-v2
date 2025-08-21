@@ -38,6 +38,9 @@ class CommentResource extends JsonResource
                 return $this->replies->count();
             }),
             'replies' => CommentResource::collection($this->whenLoaded('replies')),
+            'files' => FileResource::collection($this->whenLoaded('files')),
+            'attachments' => FileResource::collection($this->whenLoaded('files')),
+            'images' => FileResource::collection($this->whenLoaded('images')),
         ];
     }
 }

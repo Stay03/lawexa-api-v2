@@ -33,11 +33,12 @@ The User Comments API provides **comprehensive commenting functionality** with s
 
 1. **Polymorphic Comments**: Comment on Issues, Notes, and future content types
 2. **Nested Threading**: Unlimited reply depth with parent-child relationships
-3. **Real-time Counts**: Automatic comment count updates in parent resources
-4. **Edit Tracking**: Transparent edit history with timestamps
-5. **Content Validation**: Security and length validation
-6. **Soft Deletion**: Comments are soft-deleted preserving thread integrity
-7. **User Ownership**: Users can only edit/delete their own comments
+3. **File Attachments**: Upload images, documents and other files with comments and replies
+4. **Real-time Counts**: Automatic comment count updates in parent resources
+5. **Edit Tracking**: Transparent edit history with timestamps
+6. **Content Validation**: Security and length validation
+7. **Soft Deletion**: Comments are soft-deleted preserving thread integrity
+8. **User Ownership**: Users can only edit/delete their own comments
 
 ---
 
@@ -137,9 +138,15 @@ curl -H "Authorization: Bearer {token}" \
               "name": "Chidere",
               "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
             },
-            "parent_id": 27
+            "parent_id": 27,
+            "files": [],
+            "attachments": [],
+            "images": []
           }
-        ]
+        ],
+        "files": [],
+        "attachments": [],
+        "images": []
       }
     ],
     "meta": {
@@ -177,6 +184,13 @@ curl -H "Authorization: Bearer {token}" \
 
 **Optional Parameters:**
 - `parent_id` (optional): ID of parent comment to create a reply
+- `files` (optional): Array of files to attach (max 10 files, 10MB each)
+
+**File Upload Support:**
+- **Content-Type**: Use `multipart/form-data` when uploading files
+- **File Types**: jpg, jpeg, png, gif, pdf, doc, docx, txt, rtf
+- **File Size**: Maximum 10MB per file
+- **File Limit**: Maximum 10 files per comment
 
 **Example Request (New Comment on Issue):**
 ```bash
@@ -185,6 +199,19 @@ curl -X POST \
      -H "Accept: application/json" \
      -H "Content-Type: application/x-www-form-urlencoded" \
      -d 'content=This is a test comment on the issue&commentable_type=Issue&commentable_id=48' \
+     "https://rest.lawexa.com/api/comments"
+```
+
+**Example Request (Comment with File Attachments):**
+```bash
+curl -X POST \
+     -H "Authorization: Bearer {token}" \
+     -H "Accept: application/json" \
+     -F 'content=Comment with file attachments' \
+     -F 'commentable_type=Issue' \
+     -F 'commentable_id=48' \
+     -F 'files[]=@screenshot.png' \
+     -F 'files[]=@document.pdf' \
      "https://rest.lawexa.com/api/comments"
 ```
 
@@ -204,21 +231,43 @@ curl -X POST \
   "status": "success",
   "message": "Comment created successfully",
   "data": {
-    "id": 27,
-    "content": "Test comment for detailed investigation",
-    "is_approved": true,
-    "is_edited": null,
-    "edited_at": null,
-    "created_at": "2025-08-19T12:42:42.000000Z",
-    "updated_at": "2025-08-19T12:42:42.000000Z",
-    "user": {
-      "id": 82,
-      "name": "Chidere",
-      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
-    },
-    "parent_id": null,
-    "replies_count": 0,
-    "replies": []
+    "comment": {
+      "id": 27,
+      "content": "Test comment for detailed investigation",
+      "is_approved": true,
+      "is_edited": null,
+      "edited_at": null,
+      "created_at": "2025-08-19T12:42:42.000000Z",
+      "updated_at": "2025-08-19T12:42:42.000000Z",
+      "user": {
+        "id": 82,
+        "name": "Chidere",
+        "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
+      },
+      "parent_id": null,
+      "replies_count": 0,
+      "replies": [],
+      "files": [
+        {
+          "id": 17,
+          "name": "screenshot.png",
+          "filename": "2b289f6d-c57c-41d9-89d9-b1e25b6fa492.png",
+          "size": 2048,
+          "human_size": "2 KB",
+          "mime_type": "image/png",
+          "extension": "png",
+          "category": "comment-attachment",
+          "url": "/storage/uploads/comment-attachment/2025/08/2b289f6d-c57c-41d9-89d9-b1e25b6fa492.png",
+          "download_url": "/storage/uploads/comment-attachment/2025/08/2b289f6d-c57c-41d9-89d9-b1e25b6fa492.png",
+          "is_image": true,
+          "is_document": false,
+          "created_at": "2025-08-21T14:48:45.000000Z",
+          "updated_at": "2025-08-21T14:48:47.000000Z"
+        }
+      ],
+      "attachments": [...],
+      "images": [...]
+    }
   }
 }
 ```
@@ -236,10 +285,19 @@ curl -X POST \
 **Required Parameters:**
 - `content` (required): Reply text (1-2000 characters)
 
+**Optional Parameters:**
+- `files` (optional): Array of files to attach (max 10 files, 10MB each)
+
+**File Upload Support:**
+- **Content-Type**: Use `multipart/form-data` when uploading files
+- **File Types**: jpg, jpeg, png, gif, pdf, doc, docx, txt, rtf
+- **File Size**: Maximum 10MB per file
+- **File Limit**: Maximum 10 files per reply
+
 **Path Parameters:**
 - `{id}`: ID of the parent comment to reply to
 
-**Example Request:**
+**Example Request (Text Reply):**
 ```bash
 curl -X POST \
      -H "Authorization: Bearer {token}" \
@@ -249,27 +307,42 @@ curl -X POST \
      "https://rest.lawexa.com/api/comments/27/reply"
 ```
 
+**Example Request (Reply with File):**
+```bash
+curl -X POST \
+     -H "Authorization: Bearer {token}" \
+     -H "Accept: application/json" \
+     -F 'content=Reply with attachment' \
+     -F 'files[]=@document.pdf' \
+     "https://rest.lawexa.com/api/comments/27/reply"
+```
+
 **Response Structure:**
 ```json
 {
   "status": "success",
   "message": "Reply created successfully",
   "data": {
-    "id": 28,
-    "content": "This is a reply using the dedicated endpoint",
-    "is_approved": true,
-    "is_edited": null,
-    "edited_at": null,
-    "created_at": "2025-08-19T12:42:43.000000Z",
-    "updated_at": "2025-08-19T12:42:43.000000Z",
-    "user": {
-      "id": 82,
-      "name": "Chidere",
-      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
-    },
-    "parent_id": 27,
-    "replies_count": 0,
-    "replies": []
+    "comment": {
+      "id": 28,
+      "content": "This is a reply using the dedicated endpoint",
+      "is_approved": true,
+      "is_edited": null,
+      "edited_at": null,
+      "created_at": "2025-08-19T12:42:43.000000Z",
+      "updated_at": "2025-08-19T12:42:43.000000Z",
+      "user": {
+        "id": 82,
+        "name": "Chidere",
+        "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
+      },
+      "parent_id": 27,
+      "replies_count": 0,
+      "replies": [],
+      "files": [],
+      "attachments": [],
+      "images": []
+    }
   }
 }
 ```
@@ -303,37 +376,45 @@ curl -H "Authorization: Bearer {token}" \
   "status": "success",
   "message": "Comment retrieved successfully",
   "data": {
-    "id": 27,
-    "content": "Test comment for detailed investigation",
-    "is_approved": true,
-    "is_edited": false,
-    "edited_at": null,
-    "created_at": "2025-08-19T12:42:42.000000Z",
-    "updated_at": "2025-08-19T12:42:42.000000Z",
-    "user": {
-      "id": 82,
-      "name": "Chidere",
-      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
-    },
-    "parent_id": null,
-    "replies_count": 1,
-    "replies": [
-      {
-        "id": 28,
-        "content": "This is a reply to the comment",
-        "is_approved": true,
-        "is_edited": false,
-        "edited_at": null,
-        "created_at": "2025-08-19T12:42:43.000000Z",
-        "updated_at": "2025-08-19T12:42:43.000000Z",
-        "user": {
-          "id": 82,
-          "name": "Chidere",
-          "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
-        },
-        "parent_id": 27
-      }
-    ]
+    "comment": {
+      "id": 27,
+      "content": "Test comment for detailed investigation",
+      "is_approved": true,
+      "is_edited": false,
+      "edited_at": null,
+      "created_at": "2025-08-19T12:42:42.000000Z",
+      "updated_at": "2025-08-19T12:42:42.000000Z",
+      "user": {
+        "id": 82,
+        "name": "Chidere",
+        "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
+      },
+      "parent_id": null,
+      "replies_count": 1,
+      "replies": [
+        {
+          "id": 28,
+          "content": "This is a reply to the comment",
+          "is_approved": true,
+          "is_edited": false,
+          "edited_at": null,
+          "created_at": "2025-08-19T12:42:43.000000Z",
+          "updated_at": "2025-08-19T12:42:43.000000Z",
+          "user": {
+            "id": 82,
+            "name": "Chidere",
+            "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
+          },
+          "parent_id": 27,
+          "files": [],
+          "attachments": [],
+          "images": []
+        }
+      ],
+      "files": [],
+      "attachments": [],
+      "images": []
+    }
   }
 }
 ```
@@ -351,8 +432,16 @@ curl -H "Authorization: Bearer {token}" \
 **Parameters:**
 - `id` (required): Comment ID (must be owned by authenticated user)
 - `content` (required): Updated comment text (1-2000 characters)
+- `files` (optional): Array of files to attach (max 10 files, 10MB each)
 
-**Example Request:**
+**File Upload Support:**
+- **Content-Type**: Use `multipart/form-data` when uploading files  
+- **File Types**: jpg, jpeg, png, gif, pdf, doc, docx, txt, rtf
+- **File Size**: Maximum 10MB per file
+- **File Limit**: Maximum 10 files per comment
+- **File Behavior**: New files are added to existing files (does not replace)
+
+**Example Request (Text Update):**
 ```bash
 curl -X PUT \
      -H "Authorization: Bearer {token}" \
@@ -362,43 +451,62 @@ curl -X PUT \
      "https://rest.lawexa.com/api/comments/27"
 ```
 
+**Example Request (Update with Files - using form method spoofing):**
+```bash
+curl -X POST \
+     -H "Authorization: Bearer {token}" \
+     -H "Accept: application/json" \
+     -F '_method=PUT' \
+     -F 'content=Updated comment with new files' \
+     -F 'files[]=@additional_file.pdf' \
+     "https://rest.lawexa.com/api/comments/27"
+```
+
 **Response Structure:**
 ```json
 {
   "status": "success",
   "message": "Comment updated successfully",
   "data": {
-    "id": 27,
-    "content": "Updated comment: This is now an edited version of my original comment!",
-    "is_approved": true,
-    "is_edited": true,
-    "edited_at": "2025-08-19T12:45:13.000000Z",
-    "created_at": "2025-08-19T12:42:42.000000Z",
-    "updated_at": "2025-08-19T12:45:13.000000Z",
-    "user": {
-      "id": 82,
-      "name": "Chidere",
-      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
-    },
-    "parent_id": null,
-    "replies_count": 1,
-    "replies": [
-      {
-        "id": 28,
-        "content": "This is a reply to the comment",
-        "is_approved": true,
-        "is_edited": false,
-        "edited_at": null,
-        "created_at": "2025-08-19T12:42:43.000000Z",
-        "updated_at": "2025-08-19T12:42:43.000000Z",
-        "user": {
-          "id": 82,
-          "name": "Chidere",
-          "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
-        },
-        "parent_id": 27
-      }
-    ]
+    "comment": {
+      "id": 27,
+      "content": "Updated comment: This is now an edited version of my original comment!",
+      "is_approved": true,
+      "is_edited": true,
+      "edited_at": "2025-08-19T12:45:13.000000Z",
+      "created_at": "2025-08-19T12:42:42.000000Z",
+      "updated_at": "2025-08-19T12:45:13.000000Z",
+      "user": {
+        "id": 82,
+        "name": "Chidere",
+        "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
+      },
+      "parent_id": null,
+      "replies_count": 1,
+      "replies": [
+        {
+          "id": 28,
+          "content": "This is a reply to the comment",
+          "is_approved": true,
+          "is_edited": false,
+          "edited_at": null,
+          "created_at": "2025-08-19T12:42:43.000000Z",
+          "updated_at": "2025-08-19T12:42:43.000000Z",
+          "user": {
+            "id": 82,
+            "name": "Chidere",
+            "avatar": "https://lh3.googleusercontent.com/a/ACg8ocLDCrho_CWhPuWncLE1WLgXVxRRiRUoXY0Jh3Qj88YB_CAdQg=s96-c"
+          },
+          "parent_id": 27,
+          "files": [],
+          "attachments": [],
+          "images": []
+        }
+      ],
+      "files": [],
+      "attachments": [],
+      "images": []
+    }
   }
 }
 ```
@@ -665,6 +773,72 @@ curl -X POST \
 }
 ```
 
+#### File Upload Validation Errors
+```bash
+# Upload unsupported file type
+curl -X POST \
+     -F 'content=Comment with invalid file' \
+     -F 'commentable_type=Issue' \
+     -F 'commentable_id=48' \
+     -F 'files[]=@malicious.exe' \
+     "https://rest.lawexa.com/api/comments"
+```
+**Response:**
+```json
+{
+  "status": "error",
+  "message": "Validation failed",
+  "errors": {
+    "files.0": ["Files must be of type: jpg, jpeg, png, gif, pdf, doc, docx, txt, rtf."]
+  }
+}
+```
+
+#### File Size Validation Error
+```bash
+# Upload file larger than 10MB
+curl -X POST \
+     -F 'content=Comment with large file' \
+     -F 'commentable_type=Issue' \
+     -F 'commentable_id=48' \
+     -F 'files[]=@large_file.pdf' \
+     "https://rest.lawexa.com/api/comments"
+```
+**Response:**
+```json
+{
+  "status": "error", 
+  "message": "Validation failed",
+  "errors": {
+    "files.0": ["Each file cannot exceed 10MB in size."]
+  }
+}
+```
+
+#### Too Many Files Error
+```bash
+# Upload more than 10 files
+curl -X POST \
+     -F 'content=Comment with too many files' \
+     -F 'commentable_type=Issue' \
+     -F 'commentable_id=48' \
+     -F 'files[]=@file1.pdf' -F 'files[]=@file2.pdf' -F 'files[]=@file3.pdf' \
+     -F 'files[]=@file4.pdf' -F 'files[]=@file5.pdf' -F 'files[]=@file6.pdf' \
+     -F 'files[]=@file7.pdf' -F 'files[]=@file8.pdf' -F 'files[]=@file9.pdf' \
+     -F 'files[]=@file10.pdf' -F 'files[]=@file11.pdf' \
+     "https://rest.lawexa.com/api/comments"
+```
+**Response:**
+```json
+{
+  "status": "error",
+  "message": "Validation failed", 
+  "errors": {
+    "files": ["You cannot upload more than 10 files at once."]
+  }
+}
+```
+
 ---
 
 ## Implementation Notes
@@ -716,11 +890,15 @@ curl -X POST \
 | `commentable_type` | string | Yes | `Issue` or `Note` |
 | `commentable_id` | integer | Yes | Valid resource ID |
 | `parent_id` | integer | No | Parent comment ID for replies |
+| `files` | array | No | File attachments (max 10, 10MB each) |
+| `files.*` | file | No | Individual file (jpg,jpeg,png,gif,pdf,doc,docx,txt,rtf) |
 
 ### Update Comment Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `content` | string | Yes | Updated comment text (1-2000 chars) |
+| `files` | array | No | Additional file attachments (max 10, 10MB each) |
+| `files.*` | file | No | Individual file (jpg,jpeg,png,gif,pdf,doc,docx,txt,rtf) |
 
 ---
 
@@ -760,7 +938,15 @@ curl -X POST \
 - **Maximum length**: 2000 characters
 - **Minimum length**: 1 character
 - **No sanitization**: HTML/XSS content is stored as-is (handle on frontend)
-- **No file uploads**: Text-only content supported
+- **File uploads**: Supports images, documents and other file types
+
+### File Upload Support
+- **Supported Types**: jpg, jpeg, png, gif, pdf, doc, docx, txt, rtf
+- **File Size Limit**: 10MB per file
+- **File Count Limit**: 10 files per comment/reply
+- **File Category**: All comment files are categorized as "comment-attachment"
+- **File Storage**: Files are securely stored and accessible via download URLs
+- **File Metadata**: Includes dimensions for images, file size, MIME type, and upload information
 
 ### Content Examples
 ```json

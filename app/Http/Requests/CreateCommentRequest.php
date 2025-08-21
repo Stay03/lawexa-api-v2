@@ -21,6 +21,8 @@ class CreateCommentRequest extends FormRequest
             'commentable_type' => ['required', 'string', 'in:Issue,Note,App\\Models\\Issue,App\\Models\\Note'],
             'commentable_id' => ['required', 'integer', 'min:1'],
             'parent_id' => ['nullable', 'integer', 'exists:comments,id'],
+            'files' => ['nullable', 'array', 'max:10'],
+            'files.*' => ['file', 'max:10240', 'mimes:jpg,jpeg,png,gif,pdf,doc,docx,txt,rtf'],
         ];
     }
 
@@ -35,6 +37,11 @@ class CreateCommentRequest extends FormRequest
             'commentable_id.required' => 'Commentable ID is required.',
             'commentable_id.integer' => 'Commentable ID must be a valid integer.',
             'parent_id.exists' => 'Parent comment does not exist.',
+            'files.array' => 'Files must be an array.',
+            'files.max' => 'You cannot upload more than 10 files at once.',
+            'files.*.file' => 'Each file must be a valid file.',
+            'files.*.max' => 'Each file cannot exceed 10MB in size.',
+            'files.*.mimes' => 'Files must be of type: jpg, jpeg, png, gif, pdf, doc, docx, txt, rtf.',
         ];
     }
 }
