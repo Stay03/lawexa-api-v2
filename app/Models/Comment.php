@@ -65,7 +65,7 @@ class Comment extends Model
 
     public function images(): MorphMany
     {
-        return $this->files()->where('mime_type', 'LIKE', 'image/%');
+        return $this->files()->whereRaw('mime_type LIKE "image/%"');
     }
 
     public function scopeApproved(Builder $query): Builder

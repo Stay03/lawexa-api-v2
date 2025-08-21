@@ -33,7 +33,7 @@ class CommentController extends Controller
         $comments = Comment::approved()
             ->forCommentable($commentableType, $commentableId)
             ->rootComments()
-            ->with(['user', 'replies.user', 'files', 'replies.files'])
+            ->with(['user', 'replies.user', 'files', 'replies.files', 'images', 'replies.images'])
             ->paginate(15);
 
         $commentCollection = new CommentCollection($comments);
@@ -96,7 +96,7 @@ class CommentController extends Controller
         $notificationService->sendCommentCreatedEmail($comment);
 
         return ApiResponse::created([
-            'comment' => new CommentResource($comment->load(['user', 'replies.user', 'files']))
+            'comment' => new CommentResource($comment->load(['user', 'replies.user', 'files', 'images']))
         ], 'Comment created successfully');
     }
 
@@ -107,7 +107,7 @@ class CommentController extends Controller
         }
 
         return ApiResponse::success([
-            'comment' => new CommentResource($comment->load(['user', 'replies.user', 'files', 'replies.files']))
+            'comment' => new CommentResource($comment->load(['user', 'replies.user', 'files', 'replies.files', 'images', 'replies.images']))
         ], 'Comment retrieved successfully');
     }
 
@@ -149,7 +149,7 @@ class CommentController extends Controller
         }
 
         return ApiResponse::success([
-            'comment' => new CommentResource($comment->fresh()->load(['user', 'replies.user', 'files']))
+            'comment' => new CommentResource($comment->fresh()->load(['user', 'replies.user', 'files', 'images']))
         ], 'Comment updated successfully');
     }
 
@@ -205,7 +205,7 @@ class CommentController extends Controller
         $notificationService->sendCommentCreatedEmail($reply);
 
         return ApiResponse::created([
-            'comment' => new CommentResource($reply->load(['user', 'files']))
+            'comment' => new CommentResource($reply->load(['user', 'files', 'images']))
         ], 'Reply created successfully');
     }
 }
