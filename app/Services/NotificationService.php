@@ -170,10 +170,74 @@ class NotificationService
         }
     }
 
+    public function getAdminUsers(): array
+    {
+        try {
+            $adminUsers = [];
+
+            // Get admin emails from environment variable (comma-separated)
+            $configEmails = env('ADMIN_EMAILS', env('ADMIN_EMAIL', ''));
+            if ($configEmails) {
+                $emailList = array_map('trim', explode(',', $configEmails));
+                foreach ($emailList as $email) {
+                    // Try to find existing user, or create a placeholder
+                    $user = User::where('email', $email)->first();
+                    if ($user) {
+                        $adminUsers[] = $user;
+                    } else {
+                        // Create a placeholder admin user object for email purposes
+                        $adminUsers[] = [
+                            'name' => 'Admin',
+                            'email' => $email
+                        ];
+                    }
+                }
+            }
+
+            // Also get superadmin users from database
+            $superAdminUsers = User::where('role', 'superadmin')->get()->toArray();
+            foreach ($superAdminUsers as $user) {
+                $adminUsers[] = $user;
+            }
+
+            // Remove duplicates based on email
+            $uniqueAdmins = [];
+            $seenEmails = [];
+            foreach ($adminUsers as $admin) {
+                $email = is_array($admin) ? $admin['email'] : $admin->email;
+                if (!in_array($email, $seenEmails)) {
+                    $uniqueAdmins[] = $admin;
+                    $seenEmails[] = $email;
+                }
+            }
+
+            Log::info('Admin users discovered for notifications', [
+                'total_count' => count($uniqueAdmins),
+                'admin_emails' => $seenEmails
+            ]);
+
+            return $uniqueAdmins;
+        } catch (\Exception $e) {
+            Log::error('Failed to get admin users', ['error' => $e->getMessage()]);
+            return [];
+        }
+    }
+
     public function sendCommentCreatedEmail(Comment $comment): void
     {
         try {
             $comment->load(['user', 'commentable', 'parent.user']);
+            
+            // Skip email notifications for Note comments
+            $commentableType = $comment->commentable_type;
+            if ($commentableType === 'Note' || $commentableType === 'App\\Models\\Note') {
+                Log::info('Skipping email notification for Note comment', [
+                    'comment_id' => $comment->id,
+                    'commentable_type' => $commentableType,
+                    'commentable_id' => $comment->commentable_id
+                ]);
+                return;
+            }
             
             // Get the issue owner (assuming commentable is an Issue)
             $issueOwner = $comment->commentable->user ?? null;

@@ -195,26 +195,33 @@ class AdminIssueController extends Controller
                 }
                 
                 // 2. Notify all admin accounts about the admin update
-                $adminEmails = $this->notificationService->getAdminEmails();
-                foreach ($adminEmails as $adminEmail) {
+                $adminUsers = $this->notificationService->getAdminUsers();
+                foreach ($adminUsers as $admin) {
+                    $adminEmail = is_array($admin) ? $admin['email'] : $admin->email;
+                    $adminName = is_array($admin) ? $admin['name'] : $admin->name;
+                    
                     // Don't send duplicate email if the original user is also an admin
                     if (!$adminIssue->user || $adminEmail !== $adminIssue->user->email) {
                         \Illuminate\Support\Facades\Mail::to($adminEmail)
-                            ->queue(new \App\Mail\IssueUpdatedEmail($adminIssue->user ?? new \App\Models\User([
-                                'name' => 'System User',
-                                'email' => 'system@lawexa.com'
-                            ]), $adminIssue, array_merge($changes, [
-                                'updated_by_admin' => 'This issue was updated by an administrator'
-                            ])));
+                            ->queue(new \App\Mail\IssueUpdatedAdminEmail(
+                                $adminName,
+                                $adminEmail,
+                                $adminIssue,
+                                array_merge($changes, [
+                                    'updated_by_admin' => 'This issue was updated by an administrator'
+                                ])
+                            ));
                     }
                 }
                 
                 \Illuminate\Support\Facades\Log::info('Admin issue update - notifications sent', [
                     'issue_id' => $adminIssue->id,
                     'original_user_notified' => $adminIssue->user ? $adminIssue->user->email : null,
-                    'admin_notifications_sent_to' => $adminEmails,
+                    'admin_notifications_sent_to' => array_map(function($admin) {
+                        return is_array($admin) ? $admin['email'] : $admin->email;
+                    }, $adminUsers),
                     'changes_made' => array_keys($changes),
-                    'total_notifications' => ($adminIssue->user ? 1 : 0) + count($adminEmails)
+                    'total_notifications' => ($adminIssue->user ? 1 : 0) + count($adminUsers)
                 ]);
             }
             

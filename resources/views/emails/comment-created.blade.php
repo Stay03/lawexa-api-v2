@@ -26,7 +26,7 @@
     <div class="container">
         <div class="header">
             <h1>💬 New Comment</h1>
-            <p>Someone commented on your issue</p>
+            <p>{{ $commenterName }} commented on your issue</p>
         </div>
         
         <div class="content">
