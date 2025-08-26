@@ -47,8 +47,13 @@
       "Bash(./test-case-endpoints.sh:*)",
       "Bash(export API_URL=\"http://localhost:8000/api\")",
       "Bash(./test-case-endpoints-comprehensive.sh:*)",
-      "Bash(./test-case-endpoints-working.sh:*)"
+      "Bash(./test-case-endpoints-working.sh:*)",
+      "Bash(export:*)",
+      "Bash(./test-guest-comment-access.sh:*)"
     ],
-    "deny": []
+    "deny": [],
+    "additionalDirectories": [
+      "C:\\c\\Users\\stayn\\OneDrive\\Desktop\\2023\\lawexaAPIV2"
+    ]
   }
 }
