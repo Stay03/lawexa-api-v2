@@ -34,7 +34,7 @@ Route::bind('case', function ($value, $route) {
         // Admin routes: bind by ID
         return \App\Models\CourtCase::findOrFail($value);
     }
-    // User routes: bind by slug (default behavior)
+    // User routes: bind by slug (default behavior via getRouteKeyName)
     return \App\Models\CourtCase::where('slug', $value)->firstOrFail();
 });
 
@@ -92,11 +92,13 @@ Route::bind('statuteSchedule', function ($value, $route) {
     return \App\Models\StatuteSchedule::where('slug', $value)->firstOrFail();
 });
 
+
 Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
     Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
     Route::get('me', [AuthController::class, 'me'])->middleware('auth:sanctum');
+    Route::post('guest-session', [AuthController::class, 'createGuestSession']);
     
     // Email verification routes
     Route::get('email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
@@ -106,14 +108,6 @@ Route::prefix('auth')->group(function () {
         ->middleware(['auth:sanctum', 'throttle:6,1'])
         ->name('verification.send');
     
-    // Alternative verification route without signed middleware (for signature issues)
-    Route::get('email/verify-alt/{id}/{hash}', [AuthController::class, 'verifyEmailAlternative'])
-        ->name('verification.alternative')
-        ->middleware(['throttle:6,1']);
-    
-    // Debug route for verification (remove after fixing)
-    Route::get('email/verify-debug/{id}/{hash}', [AuthController::class, 'debugVerifyEmail'])
-        ->name('verification.debug');
     
     Route::get('google', [GoogleAuthController::class, 'redirectToGoogle']);
     Route::get('google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
@@ -129,7 +123,7 @@ Route::get('webhooks/s3/health', [S3WebhookController::class, 'health']);
 Route::get('plans', [PlanController::class, 'index']);
 Route::get('plans/{plan}', [PlanController::class, 'show']);
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'track.guest.activity'])->group(function () {
     // Primary upload endpoint (simple direct S3 upload)
     Route::post('upload', [DirectUploadController::class, 'simpleUpload']);
     
@@ -172,14 +166,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // User case routes (slug-based)
     Route::prefix('cases')->group(function () {
         Route::get('/', [CaseController::class, 'index']);
-        Route::get('{case}', [CaseController::class, 'show']);
+        Route::get('{case}', [CaseController::class, 'show'])->middleware('track.views');
     });
 
     // User note routes
     Route::prefix('notes')->group(function () {
         Route::get('/', [NoteController::class, 'index']);
         Route::post('/', [NoteController::class, 'store'])->middleware('verified');
-        Route::get('{note}', [NoteController::class, 'show']);
+        Route::get('{note}', [NoteController::class, 'show'])->middleware('track.views');
         Route::put('{note}', [NoteController::class, 'update'])->middleware('verified');
         Route::delete('{note}', [NoteController::class, 'destroy'])->middleware('verified');
     });
@@ -196,29 +190,29 @@ Route::middleware('auth:sanctum')->group(function () {
     // User statute routes (slug-based)
     Route::prefix('statutes')->group(function () {
         Route::get('/', [StatuteController::class, 'index']);
-        Route::get('{statute}', [StatuteController::class, 'show']);
+        Route::get('{statute}', [StatuteController::class, 'show'])->middleware('track.views');
         
         // Statute Divisions - Hierarchical Navigation
         Route::get('{statute}/divisions', [StatuteController::class, 'divisions']);
-        Route::get('{statute}/divisions/{divisionSlug}', [StatuteController::class, 'showDivision']);
-        Route::get('{statute}/divisions/{divisionSlug}/children', [StatuteController::class, 'divisionChildren']);
-        Route::get('{statute}/divisions/{divisionSlug}/provisions', [StatuteController::class, 'divisionProvisions']);
+        Route::get('{statute}/divisions/{division:slug}', [StatuteController::class, 'showDivision'])->middleware('track.views');
+        Route::get('{statute}/divisions/{division:slug}/children', [StatuteController::class, 'divisionChildren']);
+        Route::get('{statute}/divisions/{division:slug}/provisions', [StatuteController::class, 'divisionProvisions']);
         
         // Statute Provisions - Hierarchical Navigation
         Route::get('{statute}/provisions', [StatuteController::class, 'provisions']);
-        Route::get('{statute}/provisions/{provisionSlug}', [StatuteController::class, 'showProvision']);
-        Route::get('{statute}/provisions/{provisionSlug}/children', [StatuteController::class, 'provisionChildren']);
+        Route::get('{statute}/provisions/{provision:slug}', [StatuteController::class, 'showProvision'])->middleware('track.views');
+        Route::get('{statute}/provisions/{provision:slug}/children', [StatuteController::class, 'provisionChildren']);
         
         // Statute Schedules
         Route::get('{statute}/schedules', [StatuteController::class, 'schedules']);
-        Route::get('{statute}/schedules/{scheduleSlug}', [StatuteController::class, 'showSchedule']);
+        Route::get('{statute}/schedules/{schedule:slug}', [StatuteController::class, 'showSchedule'])->middleware('track.views');
     });
 
     // User comment routes
     Route::prefix('comments')->middleware('verified')->group(function () {
         Route::get('/', [CommentController::class, 'index']);
         Route::post('/', [CommentController::class, 'store']);
-        Route::get('{comment}', [CommentController::class, 'show'])->where('comment', '[0-9]+');
+        Route::get('{comment}', [CommentController::class, 'show'])->where('comment', '[0-9]+')->middleware('track.views');
         Route::put('{comment}', [CommentController::class, 'update'])->where('comment', '[0-9]+');
         Route::delete('{comment}', [CommentController::class, 'destroy'])->where('comment', '[0-9]+');
         Route::post('{comment}/reply', [CommentController::class, 'reply'])->where('comment', '[0-9]+');
@@ -317,28 +311,28 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('bulk-delete', [AdminStatuteController::class, 'bulkDelete']);
             
             // Divisions CRUD
-            Route::get('{statuteId}/divisions', [AdminStatuteDivisionController::class, 'index'])->where('statuteId', '[0-9]+');
-            Route::post('{statuteId}/divisions', [AdminStatuteDivisionController::class, 'store'])->where('statuteId', '[0-9]+');
-            Route::get('{statuteId}/divisions/{divisionId}', [AdminStatuteDivisionController::class, 'show'])->where(['statuteId' => '[0-9]+', 'divisionId' => '[0-9]+']);
-            Route::get('{statuteId}/divisions/{divisionId}/children', [AdminStatuteDivisionController::class, 'children'])->where(['statuteId' => '[0-9]+', 'divisionId' => '[0-9]+']);
-            Route::get('{statuteId}/divisions/{divisionId}/provisions', [AdminStatuteDivisionController::class, 'provisions'])->where(['statuteId' => '[0-9]+', 'divisionId' => '[0-9]+']);
-            Route::put('{statuteId}/divisions/{divisionId}', [AdminStatuteDivisionController::class, 'update'])->where(['statuteId' => '[0-9]+', 'divisionId' => '[0-9]+']);
-            Route::delete('{statuteId}/divisions/{divisionId}', [AdminStatuteDivisionController::class, 'destroy'])->where(['statuteId' => '[0-9]+', 'divisionId' => '[0-9]+']);
+            Route::get('{statute}/divisions', [AdminStatuteDivisionController::class, 'index']);
+            Route::post('{statute}/divisions', [AdminStatuteDivisionController::class, 'store']);
+            Route::get('{statute}/divisions/{division}', [AdminStatuteDivisionController::class, 'show']);
+            Route::get('{statute}/divisions/{division}/children', [AdminStatuteDivisionController::class, 'children']);
+            Route::get('{statute}/divisions/{division}/provisions', [AdminStatuteDivisionController::class, 'provisions']);
+            Route::put('{statute}/divisions/{division}', [AdminStatuteDivisionController::class, 'update']);
+            Route::delete('{statute}/divisions/{division}', [AdminStatuteDivisionController::class, 'destroy']);
             
             // Provisions CRUD
-            Route::get('{statuteId}/provisions', [AdminStatuteProvisionController::class, 'index'])->where('statuteId', '[0-9]+');
-            Route::post('{statuteId}/provisions', [AdminStatuteProvisionController::class, 'store'])->where('statuteId', '[0-9]+');
-            Route::get('{statuteId}/provisions/{provisionId}', [AdminStatuteProvisionController::class, 'show'])->where(['statuteId' => '[0-9]+', 'provisionId' => '[0-9]+']);
-            Route::get('{statuteId}/provisions/{provisionId}/children', [AdminStatuteProvisionController::class, 'children'])->where(['statuteId' => '[0-9]+', 'provisionId' => '[0-9]+']);
-            Route::put('{statuteId}/provisions/{provisionId}', [AdminStatuteProvisionController::class, 'update'])->where(['statuteId' => '[0-9]+', 'provisionId' => '[0-9]+']);
-            Route::delete('{statuteId}/provisions/{provisionId}', [AdminStatuteProvisionController::class, 'destroy'])->where(['statuteId' => '[0-9]+', 'provisionId' => '[0-9]+']);
+            Route::get('{statute}/provisions', [AdminStatuteProvisionController::class, 'index']);
+            Route::post('{statute}/provisions', [AdminStatuteProvisionController::class, 'store']);
+            Route::get('{statute}/provisions/{provision}', [AdminStatuteProvisionController::class, 'show']);
+            Route::get('{statute}/provisions/{provision}/children', [AdminStatuteProvisionController::class, 'children']);
+            Route::put('{statute}/provisions/{provision}', [AdminStatuteProvisionController::class, 'update']);
+            Route::delete('{statute}/provisions/{provision}', [AdminStatuteProvisionController::class, 'destroy']);
             
             // Schedules CRUD
-            Route::get('{statuteId}/schedules', [AdminStatuteScheduleController::class, 'index'])->where('statuteId', '[0-9]+');
-            Route::post('{statuteId}/schedules', [AdminStatuteScheduleController::class, 'store'])->where('statuteId', '[0-9]+');
-            Route::get('{statuteId}/schedules/{scheduleId}', [AdminStatuteScheduleController::class, 'show'])->where(['statuteId' => '[0-9]+', 'scheduleId' => '[0-9]+']);
-            Route::put('{statuteId}/schedules/{scheduleId}', [AdminStatuteScheduleController::class, 'update'])->where(['statuteId' => '[0-9]+', 'scheduleId' => '[0-9]+']);
-            Route::delete('{statuteId}/schedules/{scheduleId}', [AdminStatuteScheduleController::class, 'destroy'])->where(['statuteId' => '[0-9]+', 'scheduleId' => '[0-9]+']);
+            Route::get('{statute}/schedules', [AdminStatuteScheduleController::class, 'index']);
+            Route::post('{statute}/schedules', [AdminStatuteScheduleController::class, 'store']);
+            Route::get('{statute}/schedules/{schedule}', [AdminStatuteScheduleController::class, 'show']);
+            Route::put('{statute}/schedules/{schedule}', [AdminStatuteScheduleController::class, 'update']);
+            Route::delete('{statute}/schedules/{schedule}', [AdminStatuteScheduleController::class, 'destroy']);
         });
         
         // Admin comment management routes

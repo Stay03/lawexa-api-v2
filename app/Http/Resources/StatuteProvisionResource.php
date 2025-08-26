@@ -57,6 +57,7 @@ class StatuteProvisionResource extends JsonResource
             }),
             
             'child_provisions_count' => $this->when($this->relationLoaded('childProvisions'), $this->childProvisions->count()),
+            'views_count' => $this->viewsCount(),
         ];
     }
 }

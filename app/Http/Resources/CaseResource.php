@@ -67,6 +67,7 @@ class CaseResource extends JsonResource
                 return FileResource::collection($this->files);
             }),
             'files_count' => $this->when($this->relationLoaded('files'), $this->files->count()),
+            'views_count' => $this->viewsCount(),
             'similar_cases' => $this->when(
                 $this->relationLoaded('similarCases') || $this->relationLoaded('casesWhereThisIsSimilar'),
                 function () {

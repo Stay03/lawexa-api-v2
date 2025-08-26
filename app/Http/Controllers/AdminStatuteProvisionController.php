@@ -11,7 +11,7 @@ use Illuminate\Http\JsonResponse;
 
 class AdminStatuteProvisionController extends Controller
 {
-    public function index(Request $request, $statuteId): JsonResponse
+    public function index(Request $request, Statute $statute): JsonResponse
     {
         $statute = Statute::findOrFail($statuteId);
         
@@ -41,7 +41,7 @@ class AdminStatuteProvisionController extends Controller
         ], 'Statute provisions retrieved successfully');
     }
     
-    public function store(Request $request, $statuteId): JsonResponse
+    public function store(Request $request, Statute $statute): JsonResponse
     {
         $validated = $request->validate([
             'provision_type' => 'required|in:section,subsection,paragraph,subparagraph,clause,subclause,item',
@@ -72,21 +72,20 @@ class AdminStatuteProvisionController extends Controller
         }
     }
     
-    public function show($statuteId, $provisionId): JsonResponse
+    public function show(Statute $statute, StatuteProvision $provision): JsonResponse
     {
-        $statute = Statute::findOrFail($statuteId);
-        $provision = $statute->provisions()->with([
+        $provision->load([
             'division:id,division_title',
             'parentProvision:id,provision_title',
             'childProvisions:id,parent_provision_id,provision_title,provision_number'
-        ])->findOrFail($provisionId);
+        ]);
         
         return ApiResponse::success([
             'provision' => $provision
         ], 'Provision retrieved successfully');
     }
     
-    public function update(Request $request, $statuteId, $provisionId): JsonResponse
+    public function update(Request $request, Statute $statute, StatuteProvision $provision): JsonResponse
     {
         $validated = $request->validate([
             'provision_type' => 'sometimes|in:section,subsection,paragraph,subparagraph,clause,subclause,item',
@@ -118,7 +117,7 @@ class AdminStatuteProvisionController extends Controller
         }
     }
     
-    public function destroy($statuteId, $provisionId): JsonResponse
+    public function destroy(Statute $statute, StatuteProvision $provision): JsonResponse
     {
         $statute = Statute::findOrFail($statuteId);
         $provision = $statute->provisions()->findOrFail($provisionId);
@@ -132,7 +131,7 @@ class AdminStatuteProvisionController extends Controller
         }
     }
     
-    public function children(Request $request, $statuteId, $provisionId): JsonResponse
+    public function children(Request $request, Statute $statute, StatuteProvision $provision): JsonResponse
     {
         $statute = Statute::findOrFail($statuteId);
         $parentProvision = $statute->provisions()->findOrFail($provisionId);

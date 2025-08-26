@@ -28,6 +28,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'avatar',
         'role',
         'customer_code',
+        'guest_expires_at',
+        'last_activity_at',
     ];
 
     /**
@@ -50,12 +52,40 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'guest_expires_at' => 'datetime',
+            'last_activity_at' => 'datetime',
         ];
     }
 
     public function isUser(): bool
     {
         return $this->role === 'user';
+    }
+
+    public function isGuest(): bool
+    {
+        return $this->role === 'guest';
+    }
+
+    public function isGuestExpired(): bool
+    {
+        if (!$this->isGuest() || !$this->guest_expires_at) {
+            return false;
+        }
+        return $this->guest_expires_at->isPast();
+    }
+
+    public function isGuestInactive(): bool
+    {
+        if (!$this->isGuest() || !$this->last_activity_at) {
+            return true; // Consider guests without activity as inactive
+        }
+        return $this->last_activity_at->lt(now()->subDays(30));
+    }
+
+    public function shouldBeCleanedUp(): bool
+    {
+        return $this->isGuest() && ($this->isGuestExpired() || $this->isGuestInactive());
     }
 
     public function isAdmin(): bool
@@ -146,5 +176,45 @@ class User extends Authenticatable implements MustVerifyEmail
     public function assignedIssues(): HasMany
     {
         return $this->hasMany(Issue::class, 'assigned_to');
+    }
+
+    /**
+     * Get total views count for this user (used for guest limits).
+     */
+    public function getTotalViewsCount(): int
+    {
+        return \App\Models\ModelView::getTotalViewsForUser($this->id);
+    }
+
+    /**
+     * Get remaining views for this guest user.
+     */
+    public function getRemainingViews(): int
+    {
+        if (!$this->isGuest()) {
+            return PHP_INT_MAX; // Non-guests have unlimited views
+        }
+        
+        return \App\Models\ModelView::getRemainingViewsForGuest($this->id);
+    }
+
+    /**
+     * Check if this guest user can view more content.
+     */
+    public function canViewMore(): bool
+    {
+        if (!$this->isGuest()) {
+            return true; // Non-guests can always view more
+        }
+        
+        return \App\Models\ModelView::canGuestView($this->id);
+    }
+
+    /**
+     * Check if this guest user has reached their view limit.
+     */
+    public function hasReachedViewLimit(): bool
+    {
+        return !$this->canViewMore();
     }
 }

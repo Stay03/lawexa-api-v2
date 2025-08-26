@@ -12,7 +12,7 @@ use Illuminate\Http\JsonResponse;
 
 class AdminStatuteDivisionController extends Controller
 {
-    public function index(Request $request, $statuteId): JsonResponse
+    public function index(Request $request, Statute $statute): JsonResponse
     {
         $statute = Statute::findOrFail($statuteId);
         
@@ -37,7 +37,7 @@ class AdminStatuteDivisionController extends Controller
         );
     }
     
-    public function store(Request $request, $statuteId): JsonResponse
+    public function store(Request $request, Statute $statute): JsonResponse
     {
         $validated = $request->validate([
             'division_type' => 'required|in:part,chapter,article,title,book,division,section,subsection',
@@ -66,21 +66,20 @@ class AdminStatuteDivisionController extends Controller
         }
     }
     
-    public function show($statuteId, $divisionId): JsonResponse
+    public function show(Statute $statute, StatuteDivision $division): JsonResponse
     {
-        $statute = Statute::findOrFail($statuteId);
-        $division = $statute->divisions()->with([
+        $division->load([
             'parentDivision:id,division_title',
             'childDivisions:id,parent_division_id,division_title,division_number',
             'provisions:id,division_id,provision_title,provision_number'
-        ])->findOrFail($divisionId);
+        ]);
         
         return ApiResponse::success([
             'division' => $division
         ], 'Division retrieved successfully');
     }
     
-    public function children(Request $request, $statuteId, $divisionId): JsonResponse
+    public function children(Request $request, Statute $statute, StatuteDivision $division): JsonResponse
     {
         $statute = Statute::findOrFail($statuteId);
         $parentDivision = $statute->divisions()->findOrFail($divisionId);
@@ -162,7 +161,7 @@ class AdminStatuteDivisionController extends Controller
         return $breadcrumb;
     }
     
-    public function provisions(Request $request, $statuteId, $divisionId): JsonResponse
+    public function provisions(Request $request, Statute $statute, StatuteDivision $division): JsonResponse
     {
         $statute = Statute::findOrFail($statuteId);
         $division = $statute->divisions()->findOrFail($divisionId);
@@ -220,7 +219,7 @@ class AdminStatuteDivisionController extends Controller
         ], 'Division provisions retrieved successfully');
     }
     
-    public function update(Request $request, $statuteId, $divisionId): JsonResponse
+    public function update(Request $request, Statute $statute, StatuteDivision $division): JsonResponse
     {
         $validated = $request->validate([
             'division_type' => 'sometimes|in:part,chapter,article,title,book,division,section,subsection',
@@ -250,7 +249,7 @@ class AdminStatuteDivisionController extends Controller
         }
     }
     
-    public function destroy($statuteId, $divisionId): JsonResponse
+    public function destroy(Statute $statute, StatuteDivision $division): JsonResponse
     {
         $statute = Statute::findOrFail($statuteId);
         $division = $statute->divisions()->findOrFail($divisionId);

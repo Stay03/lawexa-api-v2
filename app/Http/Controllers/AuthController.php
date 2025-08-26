@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Http\Resources\UserResource;
 use App\Http\Responses\ApiResponse;
 use App\Services\NotificationService;
+use App\Services\SecurityLoggerService;
 use App\Mail\VerifyEmailMailable;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -13,12 +14,14 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Auth\Events\Verified;
 
 class AuthController extends Controller
 {
     public function __construct(
-        private NotificationService $notificationService
+        private NotificationService $notificationService,
+        private SecurityLoggerService $securityLogger
     ) {}
 
     public function register(Request $request): JsonResponse
@@ -26,8 +29,7 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-            'role' => 'sometimes|in:user,admin,researcher,superadmin'
+            'password' => 'required|string|min:8|confirmed'
         ]);
 
         if ($validator->fails()) {
@@ -38,7 +40,7 @@ class AuthController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => $request->role ?? 'user'
+            'role' => 'user'
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
@@ -65,11 +67,24 @@ class AuthController extends Controller
         }
 
         if (!Auth::guard('web')->attempt($request->only('email', 'password'))) {
+            $this->securityLogger->logAuthenticationAttempt(
+                $request->email,
+                false,
+                'Invalid credentials',
+                $request
+            );
             return ApiResponse::unauthorized('Invalid credentials');
         }
 
         $user = User::with(['activeSubscription', 'subscriptions'])->where('email', $request->email)->first();
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        $this->securityLogger->logAuthenticationAttempt(
+            $request->email,
+            true,
+            null,
+            $request
+        );
 
         return ApiResponse::success([
             'user' => new UserResource($user),
@@ -79,6 +94,8 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
+        $this->securityLogger->logUserLogout($request->user()->id, $request);
+        
         $request->user()->currentAccessToken()->delete();
 
         return ApiResponse::success(null, 'Logged out successfully');
@@ -112,6 +129,12 @@ class AuthController extends Controller
 
         $user->update($updateData);
 
+        $this->securityLogger->logProfileUpdate(
+            $user->id,
+            array_keys($updateData),
+            $request
+        );
+
         return ApiResponse::success([
             'user' => new UserResource($user->fresh()->load(['activeSubscription', 'subscriptions']))
         ], 'Profile updated successfully');
@@ -127,18 +150,24 @@ class AuthController extends Controller
             }
 
             if (!hash_equals((string) $request->route('hash'), sha1($user->getEmailForVerification()))) {
+                $this->securityLogger->logEmailVerification($user->id, false, 'Invalid verification hash', $request);
                 return $this->handleVerificationResult($request, 'error', 'Invalid verification link');
             }
 
             if ($user->hasVerifiedEmail()) {
+                $this->securityLogger->logEmailVerification($user->id, true, 'Email already verified', $request);
                 return $this->handleVerificationResult($request, 'success', 'Email already verified');
             }
 
             if ($user->markEmailAsVerified()) {
                 event(new Verified($user));
                 
+                $this->securityLogger->logEmailVerification($user->id, true, null, $request);
+                
                 // Send welcome email after verification
                 $this->notificationService->sendWelcomeEmail($user);
+            } else {
+                $this->securityLogger->logEmailVerification($user->id, false, 'Failed to mark email as verified', $request);
             }
 
             return $this->handleVerificationResult($request, 'success', 'Email verified successfully');
@@ -189,131 +218,30 @@ class AuthController extends Controller
         return ApiResponse::success(null, 'Verification email sent');
     }
 
-    /**
-     * Debug verification endpoint without signed middleware
-     */
-    public function debugVerifyEmail(Request $request)
+
+
+
+    public function createGuestSession(Request $request): JsonResponse
     {
-        $debugInfo = [
-            'user_id' => $request->route('id'),
-            'hash' => $request->route('hash'),
-            'query_params' => $request->query(),
-            'full_url' => $request->fullUrl(),
-            'app_key_set' => !empty(config('app.key')),
-            'app_env' => config('app.env'),
-            'timestamp' => now()->toISOString(),
-        ];
-
-        // Try to find user
-        $user = User::find($request->route('id'));
-        $debugInfo['user_exists'] = !!$user;
-        
-        if ($user) {
-            $debugInfo['user_email'] = $user->email;
-            $debugInfo['user_verified'] = $user->hasVerifiedEmail();
-            $debugInfo['expected_hash'] = sha1($user->getEmailForVerification());
-            $debugInfo['hash_matches'] = hash_equals((string) $request->route('hash'), sha1($user->getEmailForVerification()));
-        }
-
-        // Check if signature is valid manually
-        if ($request->hasValidSignature()) {
-            $debugInfo['signature_valid'] = true;
-            // If signature is valid, proceed with verification
-            return $this->verifyEmailDirect($request);
-        } else {
-            $debugInfo['signature_valid'] = false;
-            $debugInfo['signature_error'] = 'Invalid or expired signature';
-            
-            // Even if signature is invalid, if hash matches and user exists, we can verify
-            if ($user && $debugInfo['hash_matches'] && !$user->hasVerifiedEmail()) {
-                $debugInfo['verification_attempted'] = true;
-                $debugInfo['verification_bypassed_signature'] = true;
-                
-                // Proceed with verification despite invalid signature
-                return $this->verifyEmailDirect($request);
-            }
-        }
-
-        return response()->json([
-            'debug_info' => $debugInfo,
-            'message' => 'Debug information for email verification'
+        // Create a guest user with 30-day expiration
+        $guestUser = User::create([
+            'name' => 'Guest User',
+            'email' => 'guest_' . Str::random(32) . '@guest.local', // Generate unique email for guests
+            'password' => Hash::make(Str::random(64)), // Generate dummy password for guests
+            'role' => 'guest',
+            'guest_expires_at' => now()->addDays(30),
+            'last_activity_at' => now(),
         ]);
-    }
 
-    /**
-     * Direct verification without middleware
-     */
-    private function verifyEmailDirect(Request $request)
-    {
-        $user = User::find($request->route('id'));
+        // Create token for the guest user
+        $token = $guestUser->createToken('guest_token', [], now()->addDays(30))->plainTextToken;
 
-        if (!$user) {
-            return $this->handleVerificationResult($request, 'error', 'User not found');
-        }
+        $this->securityLogger->logGuestSessionCreated($guestUser->id, $token, $request);
 
-        if (!hash_equals((string) $request->route('hash'), sha1($user->getEmailForVerification()))) {
-            return $this->handleVerificationResult($request, 'error', 'Invalid verification link');
-        }
-
-        if ($user->hasVerifiedEmail()) {
-            return $this->handleVerificationResult($request, 'success', 'Email already verified');
-        }
-
-        if ($user->markEmailAsVerified()) {
-            event(new Verified($user));
-            
-            // Send welcome email after verification
-            $this->notificationService->sendWelcomeEmail($user);
-        }
-
-        return $this->handleVerificationResult($request, 'success', 'Email verified successfully');
-    }
-
-    /**
-     * Alternative verification without signed middleware for signature issues
-     */
-    public function verifyEmailAlternative(Request $request)
-    {
-        try {
-            $user = User::find($request->route('id'));
-
-            if (!$user) {
-                return $this->handleVerificationResult($request, 'error', 'User not found');
-            }
-
-            if (!hash_equals((string) $request->route('hash'), sha1($user->getEmailForVerification()))) {
-                return $this->handleVerificationResult($request, 'error', 'Invalid verification link');
-            }
-
-            if ($user->hasVerifiedEmail()) {
-                return $this->handleVerificationResult($request, 'success', 'Email already verified');
-            }
-
-            // Log the alternative verification for security tracking
-            \Log::info('Alternative email verification used', [
-                'user_id' => $user->id,
-                'user_email' => $user->email,
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent()
-            ]);
-
-            if ($user->markEmailAsVerified()) {
-                event(new Verified($user));
-                
-                // Send welcome email after verification
-                $this->notificationService->sendWelcomeEmail($user);
-            }
-
-            return $this->handleVerificationResult($request, 'success', 'Email verified successfully');
-
-        } catch (\Exception $e) {
-            \Log::error('Alternative email verification error', [
-                'user_id' => $request->route('id'),
-                'error' => $e->getMessage(),
-                'url' => $request->fullUrl()
-            ]);
-            
-            return $this->handleVerificationResult($request, 'error', 'Verification failed');
-        }
+        return ApiResponse::success([
+            'token' => $token,
+            'guest_id' => $guestUser->id,
+            'expires_at' => $guestUser->guest_expires_at->toISOString(),
+        ], 'Guest session created successfully');
     }
 }

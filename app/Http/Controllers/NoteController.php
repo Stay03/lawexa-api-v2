@@ -8,15 +8,20 @@ use App\Http\Resources\NoteCollection;
 use App\Http\Resources\NoteResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Note;
+use App\Services\ViewTrackingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class NoteController extends Controller
 {
+    public function __construct(
+        private ViewTrackingService $viewTrackingService
+    ) {}
     public function index(Request $request): JsonResponse
     {
         $query = Note::with(['user:id,name,email', 'comments'])
-                    ->forUser($request->user()->id);
+                    ->withViewsCount()
+                    ->accessibleByUser($request->user()->id);
 
         if ($request->has('search')) {
             $query->search($request->search);
@@ -63,10 +68,11 @@ class NoteController extends Controller
         }
     }
 
-    public function show(Note $note): JsonResponse
+    public function show(Request $request, Note $note): JsonResponse
     {
-        if (!$note->isOwnedBy(auth()->user())) {
-            return ApiResponse::forbidden('You can only view your own notes');
+
+        if (!$note->isOwnedBy(auth()->user()) && !$note->isPublic()) {
+            return ApiResponse::forbidden('You can only view your own notes or public notes');
         }
 
         $note->load(['user:id,name,email', 'comments']);

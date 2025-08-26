@@ -6,11 +6,15 @@ use App\Http\Resources\CaseCollection;
 use App\Http\Resources\CaseResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\CourtCase;
+use App\Services\ViewTrackingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class CaseController extends Controller
 {
+    public function __construct(
+        private ViewTrackingService $viewTrackingService
+    ) {}
     public function index(Request $request): JsonResponse
     {
         $includeSimilarCases = $request->boolean('include_similar_cases', false);
@@ -26,7 +30,7 @@ class CaseController extends Controller
             $with[] = 'casesThatCiteThis:id,title,slug,court,date,country,citation';
         }
         
-        $query = CourtCase::with($with);
+        $query = CourtCase::with($with)->withViewsCount();
 
         if ($request->has('search')) {
             $query->search($request->search);
@@ -67,7 +71,7 @@ class CaseController extends Controller
         );
     }
 
-    public function show(CourtCase $case): JsonResponse
+    public function show(Request $request, CourtCase $case): JsonResponse
     {
         $case->load([
             'creator:id,name', 

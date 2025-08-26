@@ -37,8 +37,8 @@ class StatuteResource extends JsonResource
             'tags' => $this->tags,
             'description' => $this->description,
             'range' => $this->range,
-            'created_at' => $this->created_at->format('Y-m-d H:i:s'),
-            'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
+            'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
+            'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
             
             // Relationships
             'creator' => $this->whenLoaded('creator', function () {
@@ -159,6 +159,7 @@ class StatuteResource extends JsonResource
             }),
             
             'files_count' => $this->when($this->relationLoaded('files'), $this->files->count()),
+            'views_count' => $this->viewsCount(),
         ];
     }
 }

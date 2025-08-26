@@ -54,6 +54,7 @@ class StatuteDivisionResource extends JsonResource
             'child_divisions_count' => $this->when($this->relationLoaded('childDivisions'), $this->childDivisions->count()),
             'provisions_count' => $this->when($this->relationLoaded('provisions'), 
                 $this->provisions->whereNull('parent_provision_id')->count()),
+            'views_count' => $this->viewsCount(),
         ];
     }
 }

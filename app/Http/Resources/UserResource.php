@@ -49,6 +49,15 @@ class UserResource extends JsonResource
                 $this->relationLoaded('subscriptions') && $this->subscriptions, 
                 fn() => SubscriptionResource::collection($this->subscriptions)
             ),
+            'view_stats' => $this->when(
+                $this->isGuest(),
+                fn() => [
+                    'total_views' => $this->getTotalViewsCount(),
+                    'remaining_views' => $this->getRemainingViews(),
+                    'view_limit' => config('view_tracking.guest_limits.total_views', 20),
+                    'limit_reached' => $this->hasReachedViewLimit()
+                ]
+            ),
             'email_verified_at' => $this->email_verified_at?->toISOString(),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),

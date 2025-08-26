@@ -21,7 +21,17 @@ class RoleMiddleware
             ], 401);
         }
 
-        $userRole = $request->user()->role;
+        $user = $request->user();
+
+        // Check if guest user is expired
+        if ($user->isGuest() && $user->isGuestExpired()) {
+            $user->currentAccessToken()->delete();
+            return response()->json([
+                'message' => 'Session expired'
+            ], 401);
+        }
+
+        $userRole = $user->role;
 
         if (!in_array($userRole, $roles)) {
             return response()->json([

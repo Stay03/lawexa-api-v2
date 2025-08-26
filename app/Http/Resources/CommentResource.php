@@ -22,11 +22,13 @@ class CommentResource extends JsonResource
             'edited_at' => $this->edited_at,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
-            'user' => [
-                'id' => $this->user->id,
-                'name' => $this->user->name,
-                'avatar' => $this->user->avatar,
-            ],
+            'user' => $this->when($this->relationLoaded('user') && $this->user, function () {
+                return [
+                    'id' => $this->user->id,
+                    'name' => $this->user->name,
+                    'avatar' => $this->user->avatar,
+                ];
+            }),
             'commentable' => $this->when($this->relationLoaded('commentable'), function () {
                 return [
                     'type' => class_basename($this->commentable_type),
@@ -41,6 +43,7 @@ class CommentResource extends JsonResource
             'files' => FileResource::collection($this->whenLoaded('files')),
             'attachments' => FileResource::collection($this->whenLoaded('files')),
             'images' => FileResource::collection($this->whenLoaded('images')),
+            'views_count' => $this->viewsCount(),
         ];
     }
 }

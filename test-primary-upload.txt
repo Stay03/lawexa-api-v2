@@ -1,1 +1,0 @@
-Testing the new primary upload endpoint at /api/upload

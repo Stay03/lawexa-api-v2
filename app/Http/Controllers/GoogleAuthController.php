@@ -8,6 +8,7 @@ use App\Http\Resources\UserResource;
 use App\Http\Resources\ErrorResource;
 use App\Http\Responses\ApiResponse;
 use App\Services\NotificationService;
+use App\Services\SecurityLoggerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
@@ -18,7 +19,8 @@ use Illuminate\Support\Str;
 class GoogleAuthController extends Controller
 {
     public function __construct(
-        private NotificationService $notificationService
+        private NotificationService $notificationService,
+        private SecurityLoggerService $securityLogger
     ) {}
     public function redirectToGoogle(): JsonResponse
     {
@@ -69,6 +71,13 @@ class GoogleAuthController extends Controller
 
             $token = $user->createToken('google_auth_token')->plainTextToken;
 
+            $this->securityLogger->logAuthenticationAttempt(
+                $googleUser->email,
+                true,
+                'Google OAuth success',
+                $request
+            );
+
             // Create temporary code for secure token exchange
             $oauthState = OAuthState::createWithCode($token, $user->toArray());
             
@@ -80,6 +89,13 @@ class GoogleAuthController extends Controller
             return redirect()->away($frontendUrl . '/auth/callback?code=' . $oauthState->code);
 
         } catch (\Exception $e) {
+            $this->securityLogger->logAuthenticationAttempt(
+                $request->get('email', 'unknown'),
+                false,
+                'Google OAuth failed: ' . $e->getMessage(),
+                $request
+            );
+            
             // Create temporary code for secure error exchange
             $oauthState = OAuthState::createWithError('oauth_error', $e->getMessage());
             

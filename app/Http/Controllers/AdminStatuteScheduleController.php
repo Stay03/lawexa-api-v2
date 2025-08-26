@@ -10,7 +10,7 @@ use Illuminate\Http\JsonResponse;
 
 class AdminStatuteScheduleController extends Controller
 {
-    public function index(Request $request, $statuteId): JsonResponse
+    public function index(Request $request, Statute $statute): JsonResponse
     {
         $statute = Statute::findOrFail($statuteId);
         
@@ -37,7 +37,7 @@ class AdminStatuteScheduleController extends Controller
         );
     }
     
-    public function store(Request $request, $statuteId): JsonResponse
+    public function store(Request $request, Statute $statute): JsonResponse
     {
         $validated = $request->validate([
             'schedule_number' => 'required|string|max:255',
@@ -75,17 +75,14 @@ class AdminStatuteScheduleController extends Controller
         }
     }
     
-    public function show($statuteId, $scheduleId): JsonResponse
+    public function show(Statute $statute, StatuteSchedule $schedule): JsonResponse
     {
-        $statute = Statute::findOrFail($statuteId);
-        $schedule = $statute->schedules()->findOrFail($scheduleId);
-        
         return ApiResponse::success([
             'schedule' => $schedule
         ], 'Schedule retrieved successfully');
     }
     
-    public function update(Request $request, $statuteId, $scheduleId): JsonResponse
+    public function update(Request $request, Statute $statute, StatuteSchedule $schedule): JsonResponse
     {
         $validated = $request->validate([
             'schedule_number' => 'sometimes|string|max:255',
@@ -135,7 +132,7 @@ class AdminStatuteScheduleController extends Controller
         }
     }
     
-    public function destroy($statuteId, $scheduleId): JsonResponse
+    public function destroy(Statute $statute, StatuteSchedule $schedule): JsonResponse
     {
         $statute = Statute::findOrFail($statuteId);
         $schedule = $statute->schedules()->findOrFail($scheduleId);

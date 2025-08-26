@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasViewTracking;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,6 +10,7 @@ use Illuminate\Support\Str;
 
 class StatuteDivision extends Model
 {
+    use HasViewTracking;
     protected $fillable = [
         'slug', 'statute_id', 'parent_division_id', 'division_type',
         'division_number', 'division_title', 'division_subtitle',

@@ -11,11 +11,15 @@ use App\Http\Responses\ApiResponse;
 use App\Models\Comment;
 use App\Services\FileUploadService;
 use App\Services\NotificationService;
+use App\Services\ViewTrackingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class CommentController extends Controller
 {
+    public function __construct(
+        private ViewTrackingService $viewTrackingService
+    ) {}
     public function index(Request $request)
     {
         $commentableType = $request->input('commentable_type');
@@ -33,6 +37,7 @@ class CommentController extends Controller
         $comments = Comment::approved()
             ->forCommentable($commentableType, $commentableId)
             ->rootComments()
+            ->withViewsCount()
             ->with(['user', 'replies.user', 'files', 'replies.files', 'images', 'replies.images'])
             ->paginate(15);
 
@@ -100,14 +105,16 @@ class CommentController extends Controller
         ], 'Comment created successfully');
     }
 
-    public function show(Comment $comment)
+    public function show(Request $request, Comment $comment)
     {
+        $comment->load(['user', 'replies.user', 'files', 'replies.files', 'images', 'replies.images']);
+
         if (!$comment->is_approved) {
             return ApiResponse::error('Comment not found', 404);
         }
 
         return ApiResponse::success([
-            'comment' => new CommentResource($comment->load(['user', 'replies.user', 'files', 'replies.files', 'images', 'replies.images']))
+            'comment' => new CommentResource($comment)
         ], 'Comment retrieved successfully');
     }
 

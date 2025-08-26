@@ -22,7 +22,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
+            'track.views' => \App\Http\Middleware\ViewTrackingMiddleware::class,
+            'track.guest.activity' => \App\Http\Middleware\TrackGuestActivity::class,
         ]);
+        
+        // View tracking is now handled per-route after authorization
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (ValidationException $e, Request $request) {

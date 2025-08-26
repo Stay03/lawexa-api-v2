@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasViewTracking;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 class Comment extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, HasViewTracking;
 
     protected $fillable = [
         'user_id',

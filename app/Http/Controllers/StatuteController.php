@@ -5,20 +5,26 @@ namespace App\Http\Controllers;
 use App\Models\Statute;
 use App\Models\StatuteDivision;
 use App\Models\StatuteProvision;
+use App\Models\StatuteSchedule;
 use App\Http\Resources\StatuteResource;
 use App\Http\Resources\StatuteCollection;
 use App\Http\Resources\StatuteDivisionCollection;
 use App\Http\Responses\ApiResponse;
+use App\Services\ViewTrackingService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class StatuteController extends Controller
 {
+    public function __construct(
+        private ViewTrackingService $viewTrackingService
+    ) {}
     public function index(Request $request): JsonResponse
     {
         $perPage = min($request->get('per_page', 15), 100);
         
         $query = Statute::with(['creator:id,name'])
+                        ->withViewsCount()
                         ->active();
         
         // Apply filters
@@ -99,6 +105,7 @@ class StatuteController extends Controller
         $query = $statute->divisions()
                          ->topLevel()
                          ->active()
+                         ->withViewsCount()
                          ->with(['parentDivision:id,division_title,slug']);
         
         // Apply filters
@@ -159,6 +166,7 @@ class StatuteController extends Controller
         
         $query = $statute->provisions()
                          ->active()
+                         ->withViewsCount()
                          ->with(['division:id,division_title,slug', 'parentProvision:id,provision_title,slug']);
         
         // Apply filters
@@ -227,10 +235,8 @@ class StatuteController extends Controller
         );
     }
 
-    public function showDivision(Request $request, Statute $statute, $divisionSlug): JsonResponse
+    public function showDivision(Request $request, Statute $statute, StatuteDivision $division): JsonResponse
     {
-        $division = $statute->divisions()->where('slug', $divisionSlug)->firstOrFail();
-        
         $division->load([
             'parentDivision:id,division_title',
             'childDivisions:id,division_title,division_number',
@@ -242,10 +248,8 @@ class StatuteController extends Controller
         ], 'Statute division retrieved successfully');
     }
 
-    public function showProvision(Request $request, Statute $statute, $provisionSlug): JsonResponse
+    public function showProvision(Request $request, Statute $statute, StatuteProvision $provision): JsonResponse
     {
-        $provision = $statute->provisions()->where('slug', $provisionSlug)->firstOrFail();
-        
         $provision->load([
             'division:id,division_title',
             'parentProvision:id,provision_title',
@@ -257,18 +261,15 @@ class StatuteController extends Controller
         ], 'Statute provision retrieved successfully');
     }
 
-    public function showSchedule(Request $request, Statute $statute, $scheduleSlug): JsonResponse
+    public function showSchedule(Request $request, Statute $statute, StatuteSchedule $schedule): JsonResponse
     {
-        $schedule = $statute->schedules()->where('slug', $scheduleSlug)->firstOrFail();
-        
         return ApiResponse::success([
             'schedule' => $schedule
         ], 'Statute schedule retrieved successfully');
     }
     
-    public function divisionChildren(Request $request, Statute $statute, $divisionSlug): JsonResponse
+    public function divisionChildren(Request $request, Statute $statute, StatuteDivision $division): JsonResponse
     {
-        $division = $statute->divisions()->where('slug', $divisionSlug)->active()->firstOrFail();
         $perPage = min($request->get('per_page', 15), 100);
         
         // Get child divisions
@@ -327,9 +328,8 @@ class StatuteController extends Controller
         ], 'Division children retrieved successfully');
     }
     
-    public function divisionProvisions(Request $request, Statute $statute, $divisionSlug): JsonResponse
+    public function divisionProvisions(Request $request, Statute $statute, StatuteDivision $division): JsonResponse
     {
-        $division = $statute->divisions()->where('slug', $divisionSlug)->active()->firstOrFail();
         $perPage = min($request->get('per_page', 15), 100);
         
         // Get provisions for this division
@@ -382,9 +382,8 @@ class StatuteController extends Controller
         ], 'Division provisions retrieved successfully');
     }
     
-    public function provisionChildren(Request $request, Statute $statute, $provisionSlug): JsonResponse
+    public function provisionChildren(Request $request, Statute $statute, StatuteProvision $provision): JsonResponse
     {
-        $provision = $statute->provisions()->where('slug', $provisionSlug)->active()->firstOrFail();
         $perPage = min($request->get('per_page', 15), 100);
         
         // Get child provisions
