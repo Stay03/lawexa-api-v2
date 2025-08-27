@@ -136,4 +136,18 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | IP Geolocation Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for IP geolocation services used in view tracking.
+    |
+    */
+
+    'ip_geolocation_enabled' => env('IP_GEOLOCATION_ENABLED', true),
+    'ip_geolocation_cache_hours' => env('IP_GEOLOCATION_CACHE_HOURS', 24),
+    'freeipapi_enabled' => env('FREEIPAPI_ENABLED', true),
+    'freeipapi_api_key' => env('FREEIPAPI_API_KEY'),
+
 ];

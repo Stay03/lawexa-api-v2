@@ -9,6 +9,17 @@ use Illuminate\Support\Facades\DB;
 
 class ViewTrackingService
 {
+    private IpGeolocationService $ipGeolocationService;
+    private DeviceDetectionService $deviceDetectionService;
+
+    public function __construct(
+        IpGeolocationService $ipGeolocationService,
+        DeviceDetectionService $deviceDetectionService
+    ) {
+        $this->ipGeolocationService = $ipGeolocationService;
+        $this->deviceDetectionService = $deviceDetectionService;
+    }
+
     public function trackView(Model $model, Request $request): void
     {
         $viewData = $this->extractViewData($model, $request);
@@ -43,7 +54,18 @@ class ViewTrackingService
             $viewData['user_id'],
             $viewData['session_id'],
             $viewData['ip_address'],
-            $viewData['user_agent_hash']
+            $viewData['user_agent_hash'],
+            $viewData['user_agent'],
+            $viewData['ip_country'],
+            $viewData['ip_country_code'],
+            $viewData['ip_continent'],
+            $viewData['ip_continent_code'],
+            $viewData['ip_region'],
+            $viewData['ip_city'],
+            $viewData['ip_timezone'],
+            $viewData['device_type'],
+            $viewData['device_platform'],
+            $viewData['device_browser']
         );
     }
 
@@ -52,6 +74,12 @@ class ViewTrackingService
         $user = $request->user();
         $ipAddress = $request->ip();
         $userAgent = $request->userAgent() ?? '';
+        
+        // Get geolocation data for the IP address
+        $geoData = $this->ipGeolocationService->getLocation($ipAddress);
+        
+        // Get device data from user agent
+        $deviceData = $this->deviceDetectionService->detectDevice($userAgent, $ipAddress);
         
         // With guest authentication system, we always have a user (either real user or guest)
         // No need for session-based tracking anymore
@@ -62,7 +90,18 @@ class ViewTrackingService
             'user_id' => $user?->id,
             'session_id' => null, // No longer needed with guest user system
             'ip_address' => $ipAddress,
-            'user_agent_hash' => hash('sha256', $userAgent . $ipAddress), // Hash for privacy
+            'user_agent_hash' => hash('sha256', $userAgent . $ipAddress), // Keep for backward compatibility
+            'user_agent' => $userAgent, // Store raw user agent for analytics
+            'ip_country' => $geoData['country'] ?? null,
+            'ip_country_code' => $geoData['country_code'] ?? null,
+            'ip_continent' => $geoData['continent'] ?? null,
+            'ip_continent_code' => $geoData['continent_code'] ?? null,
+            'ip_region' => $geoData['region'] ?? null,
+            'ip_city' => $geoData['city'] ?? null,
+            'ip_timezone' => $geoData['timezone'] ?? null,
+            'device_type' => $deviceData['device_type'],
+            'device_platform' => $deviceData['device_platform'],
+            'device_browser' => $deviceData['device_browser'],
         ];
     }
 

@@ -49,7 +49,10 @@
       "Bash(./test-case-endpoints-comprehensive.sh:*)",
       "Bash(./test-case-endpoints-working.sh:*)",
       "Bash(export:*)",
-      "Bash(./test-guest-comment-access.sh:*)"
+      "Bash(./test-guest-comment-access.sh:*)",
+      "WebFetch(domain:ip-api.com)",
+      "WebFetch(domain:docs.freeipapi.com)",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "additionalDirectories": [

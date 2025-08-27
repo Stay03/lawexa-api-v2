@@ -17,6 +17,17 @@ class ModelView extends Model
         'session_id',
         'ip_address',
         'user_agent_hash',
+        'user_agent',
+        'ip_country',
+        'ip_country_code',
+        'ip_continent',
+        'ip_continent_code',
+        'ip_region',
+        'ip_city',
+        'ip_timezone',
+        'device_type',
+        'device_platform',
+        'device_browser',
         'viewed_at',
     ];
 
@@ -109,7 +120,18 @@ class ModelView extends Model
         ?int $userId = null,
         ?string $sessionId = null,
         ?string $ipAddress = null,
-        ?string $userAgentHash = null
+        ?string $userAgentHash = null,
+        ?string $userAgent = null,
+        ?string $ipCountry = null,
+        ?string $ipCountryCode = null,
+        ?string $ipContinent = null,
+        ?string $ipContinentCode = null,
+        ?string $ipRegion = null,
+        ?string $ipCity = null,
+        ?string $ipTimezone = null,
+        ?string $deviceType = null,
+        ?string $devicePlatform = null,
+        ?string $deviceBrowser = null
     ): ?static {
         try {
             return static::create([
@@ -119,6 +141,17 @@ class ModelView extends Model
                 'session_id' => $sessionId,
                 'ip_address' => $ipAddress,
                 'user_agent_hash' => $userAgentHash,
+                'user_agent' => $userAgent,
+                'ip_country' => $ipCountry,
+                'ip_country_code' => $ipCountryCode,
+                'ip_continent' => $ipContinent,
+                'ip_continent_code' => $ipContinentCode,
+                'ip_region' => $ipRegion,
+                'ip_city' => $ipCity,
+                'ip_timezone' => $ipTimezone,
+                'device_type' => $deviceType,
+                'device_platform' => $devicePlatform,
+                'device_browser' => $deviceBrowser,
                 'viewed_at' => Carbon::now(),
             ]);
         } catch (\Exception $e) {
