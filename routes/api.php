@@ -218,6 +218,12 @@ Route::middleware(['auth:sanctum', 'track.guest.activity'])->group(function () {
         Route::post('{comment}/reply', [CommentController::class, 'reply'])->where('comment', '[0-9]+');
     });
 
+    // User view statistics routes
+    Route::prefix('views/stats')->group(function () {
+        Route::get('my-activity', [App\Http\Controllers\ViewStatsController::class, 'myActivity']);
+        Route::get('popular', [App\Http\Controllers\ViewStatsController::class, 'popular']);
+    });
+
     Route::middleware('role:admin,researcher,superadmin')->prefix('admin')->group(function () {
         Route::get('dashboard', [App\Http\Controllers\AdminController::class, 'dashboard']);
         Route::get('users', [App\Http\Controllers\AdminController::class, 'getUsers']);
@@ -343,6 +349,16 @@ Route::middleware(['auth:sanctum', 'track.guest.activity'])->group(function () {
             Route::post('{comment}/approve', [AdminCommentController::class, 'approve'])->where('comment', '[0-9]+');
             Route::post('{comment}/reject', [AdminCommentController::class, 'reject'])->where('comment', '[0-9]+');
             Route::delete('{comment}', [AdminCommentController::class, 'destroy'])->where('comment', '[0-9]+')->middleware('role:admin,superadmin');
+        });
+        
+        // Admin view statistics routes
+        Route::prefix('views/stats')->group(function () {
+            Route::get('overview', [App\Http\Controllers\ViewStatsController::class, 'overview']);
+            Route::get('models', [App\Http\Controllers\ViewStatsController::class, 'models']);
+            Route::get('users', [App\Http\Controllers\ViewStatsController::class, 'users']);
+            Route::get('geography', [App\Http\Controllers\ViewStatsController::class, 'geography']);
+            Route::get('devices', [App\Http\Controllers\ViewStatsController::class, 'devices']);
+            Route::get('trends', [App\Http\Controllers\ViewStatsController::class, 'trends']);
         });
     });
 });
