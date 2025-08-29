@@ -351,8 +351,12 @@ Route::middleware(['auth:sanctum', 'track.guest.activity'])->group(function () {
             Route::delete('{comment}', [AdminCommentController::class, 'destroy'])->where('comment', '[0-9]+')->middleware('role:admin,superadmin');
         });
         
+        // Admin views routes
+        Route::get('views', [App\Http\Controllers\ViewStatsController::class, 'index']);
+        
         // Admin view statistics routes
         Route::prefix('views/stats')->group(function () {
+            Route::get('dashboard', [App\Http\Controllers\ViewStatsController::class, 'dashboard']);
             Route::get('overview', [App\Http\Controllers\ViewStatsController::class, 'overview']);
             Route::get('models', [App\Http\Controllers\ViewStatsController::class, 'models']);
             Route::get('users', [App\Http\Controllers\ViewStatsController::class, 'users']);

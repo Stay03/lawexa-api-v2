@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\ModelViewCollection;
 use App\Models\ModelView;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -11,6 +12,173 @@ use Carbon\Carbon;
 
 class ViewStatsController extends Controller
 {
+    public function index(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        
+        if (!$user->hasAnyRole(['admin', 'superadmin', 'researcher'])) {
+            return $this->forbiddenResponse('Admin access required');
+        }
+
+        $validated = $request->validate([
+            'user_id' => 'sometimes|integer|exists:users,id',
+            'model_type' => 'sometimes|string',
+            'time_filter' => 'sometimes|string|in:today,this_week,this_month,last_24h,last_7d,last_30d,custom',
+            'start_date' => 'sometimes|date',
+            'end_date' => 'sometimes|date|after_or_equal:start_date',
+            'country' => 'sometimes|string',
+            'ip_address' => 'sometimes|ip',
+            'search' => 'sometimes|string|max:255',
+            'per_page' => 'sometimes|integer|min:1|max:100',
+        ]);
+
+        $query = ModelView::with(['user:id,name,email,role', 'viewable']);
+
+        // Apply time filter (takes precedence over individual date filters)
+        if (isset($validated['time_filter'])) {
+            $timeRange = $this->getTimeRange(
+                $validated['time_filter'],
+                $validated['start_date'] ?? null,
+                $validated['end_date'] ?? null
+            );
+            $query->whereBetween('viewed_at', [$timeRange['start'], $timeRange['end']]);
+        } else {
+            // Apply individual date filters if no time_filter is provided
+            if (isset($validated['start_date'])) {
+                $startDate = Carbon::parse($validated['start_date']);
+                $query->whereDate('viewed_at', '>=', $startDate);
+            }
+
+            if (isset($validated['end_date'])) {
+                $endDate = Carbon::parse($validated['end_date']);
+                $query->whereDate('viewed_at', '<=', $endDate);
+            }
+        }
+
+        // Apply other filters
+        if (isset($validated['user_id'])) {
+            $query->where('user_id', $validated['user_id']);
+        }
+
+        if (isset($validated['model_type'])) {
+            $query->where('viewable_type', $validated['model_type']);
+        }
+
+        if (isset($validated['country'])) {
+            $query->where('ip_country', 'like', '%' . $validated['country'] . '%');
+        }
+
+        if (isset($validated['ip_address'])) {
+            $query->where('ip_address', $validated['ip_address']);
+        }
+
+        if (isset($validated['search'])) {
+            $search = $validated['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('user_agent', 'like', '%' . $search . '%')
+                  ->orWhere('ip_country', 'like', '%' . $search . '%')
+                  ->orWhere('ip_city', 'like', '%' . $search . '%')
+                  ->orWhere('device_type', 'like', '%' . $search . '%')
+                  ->orWhere('device_platform', 'like', '%' . $search . '%')
+                  ->orWhere('device_browser', 'like', '%' . $search . '%');
+            });
+        }
+
+        $perPage = $validated['per_page'] ?? 15;
+        $views = $query->latest('viewed_at')->paginate($perPage);
+
+        return $this->successResponse(
+            new ModelViewCollection($views),
+            'Views retrieved successfully'
+        );
+    }
+
+    public function dashboard(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        
+        if (!$user->hasAnyRole(['admin', 'superadmin', 'researcher'])) {
+            return $this->forbiddenResponse('Admin access required');
+        }
+
+        $validated = $request->validate([
+            'time_filter' => 'sometimes|string|in:today,this_week,this_month,last_24h,last_7d,last_30d,custom',
+            'start_date' => 'sometimes|date',
+            'end_date' => 'sometimes|date|after_or_equal:start_date',
+            'model_type' => 'sometimes|string',
+            'country' => 'sometimes|string',
+        ]);
+
+        // Determine time periods
+        $timeFilter = $validated['time_filter'] ?? 'last_7d';
+        $periods = $this->calculateTimePeriods($timeFilter, $validated['start_date'] ?? null, $validated['end_date'] ?? null);
+        
+        $currentPeriod = $periods['current'];
+        $comparisonPeriod = $periods['comparison'];
+
+        // Build base query with filters
+        $baseQuery = ModelView::query();
+        
+        if (isset($validated['model_type'])) {
+            $baseQuery->where('viewable_type', $validated['model_type']);
+        }
+        
+        if (isset($validated['country'])) {
+            $baseQuery->where('ip_country', 'like', '%' . $validated['country'] . '%');
+        }
+
+        // Calculate current period metrics
+        $currentMetrics = $this->calculatePeriodMetrics($baseQuery, $currentPeriod['start'], $currentPeriod['end']);
+        
+        // Calculate comparison period metrics
+        $comparisonMetrics = $this->calculatePeriodMetrics($baseQuery, $comparisonPeriod['start'], $comparisonPeriod['end']);
+
+        // Calculate percentage changes
+        $metrics = [
+            'total_views' => [
+                'current' => $currentMetrics['total_views'],
+                'previous' => $comparisonMetrics['total_views'],
+                'change_percent' => $this->calculatePercentageChange($comparisonMetrics['total_views'], $currentMetrics['total_views']),
+            ],
+            'unique_users' => [
+                'current' => $currentMetrics['unique_users'],
+                'previous' => $comparisonMetrics['unique_users'],
+                'change_percent' => $this->calculatePercentageChange($comparisonMetrics['unique_users'], $currentMetrics['unique_users']),
+            ],
+            'guest_views' => [
+                'current' => $currentMetrics['guest_views'],
+                'previous' => $comparisonMetrics['guest_views'],
+                'change_percent' => $this->calculatePercentageChange($comparisonMetrics['guest_views'], $currentMetrics['guest_views']),
+            ],
+            'registered_views' => [
+                'current' => $currentMetrics['registered_views'],
+                'previous' => $comparisonMetrics['registered_views'],
+                'change_percent' => $this->calculatePercentageChange($comparisonMetrics['registered_views'], $currentMetrics['registered_views']),
+            ],
+        ];
+
+        // Get additional analytics for current period
+        $analytics = $this->getDetailedAnalytics($baseQuery, $currentPeriod['start'], $currentPeriod['end']);
+
+        return $this->successResponse([
+            'time_filter' => [
+                'type' => $timeFilter,
+                'current_period' => [
+                    'label' => $periods['labels']['current'],
+                    'start' => $currentPeriod['start']->toDateString(),
+                    'end' => $currentPeriod['end']->toDateString(),
+                ],
+                'comparison_period' => [
+                    'label' => $periods['labels']['comparison'],
+                    'start' => $comparisonPeriod['start']->toDateString(),
+                    'end' => $comparisonPeriod['end']->toDateString(),
+                ],
+            ],
+            'metrics' => $metrics,
+            'analytics' => $analytics,
+        ], 'Dashboard data retrieved successfully');
+    }
+
     public function overview(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -596,5 +764,219 @@ class ViewStatsController extends Controller
                     'unique_users' => (int) $stat->unique_users,
                 ];
             })->toArray();
+    }
+
+    private function getTimeRange(string $timeFilter, ?string $customStart = null, ?string $customEnd = null): array
+    {
+        $periods = $this->calculateTimePeriods($timeFilter, $customStart, $customEnd);
+        return [
+            'start' => $periods['current']['start'],
+            'end' => $periods['current']['end'],
+        ];
+    }
+
+    private function calculateTimePeriods(string $timeFilter, ?string $customStart = null, ?string $customEnd = null): array
+    {
+        $now = Carbon::now();
+        
+        return match($timeFilter) {
+            'today' => [
+                'current' => [
+                    'start' => $now->copy()->startOfDay(),
+                    'end' => $now->copy()->endOfDay(),
+                ],
+                'comparison' => [
+                    'start' => $now->copy()->subDay()->startOfDay(),
+                    'end' => $now->copy()->subDay()->endOfDay(),
+                ],
+                'labels' => [
+                    'current' => 'Today',
+                    'comparison' => 'Yesterday',
+                ],
+            ],
+            'this_week' => [
+                'current' => [
+                    'start' => $now->copy()->startOfWeek(),
+                    'end' => $now,
+                ],
+                'comparison' => [
+                    'start' => $now->copy()->subWeek()->startOfWeek(),
+                    'end' => $now->copy()->subWeek()->endOfWeek(),
+                ],
+                'labels' => [
+                    'current' => 'This Week',
+                    'comparison' => 'Last Week',
+                ],
+            ],
+            'this_month' => [
+                'current' => [
+                    'start' => $now->copy()->startOfMonth(),
+                    'end' => $now,
+                ],
+                'comparison' => [
+                    'start' => $now->copy()->subMonth()->startOfMonth(),
+                    'end' => $now->copy()->subMonth()->endOfMonth(),
+                ],
+                'labels' => [
+                    'current' => 'This Month',
+                    'comparison' => 'Last Month',
+                ],
+            ],
+            'last_24h' => [
+                'current' => [
+                    'start' => $now->copy()->subHours(24),
+                    'end' => $now,
+                ],
+                'comparison' => [
+                    'start' => $now->copy()->subHours(48),
+                    'end' => $now->copy()->subHours(24),
+                ],
+                'labels' => [
+                    'current' => 'Last 24h',
+                    'comparison' => 'Previous 24h',
+                ],
+            ],
+            'last_7d' => [
+                'current' => [
+                    'start' => $now->copy()->subDays(7),
+                    'end' => $now,
+                ],
+                'comparison' => [
+                    'start' => $now->copy()->subDays(14),
+                    'end' => $now->copy()->subDays(7),
+                ],
+                'labels' => [
+                    'current' => 'Last 7d',
+                    'comparison' => 'Previous 7d',
+                ],
+            ],
+            'last_30d' => [
+                'current' => [
+                    'start' => $now->copy()->subDays(30),
+                    'end' => $now,
+                ],
+                'comparison' => [
+                    'start' => $now->copy()->subDays(60),
+                    'end' => $now->copy()->subDays(30),
+                ],
+                'labels' => [
+                    'current' => 'Last 30d',
+                    'comparison' => 'Previous 30d',
+                ],
+            ],
+            'custom' => [
+                'current' => [
+                    'start' => $customStart ? Carbon::parse($customStart) : $now->copy()->subDays(7),
+                    'end' => $customEnd ? Carbon::parse($customEnd) : $now,
+                ],
+                'comparison' => [
+                    'start' => $customStart ? Carbon::parse($customStart)->copy()->subDays(Carbon::parse($customStart)->diffInDays(Carbon::parse($customEnd ?? $now))) : $now->copy()->subDays(14),
+                    'end' => $customStart ? Carbon::parse($customStart) : $now->copy()->subDays(7),
+                ],
+                'labels' => [
+                    'current' => 'Selected Period',
+                    'comparison' => 'Previous Period',
+                ],
+            ],
+        };
+    }
+
+    private function calculatePeriodMetrics($baseQuery, Carbon $start, Carbon $end): array
+    {
+        $query = clone $baseQuery;
+        $query->whereBetween('viewed_at', [$start, $end]);
+        
+        return [
+            'total_views' => $query->count(),
+            'unique_users' => (clone $query)->distinct('user_id')->whereNotNull('user_id')->count(),
+            'guest_views' => (clone $query)->whereHas('user', function($q) {
+                $q->where('role', 'guest');
+            })->count(),
+            'registered_views' => (clone $query)->whereHas('user', function($q) {
+                $q->where('role', '!=', 'guest');
+            })->count(),
+        ];
+    }
+
+    private function calculatePercentageChange($previous, $current): float
+    {
+        if ($previous == 0) {
+            return $current > 0 ? 100 : 0;
+        }
+        
+        return round((($current - $previous) / $previous) * 100, 1);
+    }
+
+    private function getDetailedAnalytics($baseQuery, Carbon $start, Carbon $end): array
+    {
+        $query = clone $baseQuery;
+        $query->whereBetween('viewed_at', [$start, $end]);
+        
+        return [
+            'top_countries' => (clone $query)
+                ->select('ip_country', DB::raw('COUNT(*) as views'))
+                ->whereNotNull('ip_country')
+                ->groupBy('ip_country')
+                ->orderByDesc('views')
+                ->limit(10)
+                ->get()
+                ->map(function($item) {
+                    return [
+                        'country' => $item->ip_country,
+                        'views' => (int) $item->views,
+                    ];
+                }),
+            'top_devices' => (clone $query)
+                ->select('device_type', DB::raw('COUNT(*) as views'))
+                ->whereNotNull('device_type')
+                ->groupBy('device_type')
+                ->orderByDesc('views')
+                ->get()
+                ->map(function($item) {
+                    return [
+                        'device_type' => $item->device_type,
+                        'views' => (int) $item->views,
+                    ];
+                }),
+            'top_content' => (clone $query)
+                ->select('viewable_type', 'viewable_id', DB::raw('COUNT(*) as views'))
+                ->with('viewable')
+                ->groupBy('viewable_type', 'viewable_id')
+                ->orderByDesc('views')
+                ->limit(10)
+                ->get()
+                ->map(function($item) {
+                    return [
+                        'type' => class_basename($item->viewable_type),
+                        'id' => $item->viewable_id,
+                        'title' => $item->viewable->title ?? $item->viewable->name ?? 'N/A',
+                        'views' => (int) $item->views,
+                    ];
+                }),
+            'hourly_distribution' => $this->getHourlyDistribution(clone $query),
+        ];
+    }
+
+    private function getHourlyDistribution($query): array
+    {
+        $dbDriver = config('database.default');
+        $hourFunction = $dbDriver === 'mysql' 
+            ? "HOUR(viewed_at)" 
+            : "strftime('%H', viewed_at)";
+
+        return $query->select(
+                DB::raw("$hourFunction as hour"),
+                DB::raw('COUNT(*) as views')
+            )
+            ->groupBy(DB::raw("$hourFunction"))
+            ->orderBy(DB::raw("$hourFunction"))
+            ->get()
+            ->map(function($item) {
+                return [
+                    'hour' => (int) $item->hour,
+                    'views' => (int) $item->views,
+                ];
+            })
+            ->toArray();
     }
 }
