@@ -30,6 +30,19 @@ class User extends Authenticatable implements MustVerifyEmail
         'customer_code',
         'guest_expires_at',
         'last_activity_at',
+        // Registration geo and device data (optional)
+        'registration_ip_address',
+        'registration_user_agent',
+        'ip_country',
+        'ip_country_code',
+        'ip_continent',
+        'ip_continent_code',
+        'ip_region',
+        'ip_city',
+        'ip_timezone',
+        'device_type',
+        'device_platform',
+        'device_browser',
     ];
 
     /**
@@ -221,5 +234,33 @@ class User extends Authenticatable implements MustVerifyEmail
     public function hasReachedViewLimit(): bool
     {
         return !$this->canViewMore();
+    }
+
+    /**
+     * Get formatted location string for display purposes.
+     */
+    public function getFormattedLocationAttribute(): ?string
+    {
+        $parts = array_filter([
+            $this->ip_city,
+            $this->ip_region,
+            $this->ip_country
+        ]);
+        
+        return !empty($parts) ? implode(', ', $parts) : null;
+    }
+
+    /**
+     * Get formatted device string for display purposes.
+     */
+    public function getFormattedDeviceAttribute(): ?string
+    {
+        $parts = array_filter([
+            $this->device_browser,
+            $this->device_platform,
+            $this->device_type
+        ]);
+        
+        return !empty($parts) ? implode(' on ', $parts) : null;
     }
 }

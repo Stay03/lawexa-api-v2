@@ -22,12 +22,14 @@ use Illuminate\Auth\Events\PasswordReset;
 use App\Mail\PasswordResetMailable;
 use App\Http\Requests\ForgotPasswordRequest;
 use App\Http\Requests\ResetPasswordRequest;
+use App\Services\UserRegistrationService;
 
 class AuthController extends Controller
 {
     public function __construct(
         private NotificationService $notificationService,
-        private SecurityLoggerService $securityLogger
+        private SecurityLoggerService $securityLogger,
+        private UserRegistrationService $userRegistrationService
     ) {}
 
     public function register(Request $request): JsonResponse
@@ -42,12 +44,15 @@ class AuthController extends Controller
             return ApiResponse::validation($validator->errors());
         }
 
-        $user = User::create([
+        // Extract geo and device data for registration
+        $registrationData = $this->userRegistrationService->extractRegistrationData($request);
+
+        $user = User::create(array_merge([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => 'user'
-        ]);
+        ], $registrationData));
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -229,15 +234,18 @@ class AuthController extends Controller
 
     public function createGuestSession(Request $request): JsonResponse
     {
+        // Extract geo and device data for guest registration
+        $registrationData = $this->userRegistrationService->extractRegistrationData($request);
+
         // Create a guest user with 30-day expiration
-        $guestUser = User::create([
-            'name' => 'Guest User',
-            'email' => 'guest_' . Str::random(32) . '@guest.local', // Generate unique email for guests
+        $guestUser = User::create(array_merge([
+            'name' => 'Guest User ' . now()->format('YmdHis'),
+            'email' => 'guest_' . Str::random(32) . '@lawexa.com', // Generate unique email for guests
             'password' => Hash::make(Str::random(64)), // Generate dummy password for guests
             'role' => 'guest',
             'guest_expires_at' => now()->addDays(30),
             'last_activity_at' => now(),
-        ]);
+        ], $registrationData));
 
         // Create token for the guest user
         $token = $guestUser->createToken('guest_token', [], now()->addDays(30))->plainTextToken;
