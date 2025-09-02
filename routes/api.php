@@ -24,6 +24,9 @@ use App\Http\Controllers\AdminStatuteProvisionController;
 use App\Http\Controllers\AdminStatuteScheduleController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\AdminCommentController;
+use App\Http\Controllers\FolderController;
+use App\Http\Controllers\BookmarkController;
+use App\Http\Middleware\ViewTrackingMiddleware;
 
 // Configure route model bindings - admin routes use ID, user routes use slug
 Route::bind('case', function ($value, $route) {
@@ -92,6 +95,17 @@ Route::bind('statuteSchedule', function ($value, $route) {
     return \App\Models\StatuteSchedule::where('slug', $value)->firstOrFail();
 });
 
+Route::bind('folder', function ($value, $route) {
+    $uri = $route->uri();
+    
+    if (str_contains($uri, 'admin/folders')) {
+        // Admin routes: bind by ID
+        return \App\Models\Folder::findOrFail($value);
+    }
+    // User routes: bind by slug (default behavior via getRouteKeyName)
+    return \App\Models\Folder::where('slug', $value)->firstOrFail();
+});
+
 
 Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register']);
@@ -108,6 +122,13 @@ Route::prefix('auth')->group(function () {
         ->middleware(['auth:sanctum', 'throttle:6,1'])
         ->name('verification.send');
     
+    // Password reset routes
+    Route::post('forgot-password', [AuthController::class, 'forgotPassword'])
+        ->middleware('throttle:5,1');
+    Route::post('reset-password', [AuthController::class, 'resetPassword'])
+        ->middleware('throttle:5,1');
+    Route::get('validate-reset-token', [AuthController::class, 'validateResetToken'])
+        ->middleware('throttle:10,1');
     
     Route::get('google', [GoogleAuthController::class, 'redirectToGoogle']);
     Route::get('google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
@@ -222,6 +243,32 @@ Route::middleware(['auth:sanctum', 'track.guest.activity'])->group(function () {
     Route::prefix('views/stats')->group(function () {
         Route::get('my-activity', [App\Http\Controllers\ViewStatsController::class, 'myActivity']);
         Route::get('popular', [App\Http\Controllers\ViewStatsController::class, 'popular']);
+    });
+
+    // User folder routes (slug-based)
+    Route::prefix('folders')->middleware('verified')->group(function () {
+        Route::get('/', [FolderController::class, 'index']);
+        Route::get('mine', [FolderController::class, 'mine']);
+        Route::post('/', [FolderController::class, 'store']);
+        Route::get('{folder}', [FolderController::class, 'show'])->middleware(ViewTrackingMiddleware::class);
+        Route::put('{folder}', [FolderController::class, 'update']);
+        Route::delete('{folder}', [FolderController::class, 'destroy']);
+        
+        // Folder children routes
+        Route::get('{folder}/children', [FolderController::class, 'getChildren']);
+        
+        // Folder item management routes
+        Route::post('{folder}/items', [FolderController::class, 'addItem']);
+        Route::delete('{folder}/items', [FolderController::class, 'removeItem']);
+    });
+
+    // Bookmark routes
+    Route::prefix('bookmarks')->middleware('verified')->group(function () {
+        Route::get('/', [BookmarkController::class, 'index']);
+        Route::post('/', [BookmarkController::class, 'store']);
+        Route::delete('{bookmark}', [BookmarkController::class, 'destroy']);
+        Route::get('check', [BookmarkController::class, 'check']);
+        Route::get('stats', [BookmarkController::class, 'stats']);
     });
 
     Route::middleware('role:admin,researcher,superadmin')->prefix('admin')->group(function () {

@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Traits\HasViewTracking;
+use App\Traits\Folderable;
+use App\Traits\Bookmarkable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -10,7 +12,7 @@ use Illuminate\Support\Str;
 
 class StatuteProvision extends Model
 {
-    use HasViewTracking;
+    use HasViewTracking, Folderable, Bookmarkable;
     protected $fillable = [
         'slug', 'statute_id', 'division_id', 'parent_provision_id', 'provision_type',
         'provision_number', 'provision_title', 'provision_text', 'marginal_note',

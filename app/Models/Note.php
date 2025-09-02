@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Traits\Commentable;
 use App\Traits\HasViewTracking;
+use App\Traits\Folderable;
+use App\Traits\Bookmarkable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 class Note extends Model
 {
-    use HasFactory, Commentable, HasViewTracking;
+    use HasFactory, Commentable, HasViewTracking, Folderable, Bookmarkable;
 
     protected $fillable = [
         'title',

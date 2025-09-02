@@ -26,3 +26,6 @@ deployment.md
 
 # Database backups (contains sensitive data)
 /database/backups/
+
+# Platform-specific binaries
+jq.exe

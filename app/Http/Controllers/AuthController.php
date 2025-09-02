@@ -16,6 +16,12 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Auth\Events\Verified;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Auth\Events\PasswordReset;
+use App\Mail\PasswordResetMailable;
+use App\Http\Requests\ForgotPasswordRequest;
+use App\Http\Requests\ResetPasswordRequest;
 
 class AuthController extends Controller
 {
@@ -243,5 +249,148 @@ class AuthController extends Controller
             'guest_id' => $guestUser->id,
             'expires_at' => $guestUser->guest_expires_at->toISOString(),
         ], 'Guest session created successfully');
+    }
+
+    public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
+    {
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            $this->securityLogger->logPasswordResetAttempt(
+                $request->email,
+                false,
+                'User not found',
+                $request
+            );
+            return ApiResponse::error('We could not find an account with that email address.', null, 404);
+        }
+
+        if ($user->isGuest()) {
+            return ApiResponse::error('Password reset is not available for guest accounts.', null, 400);
+        }
+
+        $token = Str::random(64);
+
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $request->email],
+            [
+                'token' => Hash::make($token),
+                'created_at' => now()
+            ]
+        );
+
+        $frontendUrl = config('app.frontend_url', env('FRONTEND_URL', 'http://localhost:3000'));
+        $resetUrl = "{$frontendUrl}/reset-password?token={$token}&email=" . urlencode($request->email);
+
+        Mail::to($request->email)->queue(new PasswordResetMailable($user, $token, $resetUrl));
+
+        $this->securityLogger->logPasswordResetAttempt(
+            $request->email,
+            true,
+            null,
+            $request
+        );
+
+        return ApiResponse::success(null, 'Password reset link sent to your email address.');
+    }
+
+    public function resetPassword(ResetPasswordRequest $request): JsonResponse
+    {
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            $this->securityLogger->logPasswordResetAttempt(
+                $request->email,
+                false,
+                'User not found during reset',
+                $request
+            );
+            return ApiResponse::error('We could not find an account with that email address.', null, 404);
+        }
+
+        if ($user->isGuest()) {
+            return ApiResponse::error('Password reset is not available for guest accounts.', null, 400);
+        }
+
+        $tokenRecord = DB::table('password_reset_tokens')
+            ->where('email', $request->email)
+            ->first();
+
+        if (!$tokenRecord) {
+            $this->securityLogger->logPasswordResetAttempt(
+                $request->email,
+                false,
+                'No reset token found',
+                $request
+            );
+            return ApiResponse::error('Invalid or expired reset token.', null, 400);
+        }
+
+        if (!Hash::check($request->token, $tokenRecord->token)) {
+            $this->securityLogger->logPasswordResetAttempt(
+                $request->email,
+                false,
+                'Invalid reset token',
+                $request
+            );
+            return ApiResponse::error('Invalid or expired reset token.', null, 400);
+        }
+
+        $expireTime = config('auth.passwords.users.expire', 60);
+        if (now()->diffInMinutes($tokenRecord->created_at) > $expireTime) {
+            DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+            $this->securityLogger->logPasswordResetAttempt(
+                $request->email,
+                false,
+                'Expired reset token',
+                $request
+            );
+            return ApiResponse::error('Reset token has expired. Please request a new one.', null, 400);
+        }
+
+        $user->update([
+            'password' => Hash::make($request->password),
+        ]);
+
+        DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+
+        event(new PasswordReset($user));
+
+        $user->tokens()->delete();
+
+        $this->securityLogger->logPasswordReset($user->id, $request);
+
+        return ApiResponse::success(null, 'Password has been reset successfully. Please log in with your new password.');
+    }
+
+    public function validateResetToken(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'token' => 'required|string',
+            'email' => 'required|email|exists:users,email'
+        ]);
+
+        if ($validator->fails()) {
+            return ApiResponse::validation($validator->errors());
+        }
+
+        $tokenRecord = DB::table('password_reset_tokens')
+            ->where('email', $request->email)
+            ->first();
+
+        if (!$tokenRecord || !Hash::check($request->token, $tokenRecord->token)) {
+            return ApiResponse::error('Invalid or expired reset token.', null, 400);
+        }
+
+        $expireTime = config('auth.passwords.users.expire', 60);
+        if (now()->diffInMinutes($tokenRecord->created_at) > $expireTime) {
+            DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+            return ApiResponse::error('Reset token has expired. Please request a new one.', null, 400);
+        }
+
+        return ApiResponse::success([
+            'valid' => true,
+            'email' => $request->email
+        ], 'Reset token is valid.');
     }
 }

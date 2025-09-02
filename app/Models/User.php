@@ -178,6 +178,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Issue::class, 'assigned_to');
     }
 
+    public function folders(): HasMany
+    {
+        return $this->hasMany(Folder::class);
+    }
+
     /**
      * Get total views count for this user (used for guest limits).
      */

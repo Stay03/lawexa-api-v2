@@ -13,6 +13,7 @@ The LawExa API v2 authentication system provides comprehensive user management i
 
 - **User Registration & Login**
 - **Email Verification**  
+- **Password Reset & Recovery**
 - **Guest Session Management**
 - **Profile Management**
 - **Token-based Authentication (Laravel Sanctum)**
@@ -27,6 +28,11 @@ The LawExa API v2 authentication system provides comprehensive user management i
 3. **Login** → Get fresh token
 4. **Use API** → Include `Authorization: Bearer {token}` header
 5. **Logout** → Revoke token
+
+**Alternative: Password Recovery Flow**
+1. **Forgot Password** → Request reset link via email
+2. **Reset Password** → Use token from email to set new password
+3. **Login** → Use new credentials
 
 ---
 
@@ -284,6 +290,198 @@ Create temporary guest access for unauthenticated users.
 
 ---
 
+## Password Reset & Recovery
+
+### 6. Forgot Password Request
+
+Request a password reset link via email.
+
+**Endpoint:** `POST /auth/forgot-password`  
+**Rate Limited:** 5 requests per minute
+
+**Request Body:**
+```json
+{
+  "email": "passwordreset@test.com"
+}
+```
+
+**Validation Rules:**
+- `email`: required, email, exists in users table
+
+**Success Response (200):**
+```json
+{
+  "status": "success",
+  "message": "Password reset link sent to your email address.",
+  "data": null
+}
+```
+
+**Error Response (422 - Non-existent Email):**
+```json
+{
+  "status": "error",
+  "message": "Validation failed",
+  "data": null,
+  "errors": {
+    "email": ["We could not find an account with that email address."]
+  }
+}
+```
+
+**Error Response (400 - Guest Account):**
+```json
+{
+  "status": "error",
+  "message": "Password reset is not available for guest accounts.",
+  "data": null
+}
+```
+
+**Error Response (429 - Rate Limited):**
+```json
+{
+  "message": "Too Many Attempts.",
+  "exception": "Illuminate\\Http\\Exceptions\\ThrottleRequestsException"
+}
+```
+
+**Notes:**
+- Password reset emails are queued for sending
+- Tokens expire after 60 minutes
+- Guest accounts cannot request password resets
+- Email contains secure reset link with token
+
+---
+
+### 7. Reset Password
+
+Reset user password using token from email.
+
+**Endpoint:** `POST /auth/reset-password`  
+**Rate Limited:** 5 requests per minute
+
+**Request Body:**
+```json
+{
+  "token": "abc123xyz789token_from_email",
+  "email": "passwordreset@test.com",
+  "password": "NewSecurePassword123!",
+  "password_confirmation": "NewSecurePassword123!"
+}
+```
+
+**Validation Rules:**
+- `token`: required, string
+- `email`: required, email, exists in users table
+- `password`: required, string, min:8, confirmed
+- `password_confirmation`: required, must match password
+
+**Success Response (200):**
+```json
+{
+  "status": "success",
+  "message": "Password has been reset successfully. Please log in with your new password.",
+  "data": null
+}
+```
+
+**Error Response (400 - Invalid Token):**
+```json
+{
+  "status": "error",
+  "message": "Invalid or expired reset token.",
+  "data": null
+}
+```
+
+**Error Response (400 - Expired Token):**
+```json
+{
+  "status": "error",
+  "message": "Reset token has expired. Please request a new one.",
+  "data": null
+}
+```
+
+**Error Response (422 - Validation Error):**
+```json
+{
+  "status": "error",
+  "message": "Validation failed",
+  "data": null,
+  "errors": {
+    "password": ["The password confirmation does not match."]
+  }
+}
+```
+
+**Notes:**
+- All user tokens are revoked after successful password reset
+- Reset tokens are single-use and deleted after use
+- Token validation includes expiration check (60 minutes)
+- Password must meet security requirements (min 8 characters)
+
+---
+
+### 8. Validate Reset Token
+
+Validate a password reset token before showing reset form.
+
+**Endpoint:** `GET /auth/validate-reset-token`  
+**Rate Limited:** 10 requests per minute
+
+**Query Parameters:**
+- `token`: Reset token from email
+- `email`: User email address
+
+**Example Request:**
+```http
+GET /auth/validate-reset-token?token=abc123xyz789token&email=passwordreset@test.com
+```
+
+**Success Response (200):**
+```json
+{
+  "status": "success",
+  "message": "Reset token is valid.",
+  "data": {
+    "valid": true,
+    "email": "passwordreset@test.com"
+  }
+}
+```
+
+**Error Response (400 - Invalid Token):**
+```json
+{
+  "status": "error",
+  "message": "Invalid or expired reset token.",
+  "data": null
+}
+```
+
+**Error Response (422 - Missing Parameters):**
+```json
+{
+  "status": "error",
+  "message": "Validation failed",
+  "data": null,
+  "errors": {
+    "email": ["The email field is required."],
+    "token": ["The token field is required."]
+  }
+}
+```
+
+**Notes:**
+- Use this endpoint to validate tokens before showing password reset form
+- Helps provide better user experience by catching invalid tokens early
+- Does not consume the token (token remains valid for actual reset)
+
+---
+
 ## Guest View Limits
 
 Guest users are subject to content viewing limits to prevent abuse while maintaining reasonable access for evaluation purposes.
@@ -416,6 +614,9 @@ Accept: application/json
 - Login attempts: Standard Laravel throttling
 - Email verification: 6 requests per minute
 - Registration: Standard Laravel throttling
+- **Password reset requests: 5 requests per minute**
+- **Reset password attempts: 5 requests per minute**
+- **Token validation: 10 requests per minute**
 
 ### Security Logging
 All authentication activities are logged including:
@@ -424,6 +625,17 @@ All authentication activities are logged including:
 - Logout events
 - Email verification attempts
 - Failed authentication attempts
+- **Password reset requests (success/failure)**
+- **Password reset completions**
+- **Invalid token attempts**
+
+### Password Reset Security
+- **Token Expiration:** Reset tokens expire after 60 minutes
+- **Single Use:** Tokens are deleted after successful password reset
+- **Guest Protection:** Guest accounts cannot request password resets
+- **Token Validation:** Secure hash-based token verification
+- **Auto Cleanup:** Expired tokens are automatically removed
+- **Session Revocation:** All user tokens revoked after password reset
 
 ### Token Management
 - Tokens are generated using Laravel Sanctum
@@ -498,6 +710,51 @@ await fetch('/api/auth/logout', {
 });
 ```
 
+### Complete Password Reset Flow
+
+```javascript
+// 1. Request password reset
+const forgotResponse = await fetch('/api/auth/forgot-password', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    email: 'user@example.com'
+  })
+});
+
+const forgotResult = await forgotResponse.json();
+// Response: {"status":"success","message":"Password reset link sent to your email address.","data":null}
+
+// 2. User clicks link in email, frontend extracts token and validates it
+const validateResponse = await fetch(`/api/auth/validate-reset-token?token=${resetToken}&email=user@example.com`);
+const validateResult = await validateResponse.json();
+
+if (validateResult.status === 'success') {
+  // 3. Show password reset form, then submit new password
+  const resetResponse = await fetch('/api/auth/reset-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      token: resetToken,
+      email: 'user@example.com',
+      password: 'NewSecurePassword123!',
+      password_confirmation: 'NewSecurePassword123!'
+    })
+  });
+  
+  const resetResult = await resetResponse.json();
+  // Response: {"status":"success","message":"Password has been reset successfully. Please log in with your new password.","data":null}
+  
+  if (resetResult.status === 'success') {
+    // 4. Redirect to login page - user must login with new password
+    window.location.href = '/login';
+  }
+} else {
+  // Handle invalid/expired token
+  console.error('Invalid or expired reset token');
+}
+```
+
 ---
 
 ## Testing Information
@@ -518,3 +775,28 @@ await fetch('/api/auth/logout', {
   "password_confirmation": "TestPassword123!"
 }
 ```
+
+**Password Reset Test Data:**
+```json
+{
+  "forgot_password": {
+    "email": "passwordreset@test.com"
+  },
+  "reset_password": {
+    "token": "token_from_email_link",
+    "email": "passwordreset@test.com", 
+    "password": "NewSecurePassword123!",
+    "password_confirmation": "NewSecurePassword123!"
+  }
+}
+```
+
+**Test Scenarios:**
+- ✅ **Valid password reset request** → Returns success message
+- ✅ **Invalid email address** → Returns validation error  
+- ✅ **Guest account email** → Returns guest protection error
+- ✅ **Rate limiting** → Returns 429 after 5 requests per minute
+- ✅ **Invalid reset token** → Returns invalid token error
+- ✅ **Expired token** → Returns token expired error  
+- ✅ **Password validation** → Returns validation errors for weak passwords
+- ✅ **Successful reset** → Password changed, tokens revoked, login required

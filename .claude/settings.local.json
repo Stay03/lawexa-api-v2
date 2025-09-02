@@ -53,7 +53,18 @@
       "WebFetch(domain:ip-api.com)",
       "WebFetch(domain:docs.freeipapi.com)",
       "Bash(git log:*)",
-      "Bash(__NEW_LINE__ echo \"Testing views list endpoint...\")"
+      "Bash(__NEW_LINE__ echo \"Testing views list endpoint...\")",
+      "Bash(__NEW_LINE__ echo \"1. Creating root folder...\")",
+      "Bash(__NEW_LINE__ echo \"=== TEST 10: View Tracking - Access folder again after adding middleware ===\")",
+      "Bash(__NEW_LINE__ echo \"View tracking test successful! The folder system now includes:\")",
+      "Bash(__NEW_LINE__ echo \"Cases List Response:\")",
+      "Bash(__NEW_LINE__ echo \"Notes List Response:\")",
+      "Bash(__NEW_LINE__ echo \"Statutes List Response:\")",
+      "Bash(__NEW_LINE__ echo \"Folders List Response:\")",
+      "Bash(__NEW_LINE__ echo \"Testing updated folder details endpoint structure:\")",
+      "Bash(./test-bookmark-comprehensive.sh:*)",
+      "Bash(./test-bookmark-authentication.sh:*)",
+      "Bash(./test-password-reset.sh:*)"
     ],
     "deny": [],
     "additionalDirectories": [

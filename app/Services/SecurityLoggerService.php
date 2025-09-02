@@ -62,11 +62,10 @@ class SecurityLoggerService
         ]);
     }
 
-    public function logPasswordReset(string $email, bool $successful, ?Request $request = null): void
+    public function logPasswordReset(int $userId, ?Request $request = null): void
     {
-        Log::channel(self::CHANNEL)->info('Password reset attempt', [
-            'email' => $email,
-            'successful' => $successful,
+        Log::channel(self::CHANNEL)->info('Password reset completed', [
+            'user_id' => $userId,
             'ip_address' => $request?->ip() ?? request()?->ip(),
             'user_agent' => $request?->userAgent() ?? request()?->userAgent(),
             'timestamp' => now()->toISOString(),
@@ -137,5 +136,26 @@ class SecurityLoggerService
         ]);
 
         Log::channel(self::CHANNEL)->info('Admin action performed', $logContext);
+    }
+
+    public function logPasswordResetAttempt(string $email, bool $successful, ?string $reason = null, ?Request $request = null): void
+    {
+        $context = [
+            'email' => $email,
+            'successful' => $successful,
+            'ip_address' => $request?->ip() ?? request()?->ip(),
+            'user_agent' => $request?->userAgent() ?? request()?->userAgent(),
+            'timestamp' => now()->toISOString(),
+        ];
+
+        if (!$successful && $reason) {
+            $context['failure_reason'] = $reason;
+        }
+
+        if ($successful) {
+            Log::channel(self::CHANNEL)->info('Password reset requested', $context);
+        } else {
+            Log::channel(self::CHANNEL)->warning('Password reset attempt failed', $context);
+        }
     }
 }
