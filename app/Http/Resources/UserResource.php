@@ -58,6 +58,18 @@ class UserResource extends JsonResource
                     'limit_reached' => $this->hasReachedViewLimit()
                 ]
             ),
+            // Profile fields
+            'profession' => $this->profession,
+            'country' => $this->country,
+            'area_of_expertise' => $this->area_of_expertise,
+            'university' => $this->university,
+            'level' => $this->level,
+            'work_experience' => $this->work_experience,
+            'formatted_profile' => $this->formatted_profile,
+            'is_student' => $this->isStudent(),
+            'is_lawyer' => $this->isLawyer(),
+            'is_law_student' => $this->isLawStudent(),
+            'has_work_experience' => $this->hasWorkExperience(),
             'email_verified_at' => $this->email_verified_at?->toISOString(),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),

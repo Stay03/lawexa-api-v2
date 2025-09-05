@@ -43,6 +43,13 @@ class User extends Authenticatable implements MustVerifyEmail
         'device_type',
         'device_platform',
         'device_browser',
+        // Profile fields
+        'profession',
+        'country',
+        'area_of_expertise',
+        'university',
+        'level',
+        'work_experience',
     ];
 
     /**
@@ -109,6 +116,26 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isResearcher(): bool
     {
         return $this->role === 'researcher';
+    }
+
+    public function isStudent(): bool
+    {
+        return $this->profession === 'student';
+    }
+
+    public function isLawyer(): bool
+    {
+        return $this->profession === 'lawyer';
+    }
+
+    public function isLawStudent(): bool
+    {
+        return $this->profession === 'student' && strtolower($this->area_of_expertise) === 'law';
+    }
+
+    public function hasWorkExperience(): bool
+    {
+        return !is_null($this->work_experience) && $this->work_experience > 0;
     }
 
     public function isSuperAdmin(): bool
@@ -262,5 +289,36 @@ class User extends Authenticatable implements MustVerifyEmail
         ]);
         
         return !empty($parts) ? implode(' on ', $parts) : null;
+    }
+
+    /**
+     * Get formatted profile summary for display purposes.
+     */
+    public function getFormattedProfileAttribute(): ?string
+    {
+        if (!$this->profession) {
+            return null;
+        }
+
+        $parts = [$this->profession];
+        
+        if ($this->area_of_expertise) {
+            $parts[] = "in {$this->area_of_expertise}";
+        }
+        
+        if ($this->isStudent() && $this->university) {
+            $parts[] = "at {$this->university}";
+        }
+        
+        if ($this->hasWorkExperience()) {
+            $years = $this->work_experience === 1 ? '1 year' : "{$this->work_experience} years";
+            $parts[] = "({$years} experience)";
+        }
+        
+        if ($this->country) {
+            $parts[] = "from {$this->country}";
+        }
+
+        return implode(' ', $parts);
     }
 }

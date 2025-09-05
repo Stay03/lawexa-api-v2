@@ -26,6 +26,8 @@ use App\Http\Controllers\CommentController;
 use App\Http\Controllers\AdminCommentController;
 use App\Http\Controllers\FolderController;
 use App\Http\Controllers\BookmarkController;
+use App\Http\Controllers\OnboardingController;
+use App\Http\Controllers\ReferenceDataController;
 use App\Http\Middleware\ViewTrackingMiddleware;
 
 // Configure route model bindings - admin routes use ID, user routes use slug
@@ -168,6 +170,21 @@ Route::middleware(['auth:sanctum', 'track.guest.activity'])->group(function () {
             ], 'User profile retrieved successfully');
         });
         Route::put('profile', [AuthController::class, 'updateProfile']);
+    });
+
+    // Onboarding routes
+    Route::prefix('onboarding')->group(function () {
+        Route::get('profile', [OnboardingController::class, 'getProfile']);
+        Route::put('profile', [OnboardingController::class, 'updateProfile']);
+    });
+
+    // Reference data routes
+    Route::prefix('reference')->group(function () {
+        Route::get('countries', [ReferenceDataController::class, 'getCountries']);
+        Route::get('universities', [ReferenceDataController::class, 'getUniversities']);
+        Route::get('levels', [ReferenceDataController::class, 'getAcademicLevels']);
+        Route::get('legal-areas', [ReferenceDataController::class, 'getLegalAreas']);
+        Route::get('professions', [ReferenceDataController::class, 'getCommonProfessions']);
     });
 
     // User subscription routes (require email verification)
