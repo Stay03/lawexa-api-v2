@@ -73,6 +73,27 @@ class UserResource extends JsonResource
             'email_verified_at' => $this->email_verified_at?->toISOString(),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
+            // Geolocation data from registration
+            'registration_location' => $this->when(
+                $this->ip_country || $this->ip_city || $this->ip_region,
+                fn() => array_filter([
+                    'country' => $this->ip_country,
+                    'country_code' => $this->ip_country_code,
+                    'region' => $this->ip_region,
+                    'city' => $this->ip_city,
+                    'timezone' => $this->ip_timezone,
+                    'continent' => $this->ip_continent,
+                    'continent_code' => $this->ip_continent_code,
+                ])
+            ),
+            'registration_device' => $this->when(
+                $this->device_type || $this->device_platform || $this->device_browser,
+                fn() => array_filter([
+                    'type' => $this->device_type,
+                    'platform' => $this->device_platform,
+                    'browser' => $this->device_browser,
+                ])
+            ),
         ];
     }
 }

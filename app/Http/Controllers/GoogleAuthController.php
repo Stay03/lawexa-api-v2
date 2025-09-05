@@ -9,6 +9,7 @@ use App\Http\Resources\ErrorResource;
 use App\Http\Responses\ApiResponse;
 use App\Services\NotificationService;
 use App\Services\SecurityLoggerService;
+use App\Services\UserRegistrationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
@@ -20,7 +21,8 @@ class GoogleAuthController extends Controller
 {
     public function __construct(
         private NotificationService $notificationService,
-        private SecurityLoggerService $securityLogger
+        private SecurityLoggerService $securityLogger,
+        private UserRegistrationService $userRegistrationService
     ) {}
     public function redirectToGoogle(): JsonResponse
     {
@@ -53,14 +55,17 @@ class GoogleAuthController extends Controller
                     }
                 }
             } else {
-                $user = User::create([
+                // Extract geo and device data for Google registration
+                $registrationData = $this->userRegistrationService->extractRegistrationData($request);
+                
+                $user = User::create(array_merge([
                     'name' => $googleUser->name,
                     'email' => $googleUser->email,
                     'google_id' => $googleUser->id,
                     'avatar' => $googleUser->avatar,
                     'password' => Hash::make(Str::random(16)),
                     'role' => 'user'
-                ]);
+                ], $registrationData));
 
                 // Auto-verify email for Google users
                 $user->markEmailAsVerified();
