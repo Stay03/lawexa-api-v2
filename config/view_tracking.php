@@ -45,7 +45,7 @@ return [
 
     'guest_limits' => [
         // Maximum total views a guest can have across all models
-        'total_views' => env('GUEST_TOTAL_VIEW_LIMIT', 20),
+        'total_views' => env('GUEST_TOTAL_VIEW_LIMIT', 10),
     ],
 
     /*
