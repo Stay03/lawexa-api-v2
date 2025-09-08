@@ -28,6 +28,7 @@ use App\Http\Controllers\FolderController;
 use App\Http\Controllers\BookmarkController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\ReferenceDataController;
+use App\Http\Controllers\TrendingController;
 use App\Http\Middleware\ViewTrackingMiddleware;
 
 // Configure route model bindings - admin routes use ID, user routes use slug
@@ -146,6 +147,19 @@ Route::get('webhooks/s3/health', [S3WebhookController::class, 'health']);
 Route::get('plans', [PlanController::class, 'index']);
 Route::get('plans/{plan}', [PlanController::class, 'show']);
 
+// Trending content endpoints (no auth required)
+Route::prefix('trending')->group(function () {
+    Route::get('/', [TrendingController::class, 'index']);
+    Route::get('stats', [TrendingController::class, 'stats']);
+    Route::get('cases', [TrendingController::class, 'cases']);
+    Route::get('statutes', [TrendingController::class, 'statutes']);
+    Route::get('divisions', [TrendingController::class, 'divisions']);
+    Route::get('provisions', [TrendingController::class, 'provisions']);
+    Route::get('notes', [TrendingController::class, 'notes']);
+    Route::get('folders', [TrendingController::class, 'folders']);
+    Route::get('comments', [TrendingController::class, 'comments']);
+});
+
 Route::middleware(['auth:sanctum', 'track.guest.activity'])->group(function () {
     // Primary upload endpoint (simple direct S3 upload)
     Route::post('upload', [DirectUploadController::class, 'simpleUpload']);
@@ -261,6 +275,7 @@ Route::middleware(['auth:sanctum', 'track.guest.activity'])->group(function () {
         Route::get('my-activity', [App\Http\Controllers\ViewStatsController::class, 'myActivity']);
         Route::get('popular', [App\Http\Controllers\ViewStatsController::class, 'popular']);
     });
+
 
     // User folder routes (slug-based)
     Route::prefix('folders')->middleware('verified')->group(function () {
