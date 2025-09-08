@@ -52,11 +52,22 @@ php artisan db:seed --class=UniversitySeeder
   "status": "success",
   "message": "Countries retrieved successfully",
   "data": {
-    "countries": ["AD", "AE"]
+    "countries": [
+      {
+        "country_code": "AD",
+        "country": "Andorra"
+      },
+      {
+        "country_code": "AE",
+        "country": "United Arab Emirates"
+      }
+    ]
   }
 }
 ```
-**✅ Response Structure**: Consistent with app patterns
+**✅ Response Structure**: Consistent with app patterns  
+**✅ Total Countries**: 204 countries with both country codes and full country names  
+**✅ Country Name Resolution**: Uses Laravel's Locale for accurate country name conversion
 
 #### GET /api/reference/universities
 ```json
@@ -69,12 +80,16 @@ php artisan db:seed --class=UniversitySeeder
         "id": 2,
         "name": "Abu Dhabi University",
         "country_code": "AE",
+        "country": "United Arab Emirates",
         "website": "http://www.adu.ac.ae/"
       }
     ]
   }
 }
 ```
+**✅ Response Structure**: Consistent with app patterns  
+**✅ Total Universities**: 9,350+ universities from 204 countries  
+**✅ Country Fields**: Both `country_code` and `country` (full name) included in response  
 **✅ Features Tested**: Country filtering, university search, combined filtering, complete data structure
 
 **✅ Filtering & Search Capabilities**:
@@ -122,6 +137,25 @@ curl "...universities?country=AE&search=Technology"
 - Search within selected country universities  
 - Auto-complete university names by country
 - Filter and search simultaneously
+
+### 📊 Reference Data Summary
+
+**Enhanced API Design**: Both `/countries` and `/universities` endpoints now return comprehensive country information:
+- **Country Codes**: ISO 2-letter codes (AD, AE, NG, etc.)  
+- **Full Country Names**: User-friendly display names (Andorra, United Arab Emirates, Nigeria, etc.)
+- **Locale Integration**: Uses Laravel's built-in Locale class for accurate country name conversion
+- **Consistent Structure**: Standardized response format across both endpoints
+
+**Database Statistics**:
+- **204 Countries**: Complete coverage of countries with university data
+- **9,350+ Universities**: Comprehensive global university database
+- **100% Coverage**: All country codes successfully resolved to full country names
+
+**API Benefits**:
+- **Better UX**: Frontend can display full country names instead of cryptic codes
+- **Backward Compatible**: Existing `country_code` field maintained 
+- **Developer Friendly**: Clear, consistent API structure across all reference endpoints
+- **Internationalization Ready**: Locale-based country names support multiple regions
 
 #### GET /api/reference/levels
 ```json

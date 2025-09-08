@@ -11,11 +11,16 @@ class ReferenceDataController extends Controller
 {
     public function getCountries(): JsonResponse
     {
-        $countries = University::select('country_code')
+        $countries = University::select('country_code', 'country')
             ->distinct()
             ->orderBy('country_code')
             ->get()
-            ->pluck('country_code')
+            ->map(function ($university) {
+                return [
+                    'country_code' => $university->country_code,
+                    'country' => $university->country
+                ];
+            })
             ->toArray();
 
         return ApiResponse::success([
@@ -37,7 +42,7 @@ class ReferenceDataController extends Controller
             $query->search($request->search);
         }
 
-        $universities = $query->select('id', 'name', 'country_code', 'website')
+        $universities = $query->select('id', 'name', 'country_code', 'country', 'website')
             ->orderBy('name')
             ->get();
 
