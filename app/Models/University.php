@@ -9,6 +9,7 @@ class University extends Model
 {
     protected $fillable = [
         'country_code',
+        'country',
         'name',
         'website',
     ];
