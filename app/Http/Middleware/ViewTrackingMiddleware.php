@@ -21,6 +21,14 @@ class ViewTrackingMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // Check guest view limits BEFORE serving content for trackable routes
+        if ($request->isMethod('GET') && $this->isTrackableRouteForRequest($request)) {
+            $limitResponse = $this->checkGuestViewLimitBeforeServing($request);
+            if ($limitResponse) {
+                return $limitResponse;
+            }
+        }
+
         $response = $next($request);
 
         // Only track on successful GET requests for show/detail endpoints
@@ -112,5 +120,54 @@ class ViewTrackingMiddleware
     private function usesViewTracking($model): bool
     {
         return in_array(HasViewTracking::class, class_uses_recursive(get_class($model)));
+    }
+
+    /**
+     * Check if the current request is for a trackable route (before model binding).
+     */
+    private function isTrackableRouteForRequest(Request $request): bool
+    {
+        $route = $request->route();
+        if (!$route) {
+            return false;
+        }
+
+        $routeName = $route->getName();
+        $parameters = $route->parameters();
+
+        return $this->isTrackableRoute($routeName, $parameters);
+    }
+
+    /**
+     * Check if guest user has reached view limit before serving content.
+     */
+    private function checkGuestViewLimitBeforeServing(Request $request): ?\Symfony\Component\HttpFoundation\Response
+    {
+        $user = $request->user();
+        
+        // Only check limits for guest users
+        if (!$user || !$user->isGuest()) {
+            return null;
+        }
+
+        // Check if guest has reached their view limit
+        if ($this->viewTrackingService->hasGuestReachedViewLimit($user->id)) {
+            $remainingViews = $this->viewTrackingService->getRemainingViewsForGuest($user->id);
+            $viewLimit = config('view_tracking.guest_limits.total_views', 10);
+            
+            return \App\Http\Responses\ApiResponse::error(
+                'View limit reached. Please upgrade your account for unlimited access.',
+                null,
+                429,
+                [
+                    'view_limit' => $viewLimit,
+                    'views_used' => $viewLimit - $remainingViews,
+                    'remaining_views' => $remainingViews,
+                    'limit_type' => 'guest_view_limit'
+                ]
+            );
+        }
+
+        return null;
     }
 }
