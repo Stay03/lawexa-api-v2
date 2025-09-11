@@ -101,9 +101,13 @@ class TrendingService
             ->where('viewable_type', $modelClass)
             ->whereBetween('viewed_at', [$dateRange['start'], $dateRange['end']])
             ->when($filters['country'] ?? null, function ($query, $country) {
-                $query->whereHas('user', function ($userQuery) use ($country) {
-                    $userQuery->where('country', $country);
-                });
+                if (strlen(trim($country)) === 2) {
+                    // If it looks like a country code, search by code
+                    $query->where('ip_country_code', strtoupper($country));
+                } else {
+                    // Search by country name with LIKE for flexibility
+                    $query->where('ip_country', 'like', '%' . $country . '%');
+                }
             })
             ->when($filters['university'] ?? null, function ($query, $university) {
                 $query->whereHas('user', function ($userQuery) use ($university) {
@@ -248,9 +252,13 @@ class TrendingService
         $baseQuery = ModelView::query()
             ->whereBetween('viewed_at', [$dateRange['start'], $dateRange['end']])
             ->when($filters['country'] ?? null, function ($query, $country) {
-                $query->whereHas('user', function ($userQuery) use ($country) {
-                    $userQuery->where('country', $country);
-                });
+                if (strlen(trim($country)) === 2) {
+                    // If it looks like a country code, search by code
+                    $query->where('ip_country_code', strtoupper($country));
+                } else {
+                    // Search by country name with LIKE for flexibility
+                    $query->where('ip_country', 'like', '%' . $country . '%');
+                }
             })
             ->when($filters['university'] ?? null, function ($query, $university) {
                 $query->whereHas('user', function ($userQuery) use ($university) {

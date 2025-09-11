@@ -1,67 +1,34 @@
 #!/bin/bash
 
-# Test Trending API Endpoints
-API_URL="http://localhost:8000/api"
+# Test script for trending API endpoints
+API_URL="http://127.0.0.1:8000/api"
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+echo "Testing Trending API Endpoints..."
+echo "================================="
 
-echo -e "${BLUE}=== Testing Trending API Endpoints ===${NC}"
-echo
+echo ""
+echo "1. Testing basic trending endpoint..."
+curl -X GET "$API_URL/trending" \
+  -H "Content-Type: application/json" \
+  -w "\nHTTP Status: %{http_code}\n" \
+  --max-time 10 \
+  -s
 
-# Function to make API call with guest token
-make_api_call() {
-    local endpoint="$1"
-    local description="$2"
-    
-    echo -e "${YELLOW}Testing: $description${NC}"
-    echo "Endpoint: $API_URL$endpoint"
-    
-    # Use guest token from previous tests
-    local guest_token="10|luHE8vYEjGvA0P12yGlQLseEhqMkEDDAqHEJABfxf353e17f"
-    
-    response=$(curl -s -H "Authorization: Bearer $guest_token" \
-                  -H "Content-Type: application/json" \
-                  "$API_URL$endpoint")
-    
-    # Check if response is valid JSON
-    if echo "$response" | jq . > /dev/null 2>&1; then
-        echo -e "${GREEN}✓ Valid JSON response${NC}"
-        status=$(echo "$response" | jq -r '.status // "unknown"')
-        if [ "$status" = "success" ]; then
-            echo -e "${GREEN}✓ API returned success${NC}"
-            # Show data structure
-            echo "$response" | jq -r '.data | keys[]' 2>/dev/null | head -5 | sed 's/^/  - /'
-        else
-            echo -e "${RED}✗ API error: $(echo "$response" | jq -r '.message // "Unknown error"')${NC}"
-            echo "$response" | jq '.errors // empty' 2>/dev/null
-        fi
-    else
-        echo -e "${RED}✗ Invalid JSON response${NC}"
-        echo "$response" | head -200
-    fi
-    echo
-}
+echo ""
+echo "2. Testing trending cases endpoint..."
+curl -X GET "$API_URL/trending/cases" \
+  -H "Content-Type: application/json" \
+  -w "\nHTTP Status: %{http_code}\n" \
+  --max-time 10 \
+  -s
 
-# Test basic trending endpoint
-make_api_call "/trending" "General trending (all content types)"
+echo ""
+echo "3. Testing trending cases with Nigeria filter..."
+curl -X GET "$API_URL/trending/cases?country=Nigeria" \
+  -H "Content-Type: application/json" \
+  -w "\nHTTP Status: %{http_code}\n" \
+  --max-time 10 \
+  -s
 
-# Test trending stats
-make_api_call "/trending/stats" "Trending statistics"
-
-# Test content-specific trending
-make_api_call "/trending/cases" "Trending cases"
-make_api_call "/trending/statutes" "Trending statutes"
-make_api_call "/trending/notes" "Trending notes"
-make_api_call "/trending/folders" "Trending folders"
-
-# Test with filters
-make_api_call "/trending?time_range=today" "Today's trending content"
-make_api_call "/trending?time_range=month&per_page=5" "Monthly trending (5 items)"
-make_api_call "/trending/cases?time_range=week&country=Nigeria" "Weekly trending cases in Nigeria"
-
-echo -e "${BLUE}=== Trending API Testing Complete ===${NC}"
+echo ""
+echo "Test completed."
