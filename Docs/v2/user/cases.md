@@ -21,6 +21,41 @@ Authorization: Bearer {access_token}
 Accept: application/json
 ```
 
+## Bot Detection & SEO Features
+
+The Lawexa API includes intelligent bot detection to provide SEO-friendly access for search engines and web crawlers while maintaining security for human users.
+
+### Bot Detection
+The system automatically detects bots using:
+- **User Agent Analysis**: Comprehensive patterns for known bots (Google, Bing, Facebook, etc.)
+- **Header Detection**: Bot-specific HTTP headers
+- **IP-Based Rules**: Configurable IP inclusion/exclusion lists
+
+### SEO Benefits for Bots
+- **No Authentication Required**: Search engines can access content without barriers
+- **Content Filtering**: Sensitive content automatically filtered for bots
+- **Enhanced Response Data**: Bot-specific metadata included in responses
+- **Optimized Performance**: Bots bypass rate limiting and cooldown periods
+
+### Bot Response Features
+When accessed by bots, API responses include additional fields:
+```json
+{
+  "isBot": true,
+  "bot_info": {
+    "bot_name": "Google Bot",
+    "is_search_engine": true,
+    "is_social_media": false
+  }
+  // Content may be filtered for bot consumption
+}
+```
+
+### Supported Bot Types
+- **Search Engines**: Google Bot, Bing Bot, Yandex Bot, DuckDuckGo Bot
+- **Social Media**: Facebook External Hit, Twitter Bot, LinkedIn Bot
+- **SEO Tools**: Ahrefs Bot, SEMrush Bot, Majestic Bot
+
 ## Endpoints
 
 ### Get Cases List
@@ -117,7 +152,7 @@ curl -X GET "https://rest.lawexa.com/api/cases/sanusi-v-makinde-5194" \
   -H "Accept: application/json"
 ```
 
-**Success Response (200):**
+**Success Response (200) - Human User:**
 ```json
 {
   "status": "success",
@@ -126,12 +161,12 @@ curl -X GET "https://rest.lawexa.com/api/cases/sanusi-v-makinde-5194" \
     "case": {
       "id": 5109,
       "title": "Sanusi v Makinde, (1994) 5 NWLR (PT. 343) 214",
-      "body": "Complete case details...",
-      "report": "reportDocs/filename.pdf",
+      "body": "The appellant, representing the Orisagunna branch of the Adesiyan family, sued the respondents, who represented the Adefegbe branch of the same family, over ownership and control of a piece of land at Inalende...",
+      "report": "reportDocs/W8iXF7R0hkcyYdYcUOH2wwiGLHTCzJtIFQoPvNgb.pdf",
       "course": "Land Law",
       "topic": "Family Land",
-      "tag": "Right of Allotment,Family Land,Partition of Land",
-      "principles": "Legal principles established...",
+      "tag": "Right of Allotment,Family Land,Partition of Land,Improvement on Family property",
+      "principles": "When land is jointly owned by multiple branches of a family, it remains the collective property of all descendants. Both male and female children have equal inheritance rights under Yoruba customary law...",
       "level": "400",
       "slug": "sanusi-v-makinde-5194",
       "court": "Court of Appeal",
@@ -140,26 +175,26 @@ curl -X GET "https://rest.lawexa.com/api/cases/sanusi-v-makinde-5194" \
       "citation": "(1994) 5 NWLR (PT. 343) 214",
       "judges": "ALOMA MARIAM MUKHTAR JCA,ISA AYO SALAMI JCA,DAUDA AZAKI JCA",
       "judicial_precedent": null,
-      "case_report_text": {},
+      "case_report_text": "<p><strong>SANUSI V MAKINDE, (1994) 5 NWLR (PT. 343) 214</strong></p>\n<p>BETWEEN</p>\n<p><strong>LASISI EGBINOLA SANUSI</strong>...",
       "creator": {
         "id": 1,
         "name": "Stay Njokede"
       },
       "files": [],
       "files_count": 0,
-      "views_count": 1,
+      "views_count": 0,
       "similar_cases": [
         {
-          "id": 5108,
-          "title": "Related Case Title",
-          "slug": "related-case-slug",
-          "court": "High Court",
-          "date": "1993-05-15",
+          "id": 5208,
+          "title": "Shelle v Asajon, (1957) 2 FSC 65; (1957) NSCC 55",
+          "slug": "shelle-v-asajon-1957-2-fsc-65-5298",
+          "court": null,
+          "date": "1957-01-01",
           "country": "Nigeria",
-          "citation": "Citation details"
+          "citation": "(1957) 2 FSC 65; (1957) NSCC 55"
         }
       ],
-      "similar_cases_count": 1,
+      "similar_cases_count": 2,
       "cited_cases": [],
       "cited_cases_count": 0,
       "created_at": "2025-07-30T15:26:52.000000Z",
@@ -167,6 +202,151 @@ curl -X GET "https://rest.lawexa.com/api/cases/sanusi-v-makinde-5194" \
     }
   }
 }
+```
+
+**Success Response (200) - Bot User (Google Bot):**
+```json
+{
+  "status": "success",
+  "message": "Case retrieved successfully",
+  "data": {
+    "case": {
+      "id": 5109,
+      "title": "Sanusi v Makinde, (1994) 5 NWLR (PT. 343) 214",
+      "course": "Land Law",
+      "topic": "Family Land",
+      "tag": "Right of Allotment,Family Land,Partition of Land,Improvement on Family property",
+      "principles": "When land is jointly owned by multiple branches of a family, it remains the collective property of all descendants. Both male and female children have equal inheritance rights under Yoruba customary law...",
+      "level": "400",
+      "slug": "sanusi-v-makinde-5194",
+      "court": "Court of Appeal",
+      "date": "1994-03-30",
+      "country": "Nigeria",
+      "citation": "(1994) 5 NWLR (PT. 343) 214",
+      "judges": "ALOMA MARIAM MUKHTAR JCA,ISA AYO SALAMI JCA,DAUDA AZAKI JCA",
+      "judicial_precedent": null,
+      "isBot": true,
+      "bot_info": {
+        "bot_name": "Google Bot",
+        "is_search_engine": true,
+        "is_social_media": false
+      },
+      "creator": {
+        "id": 1,
+        "name": "Stay Njokede"
+      },
+      "files_count": 0,
+      "views_count": 7,
+      "similar_cases": [
+        {
+          "id": 5208,
+          "title": "Shelle v Asajon, (1957) 2 FSC 65; (1957) NSCC 55",
+          "slug": "shelle-v-asajon-1957-2-fsc-65-5298",
+          "court": "null",
+          "date": "1957-01-01",
+          "country": "Nigeria",
+          "citation": "(1957) 2 FSC 65; (1957) NSCC 55"
+        },
+        {
+          "id": 757,
+          "title": "Bassey v Cobham, (1924) 5 NLR 90",
+          "slug": "bassey-v-cobham-1924-5-nlr-90-775",
+          "court": "null",
+          "date": "1924-01-01",
+          "country": "Nigeria",
+          "citation": "(1924) 5 NLR 90"
+        }
+      ],
+      "similar_cases_count": 2,
+      "cited_cases": [],
+      "cited_cases_count": 0,
+      "created_at": "2025-07-30T15:26:52.000000Z",
+      "updated_at": "2025-02-15T18:19:24.000000Z"
+    }
+  }
+}
+```
+
+**Success Response (200) - Bot User (Facebook Bot):**
+```json
+{
+  "status": "success",
+  "message": "Case retrieved successfully",
+  "data": {
+    "case": {
+      "id": 5109,
+      "title": "Sanusi v Makinde, (1994) 5 NWLR (PT. 343) 214",
+      "course": "Land Law",
+      "topic": "Family Land",
+      "tag": "Right of Allotment,Family Land,Partition of Land,Improvement on Family property",
+      "principles": "When land is jointly owned by multiple branches of a family...",
+      "level": "400",
+      "slug": "sanusi-v-makinde-5194",
+      "court": "Court of Appeal",
+      "date": "1994-03-30",
+      "country": "Nigeria",
+      "citation": "(1994) 5 NWLR (PT. 343) 214",
+      "judges": "ALOMA MARIAM MUKHTAR JCA,ISA AYO SALAMI JCA,DAUDA AZAKI JCA",
+      "judicial_precedent": null,
+      "isBot": true,
+      "bot_info": {
+        "bot_name": "Facebook Bot",
+        "is_search_engine": false,
+        "is_social_media": true
+      },
+      "creator": {
+        "id": 1,
+        "name": "Stay Njokede"
+      },
+      "files_count": 0,
+      "views_count": 10,
+      "similar_cases": [...],
+      "similar_cases_count": 2,
+      "cited_cases": [],
+      "cited_cases_count": 0,
+      "created_at": "2025-07-30T15:26:52.000000Z",
+      "updated_at": "2025-02-15T18:19:24.000000Z"
+    }
+  }
+}
+```
+
+### Key Differences: Bot vs Human Responses
+
+| Feature | Human Response | Bot Response |
+|---------|---------------|-------------|
+| **Bot Identification** | No `isBot` field | `"isBot": true` |
+| **Bot Information** | Not included | `bot_info` object with bot details |
+| **Case Body Content** | ✅ Full `body` field | ❌ `body` field excluded |
+| **File Attachments** | ✅ Full `files` array | ❌ `files` field excluded |
+| **File Metadata** | ✅ `files_count` included | ✅ `files_count` included |
+| **Sensitive Content** | ✅ `report`, `case_report_text` | ❌ Sensitive fields excluded |
+| **Response Size** | Full response (~100% size) | Lightweight response (~30% size) |
+| **Authentication** | May require authentication for some endpoints | No authentication required |
+| **View Tracking** | Standard cooldown periods apply | Bypasses cooldown restrictions |
+| **Performance** | Standard rate limiting | Optimized for bot consumption |
+
+### Bot Testing Examples
+
+**Test with Google Bot:**
+```bash
+curl -X GET "https://rest.lawexa.com/api/cases/sanusi-v-makinde-5194" \
+  -H "Accept: application/json" \
+  -H "User-Agent: Googlebot/2.1 (+http://www.google.com/bot.html)"
+```
+
+**Test with Facebook Bot:**
+```bash
+curl -X GET "https://rest.lawexa.com/api/cases/sanusi-v-makinde-5194" \
+  -H "Accept: application/json" \
+  -H "User-Agent: facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)"
+```
+
+**Test with Human Browser:**
+```bash
+curl -X GET "https://rest.lawexa.com/api/cases/sanusi-v-makinde-5194" \
+  -H "Accept: application/json" \
+  -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 ```
 
 **Error Responses:**
@@ -274,6 +454,13 @@ Include related case information:
 - `files_count`: Number of attached files
 - `similar_cases_count`: Number of similar cases
 - `cited_cases_count`: Number of cited cases
+
+### Bot-Specific Fields (when accessed by bots)
+- `isBot`: Boolean indicating if request came from a bot
+- `bot_info`: Object containing bot details:
+  - `bot_name`: Name of the detected bot (e.g., "Google Bot", "Facebook Bot")
+  - `is_search_engine`: Boolean indicating if bot is a search engine
+  - `is_social_media`: Boolean indicating if bot is a social media crawler
 
 ## Features for Authenticated Users
 

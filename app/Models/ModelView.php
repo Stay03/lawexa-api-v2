@@ -29,10 +29,17 @@ class ModelView extends Model
         'device_platform',
         'device_browser',
         'viewed_at',
+        'is_bot',
+        'bot_name',
+        'is_search_engine',
+        'is_social_media',
     ];
 
     protected $casts = [
         'viewed_at' => 'datetime',
+        'is_bot' => 'boolean',
+        'is_search_engine' => 'boolean',
+        'is_social_media' => 'boolean',
     ];
 
     public function viewable(): MorphTo
@@ -114,6 +121,88 @@ class ModelView extends Model
         return true;
     }
 
+    /**
+     * Check if a bot can view a specific model (skip cooldown, but check guest limits)
+     */
+    public static function canViewBot(
+        string $viewableType,
+        int $viewableId,
+        ?int $userId = null
+    ): bool {
+        // For bots, we skip cooldown checks but still enforce guest limits
+        if ($userId) {
+            $user = User::find($userId);
+            if ($user && $user->isGuest()) {
+                // Bot guest users are typically created with extended expiration
+                // and may have different limits, but we still check
+                return static::canGuestView($userId);
+            }
+        }
+        
+        // For non-guest users or no user ID, allow the view
+        return true;
+    }
+
+    /**
+     * Scope to filter bot views only
+     */
+    public function scopeBotViews(Builder $query): Builder
+    {
+        return $query->where('is_bot', true);
+    }
+
+    /**
+     * Scope to filter human views only
+     */
+    public function scopeHumanViews(Builder $query): Builder
+    {
+        return $query->where('is_bot', false)->orWhereNull('is_bot');
+    }
+
+    /**
+     * Scope to filter search engine bot views
+     */
+    public function scopeSearchEngineViews(Builder $query): Builder
+    {
+        return $query->where('is_search_engine', true);
+    }
+
+    /**
+     * Scope to filter social media bot views
+     */
+    public function scopeSocialMediaViews(Builder $query): Builder
+    {
+        return $query->where('is_social_media', true);
+    }
+
+    /**
+     * Scope to filter by specific bot name
+     */
+    public function scopeByBotName(Builder $query, string $botName): Builder
+    {
+        return $query->where('bot_name', $botName);
+    }
+
+    /**
+     * Scope to get the most popular bot names
+     */
+    public function scopeMostPopularBots(Builder $query): Builder
+    {
+        return $query->botViews()
+                    ->selectRaw('bot_name, COUNT(*) as views_count')
+                    ->whereNotNull('bot_name')
+                    ->groupBy('bot_name')
+                    ->orderByDesc('views_count');
+    }
+
+    /**
+     * Scope to get views within a date range
+     */
+    public function scopeWithinDateRange(Builder $query, $startDate, $endDate): Builder
+    {
+        return $query->whereBetween('viewed_at', [$startDate, $endDate]);
+    }
+
     public static function recordView(
         string $viewableType,
         int $viewableId,
@@ -131,7 +220,11 @@ class ModelView extends Model
         ?string $ipTimezone = null,
         ?string $deviceType = null,
         ?string $devicePlatform = null,
-        ?string $deviceBrowser = null
+        ?string $deviceBrowser = null,
+        ?bool $isBot = null,
+        ?string $botName = null,
+        ?bool $isSearchEngine = null,
+        ?bool $isSocialMedia = null
     ): ?static {
         try {
             return static::create([
@@ -153,6 +246,10 @@ class ModelView extends Model
                 'device_platform' => $devicePlatform,
                 'device_browser' => $deviceBrowser,
                 'viewed_at' => Carbon::now(),
+                'is_bot' => $isBot,
+                'bot_name' => $botName,
+                'is_search_engine' => $isSearchEngine,
+                'is_social_media' => $isSocialMedia,
             ]);
         } catch (\Exception $e) {
             // Handle duplicate key constraint violations gracefully

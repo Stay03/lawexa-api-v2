@@ -65,7 +65,8 @@
       "Bash(./test-bookmark-comprehensive.sh:*)",
       "Bash(./test-bookmark-authentication.sh:*)",
       "Bash(./test-password-reset.sh:*)",
-      "Bash(./test-trending-api.sh:*)"
+      "Bash(./test-trending-api.sh:*)",
+      "Bash(./test-cooldown.sh:*)"
     ],
     "deny": [],
     "additionalDirectories": [

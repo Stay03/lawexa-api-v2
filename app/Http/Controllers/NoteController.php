@@ -71,7 +71,8 @@ class NoteController extends Controller
     public function show(Request $request, Note $note): JsonResponse
     {
 
-        if (!$note->isOwnedBy(auth()->user()) && !$note->isPublic()) {
+        $user = $request->user();
+        if (!$note->isOwnedBy($user) && !$note->isPublic()) {
             return ApiResponse::forbidden('You can only view your own notes or public notes');
         }
 

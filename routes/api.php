@@ -218,14 +218,12 @@ Route::middleware(['auth:sanctum', 'track.guest.activity'])->group(function () {
     // User case routes (slug-based)
     Route::prefix('cases')->group(function () {
         Route::get('/', [CaseController::class, 'index']);
-        Route::get('{case}', [CaseController::class, 'show'])->middleware('track.views');
     });
 
     // User note routes
     Route::prefix('notes')->group(function () {
         Route::get('/', [NoteController::class, 'index']);
         Route::post('/', [NoteController::class, 'store'])->middleware('verified');
-        Route::get('{note}', [NoteController::class, 'show'])->middleware('track.views');
         Route::put('{note}', [NoteController::class, 'update'])->middleware('verified');
         Route::delete('{note}', [NoteController::class, 'destroy'])->middleware('verified');
     });
@@ -242,22 +240,18 @@ Route::middleware(['auth:sanctum', 'track.guest.activity'])->group(function () {
     // User statute routes (slug-based)
     Route::prefix('statutes')->group(function () {
         Route::get('/', [StatuteController::class, 'index']);
-        Route::get('{statute}', [StatuteController::class, 'show'])->middleware('track.views');
         
         // Statute Divisions - Hierarchical Navigation
         Route::get('{statute}/divisions', [StatuteController::class, 'divisions']);
-        Route::get('{statute}/divisions/{division:slug}', [StatuteController::class, 'showDivision'])->middleware('track.views');
         Route::get('{statute}/divisions/{division:slug}/children', [StatuteController::class, 'divisionChildren']);
         Route::get('{statute}/divisions/{division:slug}/provisions', [StatuteController::class, 'divisionProvisions']);
         
         // Statute Provisions - Hierarchical Navigation
         Route::get('{statute}/provisions', [StatuteController::class, 'provisions']);
-        Route::get('{statute}/provisions/{provision:slug}', [StatuteController::class, 'showProvision'])->middleware('track.views');
         Route::get('{statute}/provisions/{provision:slug}/children', [StatuteController::class, 'provisionChildren']);
         
         // Statute Schedules
         Route::get('{statute}/schedules', [StatuteController::class, 'schedules']);
-        Route::get('{statute}/schedules/{schedule:slug}', [StatuteController::class, 'showSchedule'])->middleware('track.views');
     });
 
     // User comment routes
@@ -444,4 +438,20 @@ Route::middleware(['auth:sanctum', 'track.guest.activity'])->group(function () {
             Route::get('trends', [App\Http\Controllers\ViewStatsController::class, 'trends']);
         });
     });
+});
+
+// Bot-friendly routes with optional authentication
+Route::prefix('cases')->group(function () {
+    Route::get('{case}', [CaseController::class, 'show'])->middleware(['bot.detection', 'optional.auth', 'track.views']);
+});
+
+Route::prefix('notes')->group(function () {
+    Route::get('{note}', [NoteController::class, 'show'])->middleware(['bot.detection', 'optional.auth', 'track.views']);
+});
+
+Route::prefix('statutes')->group(function () {
+    Route::get('{statute}', [StatuteController::class, 'show'])->middleware(['bot.detection', 'optional.auth', 'track.views']);
+    Route::get('{statute}/divisions/{division:slug}', [StatuteController::class, 'showDivision'])->middleware(['bot.detection', 'optional.auth', 'track.views']);
+    Route::get('{statute}/provisions/{provision:slug}', [StatuteController::class, 'showProvision'])->middleware(['bot.detection', 'optional.auth', 'track.views']);
+    Route::get('{statute}/schedules/{schedule:slug}', [StatuteController::class, 'showSchedule'])->middleware(['bot.detection', 'optional.auth', 'track.views']);
 });

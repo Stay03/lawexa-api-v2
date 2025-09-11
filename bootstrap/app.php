@@ -24,6 +24,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
             'track.views' => \App\Http\Middleware\ViewTrackingMiddleware::class,
             'track.guest.activity' => \App\Http\Middleware\TrackGuestActivity::class,
+            'bot.detection' => \App\Http\Middleware\BotDetectionMiddleware::class,
+            'optional.auth' => \App\Http\Middleware\OptionalAuthMiddleware::class,
         ]);
         
         // View tracking is now handled per-route after authorization

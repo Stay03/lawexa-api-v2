@@ -25,16 +25,29 @@ class ViewTrackingService
         $viewData = $this->extractViewData($model, $request);
         
         // Use database transaction for atomic view tracking
-        DB::transaction(function () use ($viewData) {
+        DB::transaction(function () use ($viewData, $request) {
             // Double-check cooldown within transaction to prevent race conditions
-            if ($this->canTrackView($viewData)) {
+            if ($this->canTrackView($viewData, $request)) {
                 $this->recordView($viewData);
             }
         });
     }
 
-    public function canTrackView(array $viewData): bool
+    public function canTrackView(array $viewData, Request $request = null): bool
     {
+        // Check if request is from a bot and bot cooldown skip is enabled
+        if ($request && $request->attributes->get('is_bot', false)) {
+            $skipCooldown = config('bot-detection.bot_access.skip_cooldown', true);
+            if ($skipCooldown) {
+                // For bots, skip cooldown but still check guest limits
+                return ModelView::canViewBot(
+                    $viewData['viewable_type'],
+                    $viewData['viewable_id'],
+                    $viewData['user_id']
+                );
+            }
+        }
+
         // Check if view can be tracked (includes cooldown and guest limit checks)
         return ModelView::canView(
             $viewData['viewable_type'],
@@ -65,7 +78,11 @@ class ViewTrackingService
             $viewData['ip_timezone'],
             $viewData['device_type'],
             $viewData['device_platform'],
-            $viewData['device_browser']
+            $viewData['device_browser'],
+            $viewData['is_bot'],
+            $viewData['bot_name'],
+            $viewData['is_search_engine'],
+            $viewData['is_social_media']
         );
     }
 
@@ -80,6 +97,10 @@ class ViewTrackingService
         
         // Get device data from user agent
         $deviceData = $this->deviceDetectionService->detectDevice($userAgent, $ipAddress);
+        
+        // Get bot information from request attributes (set by BotDetectionMiddleware)
+        $isBot = $request->attributes->get('is_bot', false);
+        $botInfo = $request->attributes->get('bot_info', []);
         
         // With guest authentication system, we always have a user (either real user or guest)
         // No need for session-based tracking anymore
@@ -102,6 +123,11 @@ class ViewTrackingService
             'device_type' => $deviceData['device_type'],
             'device_platform' => $deviceData['device_platform'],
             'device_browser' => $deviceData['device_browser'],
+            // Bot information
+            'is_bot' => $isBot,
+            'bot_name' => $botInfo['bot_name'] ?? null,
+            'is_search_engine' => $botInfo['is_search_engine'] ?? null,
+            'is_social_media' => $botInfo['is_social_media'] ?? null,
         ];
     }
 

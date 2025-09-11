@@ -19,11 +19,13 @@ class CaseResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        return [
+        $isBot = $request->attributes->get('is_bot', false);
+        $filterSensitiveContent = $isBot && config('bot-detection.bot_access.filter_sensitive_content', true);
+        $excludedFields = config('bot-detection.bot_access.case_excluded_fields', ['report', 'case_report_text']);
+
+        $data = [
             'id' => $this->id,
             'title' => $this->title,
-            'body' => $this->body,
-            'report' => $this->report,
             'course' => $this->course,
             'topic' => $this->topic,
             'tag' => $this->tag,
@@ -36,16 +38,49 @@ class CaseResource extends JsonResource
             'citation' => $this->citation,
             'judges' => $this->judges,
             'judicial_precedent' => $this->judicial_precedent,
-            'case_report_text' => $this->whenLoaded('caseReport', function () {
+        ];
+
+        // Add sensitive fields conditionally (exclude for bots if filtering is enabled)
+        if (!($filterSensitiveContent && in_array('body', $excludedFields))) {
+            $data['body'] = $this->body;
+        }
+
+        if (!($filterSensitiveContent && in_array('report', $excludedFields))) {
+            $data['report'] = $this->report;
+        }
+
+        if (!($filterSensitiveContent && in_array('case_report_text', $excludedFields))) {
+            $data['case_report_text'] = $this->whenLoaded('caseReport', function () {
                 return $this->caseReport?->full_report_text;
-            }),
+            });
+        }
+
+        // Add bot indicator if it's a bot request
+        if ($isBot) {
+            $data['isBot'] = true;
+            $botInfo = $request->attributes->get('bot_info', []);
+            if (!empty($botInfo['bot_name'])) {
+                $data['bot_info'] = [
+                    'bot_name' => $botInfo['bot_name'],
+                    'is_search_engine' => $botInfo['is_search_engine'] ?? false,
+                    'is_social_media' => $botInfo['is_social_media'] ?? false,
+                ];
+            }
+        }
+
+        // Add remaining fields
+        $remainingFields = [
             'creator' => $this->whenLoaded('creator', function () {
                 return [
                     'id' => $this->creator->id,
                     'name' => $this->creator->name,
                 ];
             }),
-            'files' => $this->whenLoaded('files', function () {
+        ];
+
+        // Add files field conditionally (exclude for bots if filtering is enabled)
+        if (!($filterSensitiveContent && in_array('files', $excludedFields))) {
+            $remainingFields['files'] = $this->whenLoaded('files', function () {
                 if (static::$useSimplifiedFiles) {
                     // Return simplified file information
                     return $this->files->map(function ($file) {
@@ -65,7 +100,10 @@ class CaseResource extends JsonResource
                 }
                 
                 return FileResource::collection($this->files);
-            }),
+            });
+        }
+
+        $data = array_merge($data, $remainingFields, [
             'files_count' => $this->when($this->relationLoaded('files'), $this->files->count()),
             'views_count' => $this->viewsCount(),
             'similar_cases' => $this->when(
@@ -154,6 +192,8 @@ class CaseResource extends JsonResource
             ),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
-        ];
+        ]);
+
+        return $data;
     }
 }
