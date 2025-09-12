@@ -23,6 +23,10 @@ Get comprehensive dashboard analytics with period-over-period comparisons, key m
 - `end_date` (optional, date): End date for custom time filter (required when time_filter is "custom", must be after start_date)
 - `model_type` (optional, string): Filter by content type (e.g., "App\\Models\\CourtCase")
 - `country` (optional, string): Filter by country name (partial matching supported)
+- `is_bot` (optional, boolean): Filter by bot status - true for bot views only, false for human views only
+- `bot_name` (optional, string): Filter by specific bot name (max 255 chars)
+- `is_search_engine` (optional, boolean): Filter for search engine bot views when true
+- `is_social_media` (optional, boolean): Filter for social media bot views when true
 
 **Request Examples:**
 ```bash
@@ -45,6 +49,26 @@ curl -H "Authorization: Bearer {admin_token}" \
 curl -H "Authorization: Bearer {admin_token}" \
      -H "Accept: application/json" \
      "{base_url}/api/admin/views/stats/dashboard?time_filter=last_30d&country=Nigeria"
+
+# Bot views only
+curl -H "Authorization: Bearer {admin_token}" \
+     -H "Accept: application/json" \
+     "{base_url}/api/admin/views/stats/dashboard?is_bot=1&time_filter=last_7d"
+
+# Human views only (excludes bots)
+curl -H "Authorization: Bearer {admin_token}" \
+     -H "Accept: application/json" \
+     "{base_url}/api/admin/views/stats/dashboard?is_bot=0&time_filter=last_7d"
+
+# Search engine bot views only
+curl -H "Authorization: Bearer {admin_token}" \
+     -H "Accept: application/json" \
+     "{base_url}/api/admin/views/stats/dashboard?is_search_engine=1&time_filter=last_30d"
+
+# Specific bot analysis
+curl -H "Authorization: Bearer {admin_token}" \
+     -H "Accept: application/json" \
+     "{base_url}/api/admin/views/stats/dashboard?bot_name=Google%20Bot&time_filter=last_7d"
 ```
 
 **Response Example:**
@@ -86,6 +110,26 @@ curl -H "Authorization: Bearer {admin_token}" \
                 "current": 4,
                 "previous": 0,
                 "change_percent": 100
+            },
+            "bot_views": {
+                "current": 7,
+                "previous": 0,
+                "change_percent": 100
+            },
+            "human_views": {
+                "current": 125,
+                "previous": 101,
+                "change_percent": 23.8
+            },
+            "search_engine_views": {
+                "current": 4,
+                "previous": 0,
+                "change_percent": 100
+            },
+            "social_media_views": {
+                "current": 0,
+                "previous": 0,
+                "change_percent": 0
             }
         },
         "analytics": {
@@ -136,7 +180,23 @@ curl -H "Authorization: Bearer {admin_token}" \
                     "hour": 12,
                     "views": 3
                 }
-            ]
+            ],
+            "bot_breakdown": {
+                "total_bot_views": 7,
+                "total_human_views": 125,
+                "search_engine_bots": 4,
+                "social_media_bots": 0,
+                "top_bots": [
+                    {
+                        "bot_name": "Google Bot",
+                        "views": 4
+                    },
+                    {
+                        "bot_name": "Bing Bot",
+                        "views": 2
+                    }
+                ]
+            }
         }
     }
 }
@@ -157,7 +217,12 @@ List and filter individual view records with detailed information and pagination
 - `end_date` (optional, date): Filter views up to this date (ignored if time_filter is provided, required for time_filter=custom)
 - `country` (optional, string): Filter by country name (partial matching supported)
 - `ip_address` (optional, IP): Filter by specific IP address
-- `search` (optional, string): Search across user agent, country, city, device type, platform, and browser (max 255 chars)
+- `search` (optional, string): Search across user agent, country, city, device type, platform, browser, and bot name (max 255 chars)
+- `is_bot` (optional, boolean): Filter by bot status - true for bot views only, false for human views only
+- `bot_name` (optional, string): Filter by specific bot name (max 255 chars)
+- `is_search_engine` (optional, boolean): Filter for search engine bot views when true
+- `is_social_media` (optional, boolean): Filter for social media bot views when true
+- `sort_by` (optional, string): Sort results - "bot_status" (bots first), "bot_name" (alphabetical by bot name), "viewed_at" (default, newest first)
 - `per_page` (optional, integer): Number of records per page (1-100, defaults to 15)
 
 **Request Examples:**
@@ -196,6 +261,36 @@ curl -H "Authorization: Bearer {admin_token}" \
 curl -H "Authorization: Bearer {admin_token}" \
      -H "Accept: application/json" \
      "{base_url}/api/admin/views?search=mobile&per_page=10"
+
+# Bot views only
+curl -H "Authorization: Bearer {admin_token}" \
+     -H "Accept: application/json" \
+     "{base_url}/api/admin/views?is_bot=1&per_page=20"
+
+# Human views only (exclude bots)
+curl -H "Authorization: Bearer {admin_token}" \
+     -H "Accept: application/json" \
+     "{base_url}/api/admin/views?is_bot=0&per_page=20"
+
+# Search engine bots only
+curl -H "Authorization: Bearer {admin_token}" \
+     -H "Accept: application/json" \
+     "{base_url}/api/admin/views?is_search_engine=1&time_filter=last_7d"
+
+# Specific bot name filtering
+curl -H "Authorization: Bearer {admin_token}" \
+     -H "Accept: application/json" \
+     "{base_url}/api/admin/views?bot_name=Google%20Bot&per_page=10"
+
+# Sort by bot status (bots first, then humans)
+curl -H "Authorization: Bearer {admin_token}" \
+     -H "Accept: application/json" \
+     "{base_url}/api/admin/views?sort_by=bot_status&per_page=15"
+
+# Sort by bot name alphabetically
+curl -H "Authorization: Bearer {admin_token}" \
+     -H "Accept: application/json" \
+     "{base_url}/api/admin/views?is_bot=1&sort_by=bot_name&per_page=20"
 ```
 
 **Response Example:**
@@ -227,6 +322,10 @@ curl -H "Authorization: Bearer {admin_token}" \
                 "device_type": "desktop",
                 "device_platform": null,
                 "device_browser": null,
+                "is_bot": false,
+                "bot_name": null,
+                "is_search_engine": null,
+                "is_social_media": null,
                 "user": {
                     "id": 90,
                     "name": "Test Admin User",
@@ -292,6 +391,10 @@ The dashboard endpoint supports various time filter types with automatic period 
 - **Unique Users**: Count of distinct users who viewed content
 - **Guest Views**: Views by users with `role = 'guest'`
 - **Registered Views**: Views by users with roles other than guest
+- **Bot Views**: Views identified as coming from automated bots
+- **Human Views**: Views from actual human users (excludes bots)
+- **Search Engine Views**: Views from search engine crawlers (Google Bot, Bing Bot, etc.)
+- **Social Media Views**: Views from social media platform crawlers
 
 ### Period-over-Period Comparisons
 All metrics include:
@@ -301,9 +404,14 @@ All metrics include:
 
 ### Analytics Breakdowns
 - **Top Countries**: Geographic distribution of views (top 10)
-- **Top Devices**: Device type distribution (desktop, mobile, tablet)
+- **Top Devices**: Device type distribution (desktop, mobile, tablet, robot)
 - **Top Content**: Most viewed content with titles (top 10)
 - **Hourly Distribution**: View patterns by hour of day (0-23)
+- **Bot Breakdown**: Detailed bot analytics including:
+  - Total bot views vs human views
+  - Search engine bot views count
+  - Social media bot views count
+  - Top bots by view count (top 10)
 
 ---
 
@@ -429,6 +537,38 @@ GET /?time_filter=last_7d&per_page=50
 # Both return data for identical time range (last 7 days)
 # Dashboard shows: 142 total views, 89 unique users
 # Views list shows: 142 individual records with full details
+
+### Bot Traffic Analysis
+```bash
+# Analyze bot vs human traffic patterns
+GET /stats/dashboard?time_filter=last_30d
+
+# Focus on search engine bot activity
+GET /stats/dashboard?is_search_engine=1&time_filter=last_7d
+GET /?is_search_engine=1&time_filter=last_7d&per_page=50
+
+# Monitor specific bot behavior
+GET /stats/dashboard?bot_name=Google%20Bot&time_filter=last_30d
+GET /?bot_name=Google%20Bot&sort_by=viewed_at&per_page=100
+
+# Get clean human-only analytics (exclude bots)
+GET /stats/dashboard?is_bot=0&time_filter=this_month
+GET /?is_bot=0&time_filter=this_month&per_page=50
+```
+
+### SEO and Bot Monitoring
+```bash
+# Monitor search engine crawler activity
+GET /stats/dashboard?is_search_engine=1&time_filter=last_7d
+
+# Identify the most active search engine bots
+GET /?is_search_engine=1&sort_by=bot_name&per_page=100
+
+# Analyze bot access patterns by content type
+GET /stats/dashboard?is_bot=1&model_type=App\Models\CourtCase&time_filter=last_30d
+
+# Check for suspicious bot activity
+GET /?search=bot&sort_by=viewed_at&per_page=50
 ```
 
 ---
@@ -447,3 +587,9 @@ GET /?time_filter=last_7d&per_page=50
 - All results are sorted by latest activity first (most recent views first)
 - Both endpoints support identical `time_filter` parameters for synchronized filtering
 - Time filters use consistent logic ensuring dashboard metrics match view record counts
+- Bot detection is performed automatically using User-Agent analysis and bot detection rules
+- Search engine bots include crawlers from Google, Bing, Yahoo, DuckDuckGo, and other major search engines
+- Social media bots include crawlers from Facebook, Twitter, LinkedIn, and other social platforms
+- Bot name identification provides specific bot names (e.g., "Google Bot", "Bing Bot") when detectable
+- Use `is_bot=0` parameter to get "clean" human-only analytics excluding all automated traffic
+- Bot filtering is available on both dashboard metrics and individual view records for consistent analysis

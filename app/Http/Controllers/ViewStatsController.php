@@ -30,6 +30,11 @@ class ViewStatsController extends Controller
             'ip_address' => 'sometimes|ip',
             'search' => 'sometimes|string|max:255',
             'per_page' => 'sometimes|integer|min:1|max:100',
+            'is_bot' => 'sometimes|boolean',
+            'bot_name' => 'sometimes|string|max:255',
+            'is_search_engine' => 'sometimes|boolean',
+            'is_social_media' => 'sometimes|boolean',
+            'sort_by' => 'sometimes|string|in:bot_status,viewed_at,bot_name',
         ]);
 
         $query = ModelView::with(['user:id,name,email,role', 'viewable']);
@@ -80,12 +85,47 @@ class ViewStatsController extends Controller
                   ->orWhere('ip_city', 'like', '%' . $search . '%')
                   ->orWhere('device_type', 'like', '%' . $search . '%')
                   ->orWhere('device_platform', 'like', '%' . $search . '%')
-                  ->orWhere('device_browser', 'like', '%' . $search . '%');
+                  ->orWhere('device_browser', 'like', '%' . $search . '%')
+                  ->orWhere('bot_name', 'like', '%' . $search . '%');
             });
         }
 
+        // Apply bot filtering
+        if (isset($validated['is_bot'])) {
+            if ($validated['is_bot']) {
+                $query->botViews();
+            } else {
+                $query->humanViews();
+            }
+        }
+
+        if (isset($validated['bot_name'])) {
+            $query->byBotName($validated['bot_name']);
+        }
+
+        if (isset($validated['is_search_engine']) && $validated['is_search_engine']) {
+            $query->searchEngineViews();
+        }
+
+        if (isset($validated['is_social_media']) && $validated['is_social_media']) {
+            $query->socialMediaViews();
+        }
+
+        // Apply sorting
+        $sortBy = $validated['sort_by'] ?? 'viewed_at';
+        switch ($sortBy) {
+            case 'bot_status':
+                $query->orderBy('is_bot', 'desc')->orderBy('viewed_at', 'desc');
+                break;
+            case 'bot_name':
+                $query->orderBy('bot_name', 'asc')->orderBy('viewed_at', 'desc');
+                break;
+            default:
+                $query->latest('viewed_at');
+        }
+
         $perPage = $validated['per_page'] ?? 15;
-        $views = $query->latest('viewed_at')->paginate($perPage);
+        $views = $query->paginate($perPage);
 
         return $this->successResponse(
             new ModelViewCollection($views),
@@ -107,6 +147,10 @@ class ViewStatsController extends Controller
             'end_date' => 'sometimes|date|after_or_equal:start_date',
             'model_type' => 'sometimes|string',
             'country' => 'sometimes|string',
+            'is_bot' => 'sometimes|boolean',
+            'bot_name' => 'sometimes|string|max:255',
+            'is_search_engine' => 'sometimes|boolean',
+            'is_social_media' => 'sometimes|boolean',
         ]);
 
         // Determine time periods
@@ -125,6 +169,29 @@ class ViewStatsController extends Controller
         
         if (isset($validated['country'])) {
             $baseQuery->where('ip_country', 'like', '%' . $validated['country'] . '%');
+        }
+
+        // Apply bot filtering to base query
+        if (isset($validated['is_bot'])) {
+            if ($validated['is_bot']) {
+                $baseQuery->where('is_bot', true);
+            } else {
+                $baseQuery->where(function($q) {
+                    $q->where('is_bot', false)->orWhereNull('is_bot');
+                });
+            }
+        }
+
+        if (isset($validated['bot_name'])) {
+            $baseQuery->where('bot_name', $validated['bot_name']);
+        }
+
+        if (isset($validated['is_search_engine']) && $validated['is_search_engine']) {
+            $baseQuery->where('is_search_engine', true);
+        }
+
+        if (isset($validated['is_social_media']) && $validated['is_social_media']) {
+            $baseQuery->where('is_social_media', true);
         }
 
         // Calculate current period metrics
@@ -154,6 +221,26 @@ class ViewStatsController extends Controller
                 'current' => $currentMetrics['registered_views'],
                 'previous' => $comparisonMetrics['registered_views'],
                 'change_percent' => $this->calculatePercentageChange($comparisonMetrics['registered_views'], $currentMetrics['registered_views']),
+            ],
+            'bot_views' => [
+                'current' => $currentMetrics['bot_views'],
+                'previous' => $comparisonMetrics['bot_views'],
+                'change_percent' => $this->calculatePercentageChange($comparisonMetrics['bot_views'], $currentMetrics['bot_views']),
+            ],
+            'human_views' => [
+                'current' => $currentMetrics['human_views'],
+                'previous' => $comparisonMetrics['human_views'],
+                'change_percent' => $this->calculatePercentageChange($comparisonMetrics['human_views'], $currentMetrics['human_views']),
+            ],
+            'search_engine_views' => [
+                'current' => $currentMetrics['search_engine_views'],
+                'previous' => $comparisonMetrics['search_engine_views'],
+                'change_percent' => $this->calculatePercentageChange($comparisonMetrics['search_engine_views'], $currentMetrics['search_engine_views']),
+            ],
+            'social_media_views' => [
+                'current' => $currentMetrics['social_media_views'],
+                'previous' => $comparisonMetrics['social_media_views'],
+                'change_percent' => $this->calculatePercentageChange($comparisonMetrics['social_media_views'], $currentMetrics['social_media_views']),
             ],
         ];
 
@@ -895,6 +982,12 @@ class ViewStatsController extends Controller
             'registered_views' => (clone $query)->whereHas('user', function($q) {
                 $q->where('role', '!=', 'guest');
             })->count(),
+            'bot_views' => (clone $query)->where('is_bot', true)->count(),
+            'human_views' => (clone $query)->where(function($q) {
+                $q->where('is_bot', false)->orWhereNull('is_bot');
+            })->count(),
+            'search_engine_views' => (clone $query)->where('is_search_engine', true)->count(),
+            'social_media_views' => (clone $query)->where('is_social_media', true)->count(),
         ];
     }
 
@@ -954,6 +1047,28 @@ class ViewStatsController extends Controller
                     ];
                 }),
             'hourly_distribution' => $this->getHourlyDistribution(clone $query),
+            'bot_breakdown' => [
+                'total_bot_views' => (clone $query)->where('is_bot', true)->count(),
+                'total_human_views' => (clone $query)->where(function($q) {
+                    $q->where('is_bot', false)->orWhereNull('is_bot');
+                })->count(),
+                'search_engine_bots' => (clone $query)->where('is_search_engine', true)->count(),
+                'social_media_bots' => (clone $query)->where('is_social_media', true)->count(),
+                'top_bots' => (clone $query)
+                    ->select('bot_name', DB::raw('COUNT(*) as views'))
+                    ->where('is_bot', true)
+                    ->whereNotNull('bot_name')
+                    ->groupBy('bot_name')
+                    ->orderByDesc('views')
+                    ->limit(10)
+                    ->get()
+                    ->map(function($item) {
+                        return [
+                            'bot_name' => $item->bot_name,
+                            'views' => (int) $item->views,
+                        ];
+                    }),
+            ],
         ];
     }
 

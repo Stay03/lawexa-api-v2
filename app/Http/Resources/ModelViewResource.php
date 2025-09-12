@@ -36,6 +36,10 @@ class ModelViewResource extends JsonResource
             'viewed_at' => $this->viewed_at,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
+            'is_bot' => $this->is_bot,
+            'bot_name' => $this->bot_name,
+            'is_search_engine' => $this->is_search_engine,
+            'is_social_media' => $this->is_social_media,
             'user' => $this->when($this->relationLoaded('user') && $this->user, function () {
                 return [
                     'id' => $this->user->id,
