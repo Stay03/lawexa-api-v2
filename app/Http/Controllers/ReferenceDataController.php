@@ -144,24 +144,8 @@ class ReferenceDataController extends Controller
                 return [strtolower(trim($profession)) => trim($profession)];
             })
             ->map(function ($group) {
-                // For each group of case variations, pick the best formatted version
-                // Prefer title case, then original case, avoiding all uppercase
-                $sorted = $group->sort(function ($a, $b) {
-                    $aTitleCase = ucwords(strtolower($a));
-                    $bTitleCase = ucwords(strtolower($b));
-
-                    // Prefer exact title case match
-                    if ($a === $aTitleCase && $b !== $bTitleCase) return -1;
-                    if ($b === $bTitleCase && $a !== $aTitleCase) return 1;
-
-                    // Avoid all uppercase
-                    if ($a === strtoupper($a) && $b !== strtoupper($b)) return 1;
-                    if ($b === strtoupper($b) && $a !== strtoupper($a)) return -1;
-
-                    return strcmp($a, $b);
-                });
-
-                return $sorted->first();
+                // Convert to consistent title case format
+                return ucwords(strtolower($group->first()));
             })
             ->sort()
             ->values()
@@ -199,24 +183,8 @@ class ReferenceDataController extends Controller
                 return [strtolower(trim($area)) => trim($area)];
             })
             ->map(function ($group) {
-                // For each group of case variations, pick the best formatted version
-                // Prefer title case, then original case, avoiding all uppercase
-                $sorted = $group->sort(function ($a, $b) {
-                    $aTitleCase = ucwords(strtolower($a));
-                    $bTitleCase = ucwords(strtolower($b));
-
-                    // Prefer exact title case match
-                    if ($a === $aTitleCase && $b !== $bTitleCase) return -1;
-                    if ($b === $bTitleCase && $a !== $aTitleCase) return 1;
-
-                    // Avoid all uppercase
-                    if ($a === strtoupper($a) && $b !== strtoupper($b)) return 1;
-                    if ($b === strtoupper($b) && $a !== strtoupper($a)) return -1;
-
-                    return strcmp($a, $b);
-                });
-
-                return $sorted->first();
+                // Convert to consistent title case format
+                return ucwords(strtolower($group->first()));
             })
             ->sort()
             ->values()
