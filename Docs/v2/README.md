@@ -10,6 +10,8 @@
 ### 👤 User Documentation
 - [**Authentication System**](user/authentication.md) - Registration, login, logout, guest sessions
 - [**Profile Management**](user/profile-management.md) - Profile viewing and updates
+- [**User Onboarding**](user/onboarding.md) - Profile creation and setup process
+- [**Reference Data**](user/reference-data.md) - Countries, areas of expertise, universities
 - [**Case Management**](user/case-management.md) - Browse cases, search, filtering, view tracking
 - [**Account Management**](user/account-management.md) - Settings, preferences, security
 
@@ -74,6 +76,25 @@ curl -X GET "http://localhost:8000/api/user/profile" \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
+**Complete user onboarding:**
+```bash
+curl -X PUT "http://localhost:8000/api/onboarding/profile" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "profession": "lawyer",
+    "country": "Nigeria",
+    "area_of_expertise": ["Criminal Law", "Corporate Law", "Family Law"],
+    "work_experience": 5
+  }'
+```
+
+**Get reference data for forms:**
+```bash
+curl -X GET "http://localhost:8000/api/reference/areas-of-expertise" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE"
+```
+
 **Browse cases:**
 ```bash
 # Public access (no authentication required)
@@ -116,6 +137,23 @@ curl -X POST "http://localhost:8000/api/admin/cases" \
 1. **Standard Registration** - Email/password with verification
 2. **Google OAuth** - Single sign-on with Google accounts
 3. **Guest Sessions** - Temporary access without registration
+
+### Profile Features
+
+**Multiple Areas of Expertise:**
+- Users can select 1-5 professional areas from 89+ options
+- Spans legal, medical, engineering, technology, business, and academic fields
+- Automatic migration of existing single-value areas to arrays
+
+**Smart Profile Formatting:**
+- Auto-generated readable summaries: `"lawyer in Criminal Law, Corporate Law (5 years experience) from Nigeria"`
+- Helper methods: `is_student`, `is_lawyer`, `is_law_student`, `has_work_experience`
+- Conditional validation: University/level required for students
+
+**Reference Data Integration:**
+- Dynamic form population with current data
+- University search with country filtering
+- Academic levels supporting multiple educational systems (Nigerian, US, UK, International)
 
 ---
 
@@ -322,11 +360,20 @@ Docs/v2/
 ├── README.md                    # This overview document
 ├── user/                        # User-facing documentation
 │   ├── authentication.md       # Auth endpoints (register, login, logout)
-│   └── profile-management.md   # Profile viewing and updates
+│   ├── profile-management.md   # Profile viewing and updates
+│   ├── onboarding.md           # Profile creation and setup process
+│   ├── reference-data.md       # Countries, areas of expertise, universities
+│   ├── bookmarks.md            # Bookmark management system
+│   ├── folders.md              # Folder organization system
+│   ├── cases.md                # Case browsing and search
+│   └── trending.md             # Trending content and analytics
 └── admin/                       # Admin documentation
-    └── user-management.md       # Admin user CRUD operations
+    ├── user-management.md       # Admin user CRUD operations
+    ├── case-management.md       # Admin case management
+    ├── view-stats.md           # Admin view statistics
+    └── analytics-dashboard.md  # Admin dashboard and metrics
 
-responses/                       # Real API test responses  
+responses/                       # Real API test responses
 ├── comprehensive_tests/         # Full auth system tests
 └── admin_tests/                # Admin endpoint tests
 

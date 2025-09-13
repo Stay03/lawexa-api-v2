@@ -199,6 +199,7 @@ Route::middleware(['auth:sanctum', 'track.guest.activity'])->group(function () {
         Route::get('levels', [ReferenceDataController::class, 'getAcademicLevels']);
         Route::get('legal-areas', [ReferenceDataController::class, 'getLegalAreas']);
         Route::get('professions', [ReferenceDataController::class, 'getCommonProfessions']);
+        Route::get('areas-of-expertise', [ReferenceDataController::class, 'getAreasOfExpertise']);
     });
 
     // User subscription routes (require email verification)

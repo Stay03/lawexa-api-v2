@@ -46,6 +46,17 @@ Accept: application/json
       "subscription_expiry": null,
       "has_active_subscription": false,
       "subscriptions": [],
+      "profession": "lawyer",
+      "country": "Nigeria",
+      "area_of_expertise": ["Criminal Law", "Corporate Law", "Family Law"],
+      "university": null,
+      "level": null,
+      "work_experience": 5,
+      "formatted_profile": "lawyer in Criminal Law, Corporate Law, Family Law (5 years experience) from Nigeria",
+      "is_student": false,
+      "is_lawyer": true,
+      "is_law_student": false,
+      "has_work_experience": true,
       "email_verified_at": null,
       "created_at": "2025-08-25T20:24:15.000000Z",
       "updated_at": "2025-08-25T20:24:15.000000Z"
@@ -70,6 +81,17 @@ Accept: application/json
 | `subscription_expiry` | string\|null | ISO date of subscription expiry |
 | `has_active_subscription` | boolean | Whether user has active paid subscription |
 | `subscriptions` | array | List of user's subscription history |
+| `profession` | string\|null | User's profession (e.g., "lawyer", "student", "doctor") |
+| `country` | string\|null | User's country of residence |
+| `area_of_expertise` | array\|null | Array of expertise areas (max 5): `["Criminal Law", "Corporate Law"]` |
+| `university` | string\|null | University name (required for students) |
+| `level` | string\|null | Academic level (required for students) |
+| `work_experience` | integer\|null | Years of work experience |
+| `formatted_profile` | string\|null | Auto-generated profile summary |
+| `is_student` | boolean | Whether user's profession is "student" |
+| `is_lawyer` | boolean | Whether user's profession is "lawyer" |
+| `is_law_student` | boolean | Whether user is a student studying law |
+| `has_work_experience` | boolean | Whether user has work experience > 0 |
 | `email_verified_at` | string\|null | ISO timestamp of email verification |
 | `created_at` | string | Account creation timestamp |
 | `updated_at` | string | Last profile update timestamp |
@@ -94,13 +116,47 @@ Accept: application/json
 ```json
 {
   "name": "Updated Test User",
-  "email": "lawexatest1756153454@mailinator.com"
+  "email": "lawexatest1756153454@mailinator.com",
+  "profession": "lawyer",
+  "country": "Nigeria",
+  "area_of_expertise": ["Criminal Law", "Corporate Law", "Family Law"],
+  "work_experience": 5
+}
+```
+
+**Alternative Examples:**
+
+**Student Profile:**
+```json
+{
+  "name": "Law Student",
+  "profession": "student",
+  "country": "Nigeria",
+  "area_of_expertise": ["Law", "Political Science"],
+  "university": "University of Lagos",
+  "level": "300L"
+}
+```
+
+**Single Area of Expertise:**
+```json
+{
+  "profession": "doctor",
+  "country": "Canada",
+  "area_of_expertise": ["Cardiology"]
 }
 ```
 
 **Validation Rules:**
 - `name`: optional, string, max:255
 - `email`: optional, email, max:255, unique (except current user)
+- `profession`: optional, string, max:100
+- `country`: optional, string, max:100
+- `area_of_expertise`: optional, array, min:1, max:5 (when provided)
+- `area_of_expertise.*`: required, string, max:150 (each area)
+- `university`: optional, string, max:200 (required if profession is "student")
+- `level`: optional, string, max:50 (required if profession is "student")
+- `work_experience`: optional, integer, min:0, max:50
 
 **Success Response (200):**
 ```json
@@ -127,6 +183,17 @@ Accept: application/json
       "interval": null,
       "active_subscription": null,
       "subscriptions": [],
+      "profession": "lawyer",
+      "country": "Nigeria",
+      "area_of_expertise": ["Criminal Law", "Corporate Law", "Family Law"],
+      "university": null,
+      "level": null,
+      "work_experience": 5,
+      "formatted_profile": "lawyer in Criminal Law, Corporate Law, Family Law (5 years experience) from Nigeria",
+      "is_student": false,
+      "is_lawyer": true,
+      "is_law_student": false,
+      "has_work_experience": true,
       "email_verified_at": null,
       "created_at": "2025-08-25T20:24:15.000000Z",
       "updated_at": "2025-08-25T20:24:20.000000Z"
@@ -139,17 +206,83 @@ Accept: application/json
 ```json
 {
   "status": "error",
-  "message": "The given data was invalid.",
-  "data": {
+  "message": "Validation failed",
+  "data": null,
+  "errors": {
     "email": [
       "The email has already been taken."
     ],
     "name": [
       "The name may not be greater than 255 characters."
+    ],
+    "area_of_expertise": [
+      "You can select up to 5 areas of expertise"
+    ],
+    "university": [
+      "University is required for students"
+    ],
+    "level": [
+      "Academic level is required for students"
     ]
   }
 }
 ```
+
+**Multiple Areas Validation Examples:**
+
+**Too Many Areas (Error):**
+```json
+{
+  "status": "error",
+  "message": "Validation failed",
+  "errors": {
+    "area_of_expertise": ["You can select up to 5 areas of expertise"]
+  }
+}
+```
+
+**Empty Areas Array (Error):**
+```json
+{
+  "status": "error",
+  "message": "Validation failed",
+  "errors": {
+    "area_of_expertise": ["At least one area of expertise is required"]
+  }
+}
+```
+
+---
+
+## Profile Features
+
+### Helper Methods
+
+User profiles include computed boolean fields for easy frontend logic:
+
+| Field | Description | Logic |
+|-------|-------------|-------|
+| `is_student` | Whether user is a student | `profession === "student"` |
+| `is_lawyer` | Whether user is a lawyer | `profession === "lawyer"` |
+| `is_law_student` | Whether student studies law | Student with law-related area in `area_of_expertise` |
+| `has_work_experience` | Whether user has work experience | `work_experience > 0` |
+
+### Formatted Profile
+
+The `formatted_profile` field provides a human-readable summary:
+
+**Examples:**
+- `"lawyer in Criminal Law, Corporate Law, Family Law (5 years experience) from Nigeria"`
+- `"student in Law, Political Science at University of Lagos from Nigeria"`
+- `"doctor in Cardiology from Canada"`
+- `"consultant in Management, Finance and 4 other areas from UK"`
+
+**Formatting Rules:**
+- **Single area**: `"profession in Area from Country"`
+- **2-3 areas**: `"profession in Area1, Area2, Area3 from Country"`
+- **4+ areas**: `"profession in Area1, Area2 and X other areas from Country"`
+- **Students**: Includes university name
+- **Experience**: Shows years of experience when available
 
 ---
 
@@ -378,11 +511,17 @@ curl -X PUT "https://rest.lawexa.com/api/user/profile" \
 - **Password changes** are handled via dedicated password management endpoints
 - **Account deletion** requires contacting support or using dedicated deletion endpoints
 - **Subscription management** has separate endpoints under `/subscriptions`
+- **Multiple Areas of Expertise**: Users can select 1-5 areas from available professional areas
+- **Backward Compatibility**: Existing single-value areas automatically migrated to arrays
+- **Reference Data**: Available areas can be dynamically fetched from `/api/reference/areas-of-expertise`
+- **Student Validation**: University and level are required when profession is "student"
 
 ---
 
 ## Related Endpoints
 
 - [Authentication](/docs/v2/user/authentication.md) - Login, registration, logout
+- [Onboarding](/docs/v2/user/onboarding.md) - Profile creation and setup
+- [Reference Data](/docs/v2/user/reference-data.md) - Countries, areas of expertise, universities
 - [Subscriptions](/docs/v2/user/subscriptions.md) - Subscription management
 - [File Uploads](/docs/v2/user/uploads.md) - Profile picture uploads

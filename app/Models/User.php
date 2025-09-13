@@ -74,6 +74,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'password' => 'hashed',
             'guest_expires_at' => 'datetime',
             'last_activity_at' => 'datetime',
+            'area_of_expertise' => 'array',
         ];
     }
 
@@ -130,7 +131,19 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function isLawStudent(): bool
     {
-        return $this->profession === 'student' && strtolower($this->area_of_expertise) === 'law';
+        if ($this->profession !== 'student' || empty($this->area_of_expertise)) {
+            return false;
+        }
+
+        $areas = is_array($this->area_of_expertise) ? $this->area_of_expertise : [$this->area_of_expertise];
+
+        foreach ($areas as $area) {
+            if (strtolower($area) === 'law' || str_contains(strtolower($area), 'law')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function hasWorkExperience(): bool
@@ -302,8 +315,16 @@ class User extends Authenticatable implements MustVerifyEmail
 
         $parts = [$this->profession];
         
-        if ($this->area_of_expertise) {
-            $parts[] = "in {$this->area_of_expertise}";
+        if ($this->area_of_expertise && !empty($this->area_of_expertise)) {
+            $areas = is_array($this->area_of_expertise) ? $this->area_of_expertise : [$this->area_of_expertise];
+
+            if (count($areas) === 1) {
+                $parts[] = "in {$areas[0]}";
+            } elseif (count($areas) <= 3) {
+                $parts[] = "in " . implode(', ', $areas);
+            } else {
+                $parts[] = "in " . implode(', ', array_slice($areas, 0, 2)) . " and " . (count($areas) - 2) . " other areas";
+            }
         }
         
         if ($this->isStudent() && $this->university) {

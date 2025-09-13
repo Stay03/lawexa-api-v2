@@ -136,38 +136,94 @@ class ReferenceDataController extends Controller
 
     public function getCommonProfessions(): JsonResponse
     {
-        $professions = [
-            'lawyer',
-            'student',
-            'doctor',
-            'engineer',
-            'teacher',
-            'nurse',
-            'accountant',
-            'consultant',
-            'manager',
-            'analyst',
-            'developer',
-            'designer',
-            'researcher',
-            'journalist',
-            'entrepreneur',
-            'pharmacist',
-            'architect',
-            'psychologist',
-            'social worker',
-            'marketing specialist',
-            'sales representative',
-            'project manager',
-            'administrator',
-            'technician',
-            'other',
-        ];
+        $professions = \App\Models\User::whereNotNull('profession')
+            ->where('profession', '!=', '')
+            ->pluck('profession')
+            ->filter()
+            ->mapToGroups(function ($profession) {
+                return [strtolower(trim($profession)) => trim($profession)];
+            })
+            ->map(function ($group) {
+                // For each group of case variations, pick the best formatted version
+                // Prefer title case, then original case, avoiding all uppercase
+                $sorted = $group->sort(function ($a, $b) {
+                    $aTitleCase = ucwords(strtolower($a));
+                    $bTitleCase = ucwords(strtolower($b));
 
-        sort($professions);
+                    // Prefer exact title case match
+                    if ($a === $aTitleCase && $b !== $bTitleCase) return -1;
+                    if ($b === $bTitleCase && $a !== $aTitleCase) return 1;
+
+                    // Avoid all uppercase
+                    if ($a === strtoupper($a) && $b !== strtoupper($b)) return 1;
+                    if ($b === strtoupper($b) && $a !== strtoupper($a)) return -1;
+
+                    return strcmp($a, $b);
+                });
+
+                return $sorted->first();
+            })
+            ->sort()
+            ->values()
+            ->toArray();
 
         return ApiResponse::success([
             'professions' => $professions
         ], 'Common professions retrieved successfully');
+    }
+
+    public function getAreasOfExpertise(): JsonResponse
+    {
+        $users = \App\Models\User::whereNotNull('area_of_expertise')
+            ->where('area_of_expertise', '!=', '[]')
+            ->where('area_of_expertise', '!=', '')
+            ->select('area_of_expertise')
+            ->get();
+
+        $areas = collect();
+
+        foreach ($users as $user) {
+            $userAreas = $user->area_of_expertise;
+            if (is_array($userAreas) && !empty($userAreas)) {
+                foreach ($userAreas as $area) {
+                    if (!empty(trim($area))) {
+                        $areas->push(trim($area));
+                    }
+                }
+            }
+        }
+
+        // Apply case-insensitive consolidation
+        $uniqueAreas = $areas->filter()
+            ->mapToGroups(function ($area) {
+                return [strtolower(trim($area)) => trim($area)];
+            })
+            ->map(function ($group) {
+                // For each group of case variations, pick the best formatted version
+                // Prefer title case, then original case, avoiding all uppercase
+                $sorted = $group->sort(function ($a, $b) {
+                    $aTitleCase = ucwords(strtolower($a));
+                    $bTitleCase = ucwords(strtolower($b));
+
+                    // Prefer exact title case match
+                    if ($a === $aTitleCase && $b !== $bTitleCase) return -1;
+                    if ($b === $bTitleCase && $a !== $aTitleCase) return 1;
+
+                    // Avoid all uppercase
+                    if ($a === strtoupper($a) && $b !== strtoupper($b)) return 1;
+                    if ($b === strtoupper($b) && $a !== strtoupper($a)) return -1;
+
+                    return strcmp($a, $b);
+                });
+
+                return $sorted->first();
+            })
+            ->sort()
+            ->values()
+            ->toArray();
+
+        return ApiResponse::success([
+            'areas' => $uniqueAreas
+        ], 'Areas of expertise retrieved successfully');
     }
 }
