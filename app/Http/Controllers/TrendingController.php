@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class TrendingController extends Controller
 {
@@ -23,7 +24,14 @@ class TrendingController extends Controller
         try {
             $filters = $this->validateAndExtractFilters($request);
 
-            $trendingContent = $this->trendingService->getTrendingContent($filters);
+            // Handle student detection with smart level filtering
+            if (isset($filters['student_detection_data'])) {
+                $studentResult = $this->getStudentTrendingContent($filters, $filters['student_detection_data']);
+                $trendingContent = $studentResult['trending_content'];
+                $filters = $studentResult['filters_used'];
+            } else {
+                $trendingContent = $this->trendingService->getTrendingContent($filters);
+            }
 
             $response = new TrendingCollection($trendingContent);
             $responseArray = $response->toArray(request());
@@ -42,6 +50,25 @@ class TrendingController extends Controller
                 $responseArray['country_detection_status'] = 'failed';
             } elseif (isset($filters['detected_country_data'])) {
                 $responseArray['country_detection_status'] = 'success';
+            }
+
+            // Add student detection data if available
+            if (isset($filters['student_detection_data'])) {
+                $studentData = $filters['student_detection_data'];
+                $responseArray['detected_university'] = [
+                    'name' => $studentData['university'],
+                    'level' => $studentData['level'],
+                    'user_id' => $studentData['user_id']
+                ];
+                $responseArray['student_detection_status'] = 'success';
+                $responseArray['level_filtering_applied'] = $filters['level_filtering_applied'] ?? false;
+                $responseArray['level_filtering_reason'] = $filters['level_filtering_reason'] ?? 'unknown';
+            }
+
+            // Add student detection failure if applicable
+            if (isset($filters['student_detection_failed'])) {
+                $responseArray['student_detection_status'] = 'failed';
+                $responseArray['student_detection_error'] = $filters['student_detection_failed'];
             }
 
             return ApiResponse::success(
@@ -96,7 +123,14 @@ class TrendingController extends Controller
             $filters = $this->validateAndExtractFilters($request);
             $filters['type'] = $type;
 
-            $trendingContent = $this->trendingService->getTrendingContent($filters);
+            // Handle student detection with smart level filtering
+            if (isset($filters['student_detection_data'])) {
+                $studentResult = $this->getStudentTrendingContent($filters, $filters['student_detection_data']);
+                $trendingContent = $studentResult['trending_content'];
+                $filters = $studentResult['filters_used'];
+            } else {
+                $trendingContent = $this->trendingService->getTrendingContent($filters);
+            }
 
             $message = "Trending {$type} retrieved successfully";
 
@@ -120,6 +154,25 @@ class TrendingController extends Controller
                 $responseArray['country_detection_status'] = 'success';
             }
 
+            // Add student detection data if available
+            if (isset($filters['student_detection_data'])) {
+                $studentData = $filters['student_detection_data'];
+                $responseArray['detected_university'] = [
+                    'name' => $studentData['university'],
+                    'level' => $studentData['level'],
+                    'user_id' => $studentData['user_id']
+                ];
+                $responseArray['student_detection_status'] = 'success';
+                $responseArray['level_filtering_applied'] = $filters['level_filtering_applied'] ?? false;
+                $responseArray['level_filtering_reason'] = $filters['level_filtering_reason'] ?? 'unknown';
+            }
+
+            // Add student detection failure if applicable
+            if (isset($filters['student_detection_failed'])) {
+                $responseArray['student_detection_status'] = 'failed';
+                $responseArray['student_detection_error'] = $filters['student_detection_failed'];
+            }
+
             return ApiResponse::success(
                 $responseArray,
                 $message
@@ -136,8 +189,9 @@ class TrendingController extends Controller
         $validated = $request->validate([
             'type' => 'sometimes|string|in:cases,statutes,divisions,provisions,notes,folders,comments,all',
             'country' => 'sometimes|string|max:255',
+            'student' => 'sometimes|string|in:yes',
             'university' => 'sometimes|string|max:255',
-            'level' => 'sometimes|string|in:undergraduate,graduate,postgraduate,phd',
+            'level' => 'sometimes|string|max:50',
             'time_range' => 'sometimes|string|in:today,week,month,year,custom',
             'start_date' => 'sometimes|date|required_if:time_range,custom',
             'end_date' => 'sometimes|date|after_or_equal:start_date|required_if:time_range,custom',
@@ -162,6 +216,20 @@ class TrendingController extends Controller
                 // If detection fails, remove country filter
                 unset($validated['country']);
                 $validated['country_detection_failed'] = true;
+            }
+        }
+
+        // Handle student=yes - detect from user profile
+        if (isset($validated['student']) && strtolower($validated['student']) === 'yes') {
+            $studentData = $this->detectStudentFromRequest($request);
+
+            if (isset($studentData['success']) && $studentData['success']) {
+                $validated['student_detection_data'] = $studentData;
+                // Don't set university/level here - will be handled in getStudentTrendingContent
+            } else {
+                // If student detection fails, remove student filter
+                unset($validated['student']);
+                $validated['student_detection_failed'] = $studentData;
             }
         }
 
@@ -191,11 +259,21 @@ class TrendingController extends Controller
         }
 
         if (isset($filters['university'])) {
-            $applied['university'] = $filters['university'];
+            if (isset($filters['student_detection_data'])) {
+                $levelText = isset($filters['level']) && $filters['level_filtering_applied'] ?
+                    " + {$filters['level']} (detected)" : " (detected from student profile)";
+                $applied['university'] = $filters['university'] . $levelText;
+            } else {
+                $applied['university'] = $filters['university'];
+            }
         }
 
         if (isset($filters['level'])) {
-            $applied['level'] = $filters['level'];
+            if (isset($filters['student_detection_data']) && ($filters['level_filtering_applied'] ?? false)) {
+                $applied['level'] = $filters['level'] . ' (detected from student profile)';
+            } else {
+                $applied['level'] = $filters['level'];
+            }
         }
 
         if (($filters['time_range'] ?? 'week') !== 'week') {
@@ -241,6 +319,83 @@ class TrendingController extends Controller
         }
 
         return null;
+    }
+
+    private function detectStudentFromRequest(Request $request): ?array
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return [
+                'error' => 'authentication_required',
+                'message' => 'User must be authenticated to use student detection'
+            ];
+        }
+
+        if (!$user->isStudent()) {
+            return [
+                'error' => 'not_a_student',
+                'message' => 'User is not registered as a student'
+            ];
+        }
+
+        if (empty($user->university)) {
+            return [
+                'error' => 'no_university',
+                'message' => 'Student profile has no university specified'
+            ];
+        }
+
+        return [
+            'university' => $user->university,
+            'level' => $user->level,
+            'user_id' => $user->id,
+            'is_student' => $user->is_student,
+            'success' => true
+        ];
+    }
+
+    private function getStudentTrendingContent(array $filters, array $studentData)
+    {
+        $university = $studentData['university'];
+        $level = $studentData['level'];
+        $type = $filters['type'] ?? 'all';
+
+        // Try with level filtering first
+        $filtersWithLevel = array_merge($filters, [
+            'university' => $university,
+            'level' => $level,
+            'student_detection_data' => $studentData,
+            'level_filtering_applied' => true,
+            'level_filtering_reason' => $level ? 'sufficient_content' : 'no_level_in_profile'
+        ]);
+
+        if ($level) {
+            $trendingWithLevel = $this->trendingService->getTrendingContent($filtersWithLevel);
+
+            // Check if we have enough content with level filtering
+            if ($trendingWithLevel->total() >= 3) {
+                return [
+                    'trending_content' => $trendingWithLevel,
+                    'filters_used' => $filtersWithLevel
+                ];
+            }
+        }
+
+        // Fallback to university-only filtering
+        $filtersWithoutLevel = array_merge($filters, [
+            'university' => $university,
+            'student_detection_data' => $studentData,
+            'level_filtering_applied' => false,
+            'level_filtering_reason' => $level ? 'insufficient_content' : 'no_level_in_profile'
+        ]);
+
+        $trendingWithoutLevel = $this->trendingService->getTrendingContent($filtersWithoutLevel);
+
+        return [
+            'trending_content' => $trendingWithoutLevel,
+            'filters_used' => $filtersWithoutLevel
+        ];
     }
 
     public function stats(Request $request): JsonResponse

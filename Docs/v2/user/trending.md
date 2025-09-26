@@ -77,8 +77,9 @@ Retrieve trending content across all content types, sorted by trending score.
 | `start_date` | date | No | - | Start date for custom range (required if `time_range=custom`) |
 | `end_date` | date | No | - | End date for custom range (required if `time_range=custom`) |
 | `country` | string | No | - | Filter by country. Use `yes` to auto-detect from IP address, or specify a country name/code |
+| `student` | string | No | - | Filter by student profile. Use `yes` to auto-detect from authenticated user's university |
 | `university` | string | No | - | Filter by user's university profile |
-| `level` | string | No | - | Filter by academic level (`undergraduate`, `graduate`, `postgraduate`, `phd`) |
+| `level` | string | No | - | Filter by academic level (any format, e.g., `100`, `100L`, `Level 100`, `undergraduate`, `graduate`, `postgraduate`, `phd`) |
 | `per_page` | integer | No | `15` | Number of items per page (1-50) |
 | `page` | integer | No | `1` | Page number for pagination |
 
@@ -439,8 +440,12 @@ GET /api/trending?university=University%20of%20Lagos
 
 **Filter by University and Academic Level:**
 ```http
+GET /api/trending?university=University%20of%20Lagos&level=100
+GET /api/trending?university=Central%20University%20Ghana&level=100L
 GET /api/trending?university=University%20of%20Lagos&level=undergraduate
 ```
+
+**Note**: Level filtering supports flexible formats including numeric levels (`100`, `200`, `300L`), descriptive levels (`Level 100`, `First Year`), and traditional academic levels (`undergraduate`, `graduate`, `postgraduate`, `phd`).
 
 ## Trending Metrics
 
@@ -644,6 +649,179 @@ IP geolocation results are cached for 24 hours to minimize external API calls an
 - The feature gracefully falls back if geolocation services are unavailable
 - Local development IPs (127.0.0.1, ::1) are skipped and will result in detection failure
 - The system uses multiple geolocation providers with automatic failover
+
+## Student-Based University Detection
+
+The trending API supports automatic university detection from authenticated user profiles. This feature allows students to see trending content specific to their academic community, with intelligent level filtering based on content availability.
+
+### Usage
+
+To enable student-based university detection, use `student=yes` in your request:
+
+**Example Request:**
+```http
+GET /api/trending?student=yes
+GET /api/trending/cases?student=yes
+GET /api/trending/statutes?student=yes&level=100
+```
+
+**Requirements:**
+- User must be authenticated (valid Bearer token required)
+- User must have `is_student = true` in their profile
+- User must have a university specified in their profile
+
+### Smart Level Filtering
+
+The system implements intelligent academic level filtering:
+
+1. **Primary Filtering**: Uses both university + user's academic level
+2. **Content Check**: Requires at least 3 items with level filtering
+3. **Automatic Fallback**: If insufficient content, uses university-only filtering
+4. **Transparency**: Shows whether level filtering was applied and why
+
+**Response Examples:**
+
+**Level Filtering Applied (sufficient content):**
+```json
+{
+  "detected_university": {
+    "name": "University of Lagos",
+    "level": "undergraduate",
+    "user_id": 215
+  },
+  "student_detection_status": "success",
+  "level_filtering_applied": true,
+  "level_filtering_reason": "sufficient_content",
+  "filters_applied": {
+    "university": "University of Lagos + undergraduate (detected)",
+    "level": "undergraduate (detected from student profile)"
+  }
+}
+```
+
+**Level Filtering Skipped (insufficient content):**
+```json
+{
+  "detected_university": {
+    "name": "University of Lagos",
+    "level": "undergraduate",
+    "user_id": 215
+  },
+  "student_detection_status": "success",
+  "level_filtering_applied": false,
+  "level_filtering_reason": "insufficient_content",
+  "filters_applied": {
+    "university": "University of Lagos (detected from student profile)"
+  }
+}
+```
+
+**No Level in Profile:**
+```json
+{
+  "detected_university": {
+    "name": "University of Lagos",
+    "level": null,
+    "user_id": 215
+  },
+  "student_detection_status": "success",
+  "level_filtering_applied": false,
+  "level_filtering_reason": "no_level_in_profile",
+  "filters_applied": {
+    "university": "University of Lagos (detected from student profile)"
+  }
+}
+```
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `detected_university` | object | University information detected from user profile |
+| `detected_university.name` | string | University name |
+| `detected_university.level` | string | Academic level (null if not set) |
+| `detected_university.user_id` | integer | User ID of the authenticated student |
+| `student_detection_status` | string | Detection status: `success` or `failed` |
+| `level_filtering_applied` | boolean | Whether level filtering was used |
+| `level_filtering_reason` | string | Why level was/wasn't applied: `sufficient_content`, `insufficient_content`, `no_level_in_profile` |
+
+### Error Handling
+
+If student detection fails, the API will:
+- Return `student_detection_status: "failed"`
+- Include `student_detection_error` with specific reason
+- Show trending content for all users (no university filter applied)
+- Continue processing the request normally
+
+**Error Examples:**
+
+**Not Authenticated:**
+```json
+{
+  "student_detection_status": "failed",
+  "student_detection_error": {
+    "error": "authentication_required",
+    "message": "User must be authenticated to use student detection"
+  }
+}
+```
+
+**Not a Student:**
+```json
+{
+  "student_detection_status": "failed",
+  "student_detection_error": {
+    "error": "not_a_student",
+    "message": "User is not registered as a student"
+  }
+}
+```
+
+**No University:**
+```json
+{
+  "student_detection_status": "failed",
+  "student_detection_error": {
+    "error": "no_university",
+    "message": "Student profile has no university specified"
+  }
+}
+```
+
+### Level Override
+
+Users can manually specify a level to override the automatic detection:
+
+```http
+GET /api/trending?student=yes&level=200
+```
+
+This will:
+- Auto-detect the user's university
+- Manually filter by the specified level
+- Still show detection status in response
+
+### Combined Filtering
+
+Student detection works with other filters:
+
+```http
+GET /api/trending?student=yes&country=Nigeria&time_range=month
+```
+
+This shows trending content for:
+- User's detected university
+- Academic level (if sufficient content)
+- Nigeria (country-based)
+- Last month (time range)
+
+### Notes
+
+- Student detection requires authentication and works only for student accounts
+- Smart level filtering ensures users always see relevant content
+- Level filtering is skipped if it would return fewer than 3 items
+- The feature respects existing privacy and data filtering settings
+- All trending endpoints support student detection
 
 ## Rate Limiting
 
