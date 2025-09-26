@@ -5,30 +5,45 @@ namespace App\Http\Controllers;
 use App\Http\Resources\TrendingCollection;
 use App\Http\Responses\ApiResponse;
 use App\Services\TrendingService;
+use App\Services\IpGeolocationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Log;
 
 class TrendingController extends Controller
 {
     public function __construct(
-        private TrendingService $trendingService
+        private TrendingService $trendingService,
+        private IpGeolocationService $ipGeolocationService
     ) {}
 
     public function index(Request $request): JsonResponse
     {
         try {
             $filters = $this->validateAndExtractFilters($request);
-            
+
             $trendingContent = $this->trendingService->getTrendingContent($filters);
-            
+
             $response = new TrendingCollection($trendingContent);
             $responseArray = $response->toArray(request());
-            
+
             // Add filters and stats at the root level
             $responseArray['filters_applied'] = $this->getAppliedFilters($filters);
             $responseArray['stats'] = $this->trendingService->getTrendingStats($filters);
-            
+
+            // Add detected country data if available
+            if (isset($filters['detected_country_data'])) {
+                $responseArray['detected_country'] = $filters['detected_country_data'];
+            }
+
+            // Add country detection status if applicable
+            if (isset($filters['country_detection_failed'])) {
+                $responseArray['country_detection_status'] = 'failed';
+            } elseif (isset($filters['detected_country_data'])) {
+                $responseArray['country_detection_status'] = 'success';
+            }
+
             return ApiResponse::success(
                 $responseArray,
                 'Trending content retrieved successfully'
@@ -80,19 +95,31 @@ class TrendingController extends Controller
         try {
             $filters = $this->validateAndExtractFilters($request);
             $filters['type'] = $type;
-            
+
             $trendingContent = $this->trendingService->getTrendingContent($filters);
-            
+
             $message = "Trending {$type} retrieved successfully";
-            
+
             $response = new TrendingCollection($trendingContent);
             $responseArray = $response->toArray(request());
-            
+
             // Add metadata at the root level
             $responseArray['content_type'] = $type;
             $responseArray['filters_applied'] = $this->getAppliedFilters($filters);
             $responseArray['stats'] = $this->trendingService->getTrendingStats($filters);
-            
+
+            // Add detected country data if available
+            if (isset($filters['detected_country_data'])) {
+                $responseArray['detected_country'] = $filters['detected_country_data'];
+            }
+
+            // Add country detection status if applicable
+            if (isset($filters['country_detection_failed'])) {
+                $responseArray['country_detection_status'] = 'failed';
+            } elseif (isset($filters['detected_country_data'])) {
+                $responseArray['country_detection_status'] = 'success';
+            }
+
             return ApiResponse::success(
                 $responseArray,
                 $message
@@ -125,6 +152,19 @@ class TrendingController extends Controller
             ]);
         }
 
+        // Handle country=yes - detect from IP
+        if (isset($validated['country']) && strtolower($validated['country']) === 'yes') {
+            $detectedCountry = $this->detectCountryFromRequest($request);
+            if ($detectedCountry) {
+                $validated['country'] = $detectedCountry['name'];
+                $validated['detected_country_data'] = $detectedCountry;
+            } else {
+                // If detection fails, remove country filter
+                unset($validated['country']);
+                $validated['country_detection_failed'] = true;
+            }
+        }
+
         // Set defaults
         $validated['type'] = $validated['type'] ?? 'all';
         $validated['time_range'] = $validated['time_range'] ?? 'week';
@@ -143,7 +183,11 @@ class TrendingController extends Controller
         }
 
         if (isset($filters['country'])) {
-            $applied['country'] = $filters['country'];
+            if (isset($filters['detected_country_data'])) {
+                $applied['country'] = $filters['country'] . ' (detected from IP)';
+            } else {
+                $applied['country'] = $filters['country'];
+            }
         }
 
         if (isset($filters['university'])) {
@@ -156,7 +200,7 @@ class TrendingController extends Controller
 
         if (($filters['time_range'] ?? 'week') !== 'week') {
             $applied['time_range'] = $filters['time_range'];
-            
+
             if ($filters['time_range'] === 'custom') {
                 $applied['custom_date_range'] = [
                     'start_date' => $filters['start_date'] ?? null,
@@ -166,6 +210,37 @@ class TrendingController extends Controller
         }
 
         return $applied;
+    }
+
+    private function detectCountryFromRequest(Request $request): ?array
+    {
+        $ipAddress = $request->ip();
+
+        if (!$ipAddress || $ipAddress === '127.0.0.1' || $ipAddress === '::1') {
+            return null;
+        }
+
+        try {
+            $location = $this->ipGeolocationService->getLocation($ipAddress);
+
+            if ($location && isset($location['country']) && !empty($location['country'])) {
+                return [
+                    'name' => $location['country'],
+                    'code' => $location['countryCode'] ?? null,
+                    'region' => $location['region'] ?? null,
+                    'city' => $location['city'] ?? null,
+                    'timezone' => $location['timezone'] ?? null,
+                    'ip_address' => $ipAddress,
+                ];
+            }
+        } catch (\Exception $e) {
+            Log::warning('Failed to detect country from IP in trending endpoint', [
+                'ip' => $ipAddress,
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        return null;
     }
 
     public function stats(Request $request): JsonResponse

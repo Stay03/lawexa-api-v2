@@ -76,7 +76,7 @@ Retrieve trending content across all content types, sorted by trending score.
 | `time_range` | string | No | `week` | Time period for trending analysis (`today`, `week`, `month`, `year`, `custom`) |
 | `start_date` | date | No | - | Start date for custom range (required if `time_range=custom`) |
 | `end_date` | date | No | - | End date for custom range (required if `time_range=custom`) |
-| `country` | string | No | - | Filter by user's country profile |
+| `country` | string | No | - | Filter by country. Use `yes` to auto-detect from IP address, or specify a country name/code |
 | `university` | string | No | - | Filter by user's university profile |
 | `level` | string | No | - | Filter by academic level (`undergraduate`, `graduate`, `postgraduate`, `phd`) |
 | `per_page` | integer | No | `15` | Number of items per page (1-50) |
@@ -557,6 +557,94 @@ When no trending content matches the filters:
 }
 ```
 
+## IP-Based Country Detection
+
+The trending API supports automatic country detection from the user's IP address. This feature allows you to get trending content specific to the user's geographic location without requiring them to specify a country.
+
+### Usage
+
+To enable IP-based country detection, use `country=yes` in your request:
+
+**Example Request:**
+```http
+GET /api/trending?country=yes
+GET /api/trending/cases?country=yes
+```
+
+### Response with Detected Country
+
+When IP detection is successful, the response includes additional country information:
+
+**Example Response:**
+```json
+{
+  "status": "success",
+  "message": "Trending content retrieved successfully",
+  "data": {
+    "trending": [...],
+    "detected_country": {
+      "name": "Nigeria",
+      "code": "NG",
+      "region": "Lagos",
+      "city": "Lagos",
+      "timezone": "Africa/Lagos",
+      "ip_address": "197.210.65.89"
+    },
+    "filters_applied": {
+      "country": "Nigeria (detected from IP)"
+    },
+    "country_detection_status": "success",
+    "stats": {...}
+  }
+}
+```
+
+### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `detected_country` | object | Country information detected from IP (only when detection succeeds) |
+| `detected_country.name` | string | Country name |
+| `detected_country.code` | string | Two-letter country code |
+| `detected_country.region` | string | State/region (if available) |
+| `detected_country.city` | string | City (if available) |
+| `detected_country.timezone` | string | Timezone (if available) |
+| `detected_country.ip_address` | string | The IP address that was geolocated |
+| `country_detection_status` | string | Detection status: `success`, `failed`, or absent if not used |
+
+### Error Handling
+
+If IP geolocation fails, the API will:
+- Return `country_detection_status: "failed"`
+- Omit the `detected_country` field
+- Show trending content for all countries (no country filter applied)
+- Continue processing the request normally
+
+**Failed Detection Example:**
+```json
+{
+  "status": "success",
+  "message": "Trending content retrieved successfully",
+  "data": {
+    "trending": [...],
+    "filters_applied": {},
+    "country_detection_status": "failed",
+    "stats": {...}
+  }
+}
+```
+
+### Caching
+
+IP geolocation results are cached for 24 hours to minimize external API calls and improve performance. The cache key is based on the IP address MD5 hash.
+
+### Notes
+
+- IP detection works for all trending endpoints (general and content-specific)
+- The feature gracefully falls back if geolocation services are unavailable
+- Local development IPs (127.0.0.1, ::1) are skipped and will result in detection failure
+- The system uses multiple geolocation providers with automatic failover
+
 ## Rate Limiting
 
 No rate limiting is applied to trending endpoints as they are read-only and publicly accessible.
@@ -566,4 +654,4 @@ No rate limiting is applied to trending endpoints as they are read-only and publ
 - Trending calculations require a minimum of 2 views for content to be considered trending
 - The trending algorithm updates in real-time based on current view data
 - Content types with no recent views will not appear in trending results
-- Geographic and demographic filtering is based on user profile data at the time of viewing
+- Geographic and demographic filtering is based on IP geolocation data at the time of viewing, with automatic detection support
