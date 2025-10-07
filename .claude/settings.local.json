@@ -67,7 +67,8 @@
       "Bash(./test-password-reset.sh:*)",
       "Bash(./test-trending-api.sh:*)",
       "Bash(./test-cooldown.sh:*)",
-      "Bash(./test-bot-filtering.sh:*)"
+      "Bash(./test-bot-filtering.sh:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "additionalDirectories": [

@@ -109,7 +109,78 @@ GET /notes?search=meeting&tag=work&is_private=false&page=1&per_page=10
 }
 ```
 
-### 2. Get Single Note (User)
+### 2. Get My Notes (User)
+
+**GET** `/notes/my-notes`
+
+Retrieves a paginated list of notes that belong exclusively to the authenticated user with filtering and search capabilities.
+
+#### Required Permissions
+- Authenticated user (any role)
+
+#### Query Parameters
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `search` | string | No | - | Search in title and content |
+| `tag` | string | No | - | Filter by specific tag |
+| `is_private` | boolean | No | - | Filter by privacy (true/false) |
+| `page` | integer | No | 1 | Page number |
+| `per_page` | integer | No | 15 | Items per page (max: 100) |
+
+#### Example Request
+```
+GET /notes/my-notes?search=meeting&tag=work&page=1&per_page=10
+```
+
+#### Success Response (200)
+```json
+{
+  "status": "success",
+  "message": "My notes retrieved successfully",
+  "data": {
+    "notes": [
+      {
+        "id": 1,
+        "title": "My Personal Note",
+        "content": "This is my personal note content",
+        "is_private": true,
+        "tags": ["personal", "important"],
+        "tags_list": "personal, important",
+        "user": {
+          "id": 2,
+          "name": "Dr. Arturo Rogahn",
+          "email": "Johnathon.Prohaska@hotmail.com"
+        },
+        "created_at": "2025-07-27T02:09:05.000000Z",
+        "updated_at": "2025-07-27T02:09:13.000000Z"
+      }
+    ],
+    "meta": {
+      "current_page": 1,
+      "from": 1,
+      "last_page": 1,
+      "per_page": 15,
+      "to": 1,
+      "total": 1
+    },
+    "links": {
+      "first": "http://localhost:8000/api/notes/my-notes?page=1",
+      "last": "http://localhost:8000/api/notes/my-notes?page=1",
+      "prev": null,
+      "next": null
+    }
+  }
+}
+```
+
+#### Key Differences from `/notes` Endpoint
+- **`/notes`**: Returns notes owned by the user AND public notes from other users
+- **`/notes/my-notes`**: Returns ONLY notes owned by the authenticated user (both private and public)
+
+This endpoint is useful when users want to view exclusively their own notes, regardless of privacy settings.
+
+### 3. Get Single Note (User)
 
 **GET** `/notes/{id}`
 
@@ -154,7 +225,7 @@ GET /notes/1
 }
 ```
 
-### 3. Create Note (User)
+### 4. Create Note (User)
 
 **POST** `/notes`
 
@@ -207,7 +278,7 @@ Creates a new note for the authenticated user.
 }
 ```
 
-### 4. Update Note (User)
+### 5. Update Note (User)
 
 **PUT** `/notes/{id}`
 
@@ -259,7 +330,7 @@ Same as Create Note endpoint (all fields optional for updates).
 }
 ```
 
-### 5. Delete Note (User)
+### 6. Delete Note (User)
 
 **DELETE** `/notes/{id}`
 
@@ -321,7 +392,7 @@ DELETE /notes/2
 
 ## Admin Endpoints
 
-### 6. Get Notes List (Admin)
+### 7. Get Notes List (Admin)
 
 **GET** `/admin/notes`
 
@@ -387,7 +458,7 @@ GET /admin/notes?search=meeting&user_id=2&page=1&per_page=15
 }
 ```
 
-### 7. Get Single Note (Admin)
+### 8. Get Single Note (Admin)
 
 **GET** `/admin/notes/{id}`
 
@@ -432,7 +503,7 @@ GET /admin/notes/1
 }
 ```
 
-### 8. Create Note (Admin)
+### 9. Create Note (Admin)
 
 **POST** `/admin/notes`
 
@@ -487,7 +558,7 @@ Creates a new note for any user in the system.
 }
 ```
 
-### 9. Update Note (Admin)
+### 10. Update Note (Admin)
 
 **PUT** `/admin/notes/{id}`
 
@@ -539,7 +610,7 @@ Same as Admin Create Note endpoint (all fields optional for updates except user_
 }
 ```
 
-### 10. Delete Note (Admin)
+### 11. Delete Note (Admin)
 
 **DELETE** `/admin/notes/{id}`
 
@@ -669,6 +740,12 @@ DELETE /admin/notes/3
 ---
 
 ## Common Use Cases
+
+### Get Only My Notes
+```
+GET /notes/my-notes
+GET /notes/my-notes?is_private=true
+```
 
 ### Search Notes
 ```

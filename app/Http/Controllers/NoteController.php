@@ -44,10 +44,44 @@ class NoteController extends Controller
                       ->paginate($request->get('per_page', 15));
 
         $noteCollection = new NoteCollection($notes);
-        
+
         return ApiResponse::success(
             $noteCollection->toArray($request),
             'Notes retrieved successfully'
+        );
+    }
+
+    public function myNotes(Request $request): JsonResponse
+    {
+        $query = Note::with(['user:id,name,email', 'comments'])
+                    ->withViewsCount()
+                    ->forUser($request->user()->id);
+
+        if ($request->has('search')) {
+            $query->search($request->search);
+        }
+
+        if ($request->has('tag')) {
+            $query->withTag($request->tag);
+        }
+
+        if ($request->has('is_private')) {
+            $isPrivate = filter_var($request->is_private, FILTER_VALIDATE_BOOLEAN);
+            if ($isPrivate) {
+                $query->private();
+            } else {
+                $query->public();
+            }
+        }
+
+        $notes = $query->orderByLatest()
+                      ->paginate($request->get('per_page', 15));
+
+        $noteCollection = new NoteCollection($notes);
+
+        return ApiResponse::success(
+            $noteCollection->toArray($request),
+            'My notes retrieved successfully'
         );
     }
 

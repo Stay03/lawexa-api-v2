@@ -223,6 +223,7 @@ Route::middleware(['auth:sanctum', 'track.guest.activity'])->group(function () {
 
     // User note routes
     Route::prefix('notes')->group(function () {
+        Route::get('my-notes', [NoteController::class, 'myNotes']);
         Route::get('/', [NoteController::class, 'index']);
         Route::post('/', [NoteController::class, 'store'])->middleware('verified');
         Route::put('{note}', [NoteController::class, 'update'])->middleware('verified');
