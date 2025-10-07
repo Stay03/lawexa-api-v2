@@ -141,6 +141,9 @@ class TrendingResource extends JsonResource
             'title' => $this->division_title,
             'slug' => $this->slug,
             'division_number' => $this->division_number,
+            'division_type' => $this->division_type,
+            'division_subtitle' => $this->division_subtitle,
+            'range' => $this->range,
             'content' => $this->content,
             'statute' => $this->whenLoaded('statute', function () {
                 return [
@@ -159,6 +162,8 @@ class TrendingResource extends JsonResource
             'title' => $this->provision_title,
             'slug' => $this->slug,
             'provision_number' => $this->provision_number,
+            'provision_text' => $this->provision_text,
+            'marginal_note' => $this->marginal_note,
             'content' => $this->content,
             'division' => $this->whenLoaded('division', function () {
                 return [
