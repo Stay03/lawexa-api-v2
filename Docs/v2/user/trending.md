@@ -51,10 +51,23 @@ All trending endpoints return complete content data for each item, not just basi
 - `created_at`, `updated_at` - Timestamps
 - `user` - Note author
 
-### Divisions & Provisions
-**Complete section content:**
-- `title`, `content` - Full text of the division/provision
-- `division_number`, `provision_number` - Section numbers
+### Divisions
+**Complete division content:**
+- `title` - Division title (e.g., "Citizenship", "Fundamental Rights")
+- `division_number` - Section number (e.g., "I", "II", "III")
+- `division_type` - Type of division (e.g., "chapter", "part", "section", "article")
+- `division_subtitle` - Additional subtitle if available
+- `range` - Coverage range (e.g., "Sections 25-33")
+- `content` - Full text content
+- Relationship to parent `statute`
+
+### Provisions
+**Complete provision content:**
+- `title` - Provision title if available
+- `provision_number` - Section number (e.g., "26", "(1)", "1A")
+- `provision_text` - Full text of the provision
+- `marginal_note` - Side notes or annotations
+- `content` - Additional content
 - Relationships to parent `statute` and `division`
 
 ### Folders & Comments
@@ -142,6 +155,22 @@ GET /api/trending?time_range=month&per_page=3
       },
       {
         "id": 148,
+        "title": "Citizenship by registration",
+        "slug": "citizenship-by-registration-RQ41Trzf",
+        "provision_number": "26",
+        "provision_text": "[Section has subsections]",
+        "marginal_note": null,
+        "content": null,
+        "division": {
+          "id": 168,
+          "title": "Citizenship",
+          "slug": "citizenship"
+        },
+        "statute": {
+          "id": 19,
+          "title": "CONSTITUTION OF THE FEDERAL REPUBLIC OF NIGERIA, 1999",
+          "slug": "constitution-of-the-federal-republic-of-nigeria-1999"
+        },
         "content_type": "provisions",
         "trending_metrics": {
           "trending_score": 68.77,
@@ -397,6 +426,162 @@ GET /api/trending/cases?time_range=month
     "date_range": {
       "start": "2025-08-09",
       "end": "2025-09-08"
+    }
+  }
+}
+```
+
+### Example: Trending Divisions with Full Content
+
+**Request:**
+```http
+GET /api/trending/divisions?time_range=week
+```
+
+**Response (showing complete division data):**
+```json
+{
+  "status": "success",
+  "message": "Trending divisions retrieved successfully",
+  "data": {
+    "trending": [
+      {
+        "id": 168,
+        "title": "Citizenship",
+        "slug": "citizenship",
+        "division_number": "III",
+        "division_type": "chapter",
+        "division_subtitle": null,
+        "range": "Sections 25-33",
+        "content": null,
+        "statute": {
+          "id": 19,
+          "title": "CONSTITUTION OF THE FEDERAL REPUBLIC OF NIGERIA, 1999",
+          "slug": "constitution-of-the-federal-republic-of-nigeria-1999"
+        },
+        "content_type": "divisions",
+        "trending_metrics": {
+          "trending_score": 26.25,
+          "total_views": 5,
+          "unique_viewers": 3,
+          "weighted_score": 15,
+          "latest_view": "2025-10-07 00:27:16",
+          "earliest_view": "2025-10-07 00:18:47"
+        }
+      }
+    ],
+    "meta": {
+      "current_page": 1,
+      "from": 1,
+      "last_page": 1,
+      "per_page": 15,
+      "to": 1,
+      "total": 1
+    },
+    "links": {
+      "first": "https://rest.lawexa.com/api/trending/divisions?page=1",
+      "last": "https://rest.lawexa.com/api/trending/divisions?page=1",
+      "prev": null,
+      "next": null
+    }
+  },
+  "content_type": "divisions",
+  "filters_applied": {
+    "content_type": "divisions"
+  },
+  "stats": {
+    "cases": 34,
+    "statutes": 12,
+    "divisions": 5,
+    "provisions": 3,
+    "notes": 0,
+    "folders": 0,
+    "comments": 0,
+    "total": 54,
+    "time_range": "week",
+    "date_range": {
+      "start": "2025-09-30",
+      "end": "2025-10-07"
+    }
+  }
+}
+```
+
+### Example: Trending Provisions with Full Content
+
+**Request:**
+```http
+GET /api/trending/provisions?time_range=week&per_page=5
+```
+
+**Response (showing complete provision data):**
+```json
+{
+  "status": "success",
+  "message": "Trending provisions retrieved successfully",
+  "data": {
+    "trending": [
+      {
+        "id": 266,
+        "title": "Citizenship by registration",
+        "slug": "citizenship-by-registration-RQ41Trzf",
+        "provision_number": "26",
+        "provision_text": "[Section has subsections]",
+        "marginal_note": null,
+        "content": null,
+        "division": {
+          "id": 168,
+          "title": "Citizenship",
+          "slug": "citizenship"
+        },
+        "statute": {
+          "id": 19,
+          "title": "CONSTITUTION OF THE FEDERAL REPUBLIC OF NIGERIA, 1999",
+          "slug": "constitution-of-the-federal-republic-of-nigeria-1999"
+        },
+        "content_type": "provisions",
+        "trending_metrics": {
+          "trending_score": 22.02,
+          "total_views": 4,
+          "unique_viewers": 2,
+          "weighted_score": 12,
+          "latest_view": "2025-10-07 01:33:49",
+          "earliest_view": "2025-10-07 00:18:49"
+        }
+      }
+    ],
+    "meta": {
+      "current_page": 1,
+      "from": 1,
+      "last_page": 1,
+      "per_page": 5,
+      "to": 1,
+      "total": 1
+    },
+    "links": {
+      "first": "https://rest.lawexa.com/api/trending/provisions?page=1",
+      "last": "https://rest.lawexa.com/api/trending/provisions?page=1",
+      "prev": null,
+      "next": null
+    }
+  },
+  "content_type": "provisions",
+  "filters_applied": {
+    "content_type": "provisions"
+  },
+  "stats": {
+    "cases": 34,
+    "statutes": 12,
+    "divisions": 5,
+    "provisions": 4,
+    "notes": 0,
+    "folders": 0,
+    "comments": 0,
+    "total": 55,
+    "time_range": "week",
+    "date_range": {
+      "start": "2025-09-30",
+      "end": "2025-10-07"
     }
   }
 }
