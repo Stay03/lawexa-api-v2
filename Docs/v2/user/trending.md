@@ -59,7 +59,9 @@ All trending endpoints return complete content data for each item, not just basi
 - `division_subtitle` - Additional subtitle if available
 - `range` - Coverage range (e.g., "Sections 25-33")
 - `content` - Full text content
-- Relationship to parent `statute`
+- `statute` - Parent statute information
+- `path` - Hierarchical path array showing all parent divisions (e.g., Chapter → Part)
+- `immediate_parent` - Direct parent division if nested
 
 ### Provisions
 **Complete provision content:**
@@ -69,7 +71,10 @@ All trending endpoints return complete content data for each item, not just basi
 - `provision_text` - Full text of the provision
 - `marginal_note` - Side notes or annotations
 - `content` - Additional content
-- Relationships to parent `statute` and `division`
+- `statute` - Parent statute information
+- `division` - Direct parent division if applicable
+- `path` - Hierarchical path array showing all parents (e.g., Chapter → Part → Section)
+- `immediate_parent` - Direct parent (could be a provision or division)
 
 ### Folders & Comments
 **Basic content as applicable:**
@@ -461,6 +466,24 @@ GET /api/trending/divisions?time_range=week
           "title": "CONSTITUTION OF THE FEDERAL REPUBLIC OF NIGERIA, 1999",
           "slug": "constitution-of-the-federal-republic-of-nigeria-1999"
         },
+        "path": [
+          {
+            "id": 166,
+            "type": "division",
+            "title": "General Provisions",
+            "number": "I",
+            "structural_type": "chapter",
+            "slug": "general-provisions"
+          }
+        ],
+        "immediate_parent": {
+          "id": 166,
+          "type": "division",
+          "title": "General Provisions",
+          "number": "I",
+          "structural_type": "chapter",
+          "slug": "general-provisions"
+        },
         "content_type": "divisions",
         "trending_metrics": {
           "trending_score": 26.25,
@@ -541,6 +564,32 @@ GET /api/trending/provisions?time_range=week&per_page=5
           "id": 19,
           "title": "CONSTITUTION OF THE FEDERAL REPUBLIC OF NIGERIA, 1999",
           "slug": "constitution-of-the-federal-republic-of-nigeria-1999"
+        },
+        "path": [
+          {
+            "id": 166,
+            "type": "division",
+            "title": "General Provisions",
+            "number": "I",
+            "structural_type": "chapter",
+            "slug": "general-provisions"
+          },
+          {
+            "id": 168,
+            "type": "division",
+            "title": "Citizenship",
+            "number": "III",
+            "structural_type": "chapter",
+            "slug": "citizenship"
+          }
+        ],
+        "immediate_parent": {
+          "id": 168,
+          "type": "division",
+          "title": "Citizenship",
+          "number": "III",
+          "structural_type": "chapter",
+          "slug": "citizenship"
         },
         "content_type": "provisions",
         "trending_metrics": {
@@ -634,6 +683,107 @@ GET /api/trending?university=University%20of%20Lagos&level=undergraduate
 ```
 
 **Note**: Level filtering supports flexible formats including numeric levels (`100`, `200`, `300L`), descriptive levels (`Level 100`, `First Year`), and traditional academic levels (`undergraduate`, `graduate`, `postgraduate`, `phd`).
+
+## Hierarchical Path Structure
+
+Trending divisions and provisions include a `path` array that shows the complete hierarchical structure from the statute root to the current item. This makes it easy to build breadcrumbs and understand the context of the content.
+
+### Understanding the Path Array
+
+The `path` array contains all parent divisions and provisions in order from outermost to innermost, **excluding the current item**. Each node in the path contains:
+
+| Field | Description |
+|-------|-------------|
+| `id` | Database ID of the structural unit |
+| `type` | Either `"division"` or `"provision"` |
+| `title` | Display title |
+| `number` | Section/division number (e.g., "I", "26", "(1)") |
+| `structural_type` | The specific type (e.g., "chapter", "section", "subsection") |
+| `slug` | URL-friendly identifier |
+
+### Example Path Structures
+
+**Simple Division** (Chapter → Part):
+```json
+{
+  "id": 170,
+  "title": "Fundamental Rights",
+  "division_type": "part",
+  "path": [
+    {
+      "id": 166,
+      "type": "division",
+      "title": "General Provisions",
+      "number": "I",
+      "structural_type": "chapter"
+    }
+  ]
+}
+```
+
+**Nested Provision** (Chapter → Section → Subsection):
+```json
+{
+  "id": 202,
+  "provision_number": "(1)",
+  "provision_type": "subsection",
+  "path": [
+    {
+      "id": 166,
+      "type": "division",
+      "title": "General Provisions",
+      "number": "I",
+      "structural_type": "chapter"
+    },
+    {
+      "id": 201,
+      "type": "provision",
+      "title": "Supremacy",
+      "number": "1",
+      "structural_type": "section"
+    }
+  ]
+}
+```
+
+### Building Breadcrumbs
+
+Use the `path` array along with the statute information to build complete breadcrumbs:
+
+```javascript
+// Example: Building breadcrumbs for a provision
+function buildBreadcrumbs(provisionData) {
+  const breadcrumbs = [];
+
+  // Add statute
+  breadcrumbs.push({
+    title: provisionData.statute.title,
+    slug: provisionData.statute.slug,
+    level: 0
+  });
+
+  // Add path items
+  provisionData.path.forEach((node, index) => {
+    breadcrumbs.push({
+      title: `${node.structural_type} ${node.number}: ${node.title}`,
+      slug: node.slug,
+      level: index + 1
+    });
+  });
+
+  // Add current item
+  breadcrumbs.push({
+    title: `${provisionData.provision_type} ${provisionData.provision_number}`,
+    slug: provisionData.slug,
+    level: breadcrumbs.length,
+    active: true
+  });
+
+  return breadcrumbs;
+}
+
+// Output: Constitution → Chapter I: General Provisions → Section 1: Supremacy → Subsection (1)
+```
 
 ## Trending Metrics
 

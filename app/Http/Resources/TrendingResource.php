@@ -152,6 +152,20 @@ class TrendingResource extends JsonResource
                     'slug' => $this->statute->slug,
                 ];
             }),
+            'path' => $this->buildDivisionPath($this->resource),
+            'immediate_parent' => $this->whenLoaded('parentDivision', function () {
+                if (!$this->parentDivision) {
+                    return null;
+                }
+                return [
+                    'id' => $this->parentDivision->id,
+                    'type' => 'division',
+                    'title' => $this->parentDivision->division_title,
+                    'number' => $this->parentDivision->division_number,
+                    'structural_type' => $this->parentDivision->division_type,
+                    'slug' => $this->parentDivision->slug,
+                ];
+            }),
         ];
     }
 
@@ -180,6 +194,8 @@ class TrendingResource extends JsonResource
                     'slug' => $this->statute->slug,
                 ];
             }),
+            'path' => $this->buildProvisionPath($this->resource),
+            'immediate_parent' => $this->getProvisionImmediateParent(),
         ];
     }
 
@@ -253,5 +269,117 @@ class TrendingResource extends JsonResource
             }),
             'created_at' => $this->created_at,
         ];
+    }
+
+    /**
+     * Build hierarchical path for a division by traversing parent relationships
+     */
+    private function buildDivisionPath($division): array
+    {
+        $path = [];
+        $current = $division;
+
+        // Traverse up the parent chain
+        while ($current && isset($current->parent_division_id)) {
+            $parent = $current->parentDivision;
+            if (!$parent) {
+                break;
+            }
+
+            array_unshift($path, $this->formatPathNode($parent, 'division'));
+            $current = $parent;
+        }
+
+        return $path;
+    }
+
+    /**
+     * Build hierarchical path for a provision by traversing parent relationships
+     */
+    private function buildProvisionPath($provision): array
+    {
+        $path = [];
+
+        // First, add all parent provisions
+        $current = $provision;
+        while ($current && isset($current->parent_provision_id)) {
+            $parent = $current->parentProvision;
+            if (!$parent) {
+                break;
+            }
+
+            array_unshift($path, $this->formatPathNode($parent, 'provision'));
+            $current = $parent;
+        }
+
+        // Then, add all parent divisions (if the provision or its root parent has a division)
+        $divisionToCheck = $current->division ?? $provision->division;
+        if ($divisionToCheck) {
+            $divisionPath = $this->buildDivisionPath($divisionToCheck);
+            // Add the immediate division to the path
+            $divisionPath[] = $this->formatPathNode($divisionToCheck, 'division');
+            // Merge division path before provision path
+            $path = array_merge($divisionPath, $path);
+        }
+
+        return $path;
+    }
+
+    /**
+     * Format a path node consistently for both divisions and provisions
+     */
+    private function formatPathNode($item, string $type): array
+    {
+        if ($type === 'division') {
+            return [
+                'id' => $item->id,
+                'type' => 'division',
+                'title' => $item->division_title,
+                'number' => $item->division_number,
+                'structural_type' => $item->division_type,
+                'slug' => $item->slug,
+            ];
+        } else {
+            return [
+                'id' => $item->id,
+                'type' => 'provision',
+                'title' => $item->provision_title,
+                'number' => $item->provision_number,
+                'structural_type' => $item->provision_type,
+                'slug' => $item->slug,
+            ];
+        }
+    }
+
+    /**
+     * Get immediate parent for a provision (could be another provision or a division)
+     */
+    private function getProvisionImmediateParent(): ?array
+    {
+        // Check if there's a parent provision first
+        if ($this->resource->parent_provision_id && $this->relationLoaded('parentProvision') && $this->parentProvision) {
+            return [
+                'id' => $this->parentProvision->id,
+                'type' => 'provision',
+                'title' => $this->parentProvision->provision_title,
+                'number' => $this->parentProvision->provision_number,
+                'structural_type' => $this->parentProvision->provision_type,
+                'slug' => $this->parentProvision->slug,
+            ];
+        }
+
+        // Otherwise, check if there's a division parent
+        if ($this->resource->division_id && $this->relationLoaded('division') && $this->division) {
+            return [
+                'id' => $this->division->id,
+                'type' => 'division',
+                'title' => $this->division->division_title,
+                'number' => $this->division->division_number,
+                'structural_type' => $this->division->division_type,
+                'slug' => $this->division->slug,
+            ];
+        }
+
+        return null;
     }
 }

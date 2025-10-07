@@ -218,8 +218,8 @@ class TrendingService
         return match ($modelClass) {
             CourtCase::class => ['creator:id,name', 'files:id,viewable_id,file_name,file_size'],
             Statute::class => ['creator:id,name', 'files:id,viewable_id,file_name,file_size'],
-            StatuteDivision::class => ['statute:id,title,slug'],
-            StatuteProvision::class => ['division:id,title,slug', 'statute:id,title,slug'],
+            StatuteDivision::class => ['statute:id,title,slug', 'parentDivision'],
+            StatuteProvision::class => ['division', 'statute:id,title,slug', 'parentProvision'],
             Note::class => ['user:id,name'],
             Folder::class => ['user:id,name'],
             Comment::class => ['user:id,name'],
