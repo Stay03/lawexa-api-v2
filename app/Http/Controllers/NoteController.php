@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\CreateNoteRequest;
 use App\Http\Requests\UpdateNoteRequest;
 use App\Http\Resources\NoteCollection;
+use App\Http\Resources\NoteListResource;
 use App\Http\Resources\NoteResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Note;
@@ -43,12 +44,23 @@ class NoteController extends Controller
         $notes = $query->orderByLatest()
                       ->paginate($request->get('per_page', 15));
 
-        $noteCollection = new NoteCollection($notes);
-
-        return ApiResponse::success(
-            $noteCollection->toArray($request),
-            'Notes retrieved successfully'
-        );
+        return ApiResponse::success([
+            'notes' => NoteListResource::collection($notes),
+            'meta' => [
+                'current_page' => $notes->currentPage(),
+                'from' => $notes->firstItem(),
+                'last_page' => $notes->lastPage(),
+                'per_page' => $notes->perPage(),
+                'to' => $notes->lastItem(),
+                'total' => $notes->total(),
+            ],
+            'links' => [
+                'first' => $notes->url(1),
+                'last' => $notes->url($notes->lastPage()),
+                'prev' => $notes->previousPageUrl(),
+                'next' => $notes->nextPageUrl(),
+            ],
+        ], 'Notes retrieved successfully');
     }
 
     public function myNotes(Request $request): JsonResponse
@@ -77,12 +89,23 @@ class NoteController extends Controller
         $notes = $query->orderByLatest()
                       ->paginate($request->get('per_page', 15));
 
-        $noteCollection = new NoteCollection($notes);
-
-        return ApiResponse::success(
-            $noteCollection->toArray($request),
-            'My notes retrieved successfully'
-        );
+        return ApiResponse::success([
+            'notes' => NoteListResource::collection($notes),
+            'meta' => [
+                'current_page' => $notes->currentPage(),
+                'from' => $notes->firstItem(),
+                'last_page' => $notes->lastPage(),
+                'per_page' => $notes->perPage(),
+                'to' => $notes->lastItem(),
+                'total' => $notes->total(),
+            ],
+            'links' => [
+                'first' => $notes->url(1),
+                'last' => $notes->url($notes->lastPage()),
+                'prev' => $notes->previousPageUrl(),
+                'next' => $notes->nextPageUrl(),
+            ],
+        ], 'My notes retrieved successfully');
     }
 
     public function store(CreateNoteRequest $request): JsonResponse
