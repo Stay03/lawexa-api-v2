@@ -162,6 +162,7 @@ class TrendingResource extends JsonResource
             'title' => $this->provision_title,
             'slug' => $this->slug,
             'provision_number' => $this->provision_number,
+            'provision_type' => $this->provision_type,
             'provision_text' => $this->provision_text,
             'marginal_note' => $this->marginal_note,
             'content' => $this->content,

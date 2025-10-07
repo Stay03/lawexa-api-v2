@@ -65,6 +65,7 @@ All trending endpoints return complete content data for each item, not just basi
 **Complete provision content:**
 - `title` - Provision title if available
 - `provision_number` - Section number (e.g., "26", "(1)", "1A")
+- `provision_type` - Type of provision (e.g., "section", "subsection", "article")
 - `provision_text` - Full text of the provision
 - `marginal_note` - Side notes or annotations
 - `content` - Additional content
@@ -158,6 +159,7 @@ GET /api/trending?time_range=month&per_page=3
         "title": "Citizenship by registration",
         "slug": "citizenship-by-registration-RQ41Trzf",
         "provision_number": "26",
+        "provision_type": "section",
         "provision_text": "[Section has subsections]",
         "marginal_note": null,
         "content": null,
@@ -526,6 +528,7 @@ GET /api/trending/provisions?time_range=week&per_page=5
         "title": "Citizenship by registration",
         "slug": "citizenship-by-registration-RQ41Trzf",
         "provision_number": "26",
+        "provision_type": "section",
         "provision_text": "[Section has subsections]",
         "marginal_note": null,
         "content": null,
