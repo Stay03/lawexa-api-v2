@@ -138,7 +138,7 @@ class TrendingResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'title' => $this->title,
+            'title' => $this->division_title,
             'slug' => $this->slug,
             'division_number' => $this->division_number,
             'content' => $this->content,
@@ -156,14 +156,14 @@ class TrendingResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'title' => $this->title,
+            'title' => $this->provision_title,
             'slug' => $this->slug,
             'provision_number' => $this->provision_number,
             'content' => $this->content,
             'division' => $this->whenLoaded('division', function () {
                 return [
                     'id' => $this->division->id,
-                    'title' => $this->division->title,
+                    'title' => $this->division->division_title,
                     'slug' => $this->division->slug,
                 ];
             }),
