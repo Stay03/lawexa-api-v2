@@ -25,7 +25,7 @@ class CreateBookmarkRequest extends FormRequest
             'bookmarkable_type' => [
                 'required',
                 'string',
-                'in:App\\Models\\CourtCase,App\\Models\\Note,App\\Models\\Statute,App\\Models\\StatuteDivision,App\\Models\\StatuteProvision'
+                'in:App\\Models\\CourtCase,App\\Models\\Note,App\\Models\\Statute,App\\Models\\StatuteDivision,App\\Models\\StatuteProvision,App\\Models\\Folder'
             ],
             'bookmarkable_id' => 'required|integer|min:1'
         ];

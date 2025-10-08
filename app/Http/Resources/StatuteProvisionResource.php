@@ -58,6 +58,8 @@ class StatuteProvisionResource extends JsonResource
             
             'child_provisions_count' => $this->when($this->relationLoaded('childProvisions'), $this->childProvisions->count()),
             'views_count' => $this->viewsCount(),
+            'is_bookmarked' => $this->isBookmarkedBy($request->user()),
+            'bookmarks_count' => $this->bookmarks_count ?? $this->getBookmarksCount(),
         ];
     }
 }

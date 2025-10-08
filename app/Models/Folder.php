@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\Bookmarkable;
 use App\Traits\HasViewTracking;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,7 @@ use Illuminate\Support\Str;
 
 class Folder extends Model
 {
-    use HasViewTracking;
+    use HasViewTracking, Bookmarkable;
 
     protected $fillable = [
         'name',

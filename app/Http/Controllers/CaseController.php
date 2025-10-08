@@ -30,7 +30,10 @@ class CaseController extends Controller
             $with[] = 'casesThatCiteThis:id,title,slug,court,date,country,citation';
         }
         
-        $query = CourtCase::with($with)->withViewsCount();
+        $query = CourtCase::with($with)
+            ->withViewsCount()
+            ->withCount('bookmarks')
+            ->withUserBookmark($request->user());
 
         if ($request->has('search')) {
             $query->search($request->search);
@@ -73,16 +76,25 @@ class CaseController extends Controller
 
     public function show(Request $request, CourtCase $case): JsonResponse
     {
-        $case->load([
-            'creator:id,name', 
+        $with = [
+            'creator:id,name',
             'files',
             'caseReport',
             'similarCases:id,title,slug,court,date,country,citation',
             'casesWhereThisIsSimilar:id,title,slug,court,date,country,citation',
             'citedCases:id,title,slug,court,date,country,citation',
-            'casesThatCiteThis:id,title,slug,court,date,country,citation'
-        ]);
-        
+            'casesThatCiteThis:id,title,slug,court,date,country,citation',
+        ];
+
+        // Add user bookmarks only if user is authenticated
+        if ($request->user()) {
+            $with['userBookmarks'] = function ($q) use ($request) {
+                $q->where('user_id', $request->user()->id)->select('id', 'bookmarkable_type', 'bookmarkable_id', 'user_id');
+            };
+        }
+
+        $case->load($with)->loadCount('bookmarks');
+
         return ApiResponse::success([
             'case' => new CaseResource($case)
         ], 'Case retrieved successfully');

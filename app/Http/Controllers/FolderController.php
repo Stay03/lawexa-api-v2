@@ -23,6 +23,8 @@ class FolderController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Folder::with(['user:id,name', 'children'])
+            ->withCount('bookmarks')
+            ->withUserBookmark($request->user())
             ->accessibleByUser($request->user()->id);
 
         if ($request->has('search')) {
@@ -63,6 +65,8 @@ class FolderController extends Controller
     public function mine(Request $request): JsonResponse
     {
         $query = Folder::with(['user:id,name', 'children'])
+            ->withCount('bookmarks')
+            ->withUserBookmark($request->user())
             ->forUser($request->user()->id);
 
         if ($request->has('search')) {
@@ -125,7 +129,14 @@ class FolderController extends Controller
         }
 
         // Load basic folder information (without items for separate handling)
-        $folder->load(['user:id,name', 'children', 'parent']);
+        $folder->load([
+            'user:id,name',
+            'children',
+            'parent',
+            'userBookmarks' => function ($q) use ($request) {
+                $q->where('user_id', $request->user()->id)->select('id', 'bookmarkable_type', 'bookmarkable_id', 'user_id');
+            }
+        ])->loadCount('bookmarks');
 
         // Handle folder items with pagination and filtering separately
         $itemsQuery = $folder->items()->with('folderable');

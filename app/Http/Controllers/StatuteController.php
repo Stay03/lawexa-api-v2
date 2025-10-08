@@ -25,6 +25,8 @@ class StatuteController extends Controller
         
         $query = Statute::with(['creator:id,name'])
                         ->withViewsCount()
+                        ->withCount('bookmarks')
+                        ->withUserBookmark($request->user())
                         ->active();
         
         // Apply filters
@@ -70,9 +72,9 @@ class StatuteController extends Controller
         $includeRelated = $request->boolean('include_related', false);
         $includeAmendments = $request->boolean('include_amendments', false);
         $includeCitations = $request->boolean('include_citations', false);
-        
+
         $with = ['creator:id,name', 'files'];
-        
+
         if ($includeRelated) {
             $with = array_merge($with, [
                 'parentStatute:id,title,slug',
@@ -80,19 +82,26 @@ class StatuteController extends Controller
                 'repealingStatute:id,title,slug'
             ]);
         }
-        
+
         if ($includeAmendments) {
             $with[] = 'amendments:id,title,slug';
             $with[] = 'amendedBy:id,title,slug';
         }
-        
+
         if ($includeCitations) {
             $with[] = 'citedStatutes:id,title,slug';
             $with[] = 'citingStatutes:id,title,slug';
         }
-        
-        $statute->load($with);
-        
+
+        // Add user bookmarks only if user is authenticated
+        if ($request->user()) {
+            $with['userBookmarks'] = function ($q) use ($request) {
+                $q->where('user_id', $request->user()->id)->select('id', 'bookmarkable_type', 'bookmarkable_id', 'user_id');
+            };
+        }
+
+        $statute->load($with)->loadCount('bookmarks');
+
         return ApiResponse::success([
             'statute' => new StatuteResource($statute)
         ], 'Statute retrieved successfully');
@@ -106,6 +115,8 @@ class StatuteController extends Controller
                          ->topLevel()
                          ->active()
                          ->withViewsCount()
+                         ->withCount('bookmarks')
+                         ->withUserBookmark($request->user())
                          ->with(['parentDivision:id,division_title,slug']);
         
         // Apply filters
@@ -167,6 +178,8 @@ class StatuteController extends Controller
         $query = $statute->provisions()
                          ->active()
                          ->withViewsCount()
+                         ->withCount('bookmarks')
+                         ->withUserBookmark($request->user())
                          ->with(['division:id,division_title,slug', 'parentProvision:id,provision_title,slug']);
         
         // Apply filters
@@ -237,12 +250,21 @@ class StatuteController extends Controller
 
     public function showDivision(Request $request, Statute $statute, StatuteDivision $division): JsonResponse
     {
-        $division->load([
+        $with = [
             'parentDivision:id,division_title',
             'childDivisions:id,division_title,division_number',
             'provisions:id,provision_title,provision_number'
-        ]);
-        
+        ];
+
+        // Add user bookmarks only if user is authenticated
+        if ($request->user()) {
+            $with['userBookmarks'] = function ($q) use ($request) {
+                $q->where('user_id', $request->user()->id)->select('id', 'bookmarkable_type', 'bookmarkable_id', 'user_id');
+            };
+        }
+
+        $division->load($with)->loadCount('bookmarks');
+
         return ApiResponse::success([
             'division' => $division
         ], 'Statute division retrieved successfully');
@@ -250,12 +272,21 @@ class StatuteController extends Controller
 
     public function showProvision(Request $request, Statute $statute, StatuteProvision $provision): JsonResponse
     {
-        $provision->load([
+        $with = [
             'division:id,division_title',
             'parentProvision:id,provision_title',
             'childProvisions:id,provision_title,provision_number'
-        ]);
-        
+        ];
+
+        // Add user bookmarks only if user is authenticated
+        if ($request->user()) {
+            $with['userBookmarks'] = function ($q) use ($request) {
+                $q->where('user_id', $request->user()->id)->select('id', 'bookmarkable_type', 'bookmarkable_id', 'user_id');
+            };
+        }
+
+        $provision->load($with)->loadCount('bookmarks');
+
         return ApiResponse::success([
             'provision' => $provision
         ], 'Statute provision retrieved successfully');

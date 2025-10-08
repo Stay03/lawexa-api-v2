@@ -52,6 +52,9 @@ class BookmarkResource extends JsonResource
             case 'App\\Models\\StatuteProvision':
                 return (new StatuteProvisionResource($this->bookmarkable))->toArray(request());
 
+            case 'App\\Models\\Folder':
+                return (new FolderResource($this->bookmarkable))->toArray(request());
+
             default:
                 // Fallback for any other model types
                 return [

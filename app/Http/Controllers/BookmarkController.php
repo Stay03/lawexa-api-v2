@@ -9,6 +9,7 @@ use App\Http\Resources\BookmarkResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Bookmark;
 use App\Models\CourtCase;
+use App\Models\Folder;
 use App\Models\Note;
 use App\Models\Statute;
 use App\Models\StatuteDivision;
@@ -25,6 +26,7 @@ class BookmarkController extends Controller
         'App\\Models\\Statute' => Statute::class,
         'App\\Models\\StatuteDivision' => StatuteDivision::class,
         'App\\Models\\StatuteProvision' => StatuteProvision::class,
+        'App\\Models\\Folder' => Folder::class,
     ];
 
     public function index(Request $request): JsonResponse

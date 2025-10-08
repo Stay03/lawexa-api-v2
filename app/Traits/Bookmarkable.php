@@ -40,6 +40,44 @@ trait Bookmarkable
                    ->exists();
     }
 
+    public function isBookmarkedBy(?User $user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        // Check if user_bookmarks relationship is loaded (eager loaded via withUserBookmark)
+        if ($this->relationLoaded('userBookmarks')) {
+            return $this->userBookmarks->isNotEmpty();
+        }
+
+        // Fallback to database query if not eager loaded
+        return $this->isBookmarkedByUser($user);
+    }
+
+    /**
+     * Relationship to get bookmarks for a specific user
+     * This is used for eager loading with scopeWithUserBookmark
+     */
+    public function userBookmarks(): MorphMany
+    {
+        return $this->morphMany(Bookmark::class, 'bookmarkable');
+    }
+
+    /**
+     * Scope to eager load user-specific bookmark status
+     */
+    public function scopeWithUserBookmark($query, ?User $user)
+    {
+        if (!$user) {
+            return $query;
+        }
+
+        return $query->with(['userBookmarks' => function ($q) use ($user) {
+            $q->where('user_id', $user->id)->select('id', 'bookmarkable_type', 'bookmarkable_id', 'user_id');
+        }]);
+    }
+
     public function getBookmarksCount(): int
     {
         return $this->bookmarks()->count();

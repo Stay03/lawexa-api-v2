@@ -22,6 +22,8 @@ class NoteController extends Controller
     {
         $query = Note::with(['user:id,name,email,avatar', 'comments'])
                     ->withViewsCount()
+                    ->withCount('bookmarks')
+                    ->withUserBookmark($request->user())
                     ->accessibleByUser($request->user()->id);
 
         if ($request->has('search')) {
@@ -69,6 +71,8 @@ class NoteController extends Controller
     {
         $query = Note::with(['user:id,name,email,avatar', 'comments'])
                     ->withViewsCount()
+                    ->withCount('bookmarks')
+                    ->withUserBookmark($request->user())
                     ->forUser($request->user()->id);
 
         if ($request->has('search')) {
@@ -135,7 +139,19 @@ class NoteController extends Controller
             return ApiResponse::forbidden('You can only view your own notes or public notes');
         }
 
-        $note->load(['user:id,name,email,avatar', 'comments']);
+        $with = [
+            'user:id,name,email,avatar',
+            'comments',
+        ];
+
+        // Add user bookmarks only if user is authenticated
+        if ($request->user()) {
+            $with['userBookmarks'] = function ($q) use ($request) {
+                $q->where('user_id', $request->user()->id)->select('id', 'bookmarkable_type', 'bookmarkable_id', 'user_id');
+            };
+        }
+
+        $note->load($with)->loadCount('bookmarks');
 
         return ApiResponse::success([
             'note' => new NoteResource($note)

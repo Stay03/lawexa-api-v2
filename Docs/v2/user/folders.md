@@ -80,6 +80,9 @@ curl -X GET \
         "has_children": true,
         "created_at": "2025-08-29T15:54:21.000000Z",
         "updated_at": "2025-08-29T15:55:50.000000Z",
+        "views_count": 5,
+        "is_bookmarked": false,
+        "bookmarks_count": 2,
         "user": {
           "id": 93,
           "name": "Test User Alpha"
@@ -149,6 +152,9 @@ curl -X GET \
         "has_children": false,
         "created_at": "2025-09-01T15:57:12.000000Z",
         "updated_at": "2025-09-01T15:57:12.000000Z",
+        "views_count": 3,
+        "is_bookmarked": true,
+        "bookmarks_count": 1,
         "user": {
           "id": 99,
           "name": "Test User Folders"
@@ -222,7 +228,10 @@ curl -X POST \
     "is_root": true,
     "has_children": false,
     "created_at": "2025-08-29T15:54:21.000000Z",
-    "updated_at": "2025-08-29T15:54:21.000000Z"
+    "updated_at": "2025-08-29T15:54:21.000000Z",
+    "views_count": 0,
+    "is_bookmarked": false,
+    "bookmarks_count": 0
   }
 }
 ```
@@ -324,6 +333,9 @@ curl -X GET \
       "children": [],
       "items_count": {},
       "ancestors": [],
+      "views_count": 0,
+      "is_bookmarked": false,
+      "bookmarks_count": 0,
       "items": {
         "data": [
           {
@@ -667,6 +679,70 @@ Folders with the view tracking feature can provide:
 
 ---
 
+## Folder Bookmarking
+
+Folders support the same bookmarking functionality as other content types (cases, notes, statutes). Users can bookmark folders for quick access and organization.
+
+### Bookmark Status Fields
+
+Folder responses include bookmark status information:
+
+- `is_bookmarked`: Boolean indicating if the current authenticated user has bookmarked this folder
+- `bookmarks_count`: Total number of users who have bookmarked this folder
+
+### Example Folder Response with Bookmark Info
+
+```json
+{
+  "status": "success",
+  "message": "Folder retrieved successfully",
+  "data": {
+    "folder": {
+      "id": 2,
+      "name": "Test Folder",
+      "slug": "test-folder",
+      "description": "A test folder created for API testing",
+      "is_public": true,
+      "sort_order": 0,
+      "is_root": true,
+      "has_children": false,
+      "created_at": "2025-10-08T11:45:23.000000Z",
+      "updated_at": "2025-10-08T11:45:23.000000Z",
+      "user": {
+        "id": 339,
+        "name": "Test User"
+      },
+      "views_count": 2,
+      "is_bookmarked": true,
+      "bookmarks_count": 1,
+      // ... other folder fields
+    }
+  }
+}
+```
+
+### Bookmark Management
+
+Folder bookmarking uses the same Bookmarks API as other content types:
+
+**Bookmark a Folder:**
+```bash
+curl -X POST "http://127.0.0.1:8000/api/bookmarks" \
+  -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "bookmarkable_type=App%5CModels%5CFolder&bookmarkable_id=2"
+```
+
+**Unbookmark a Folder:**
+```bash
+curl -X DELETE "http://127.0.0.1:8000/api/bookmarks/{bookmark_id}" \
+  -H "Authorization: Bearer {token}"
+```
+
+**For complete bookmark management documentation**, see the [Bookmarks API Documentation](./bookmarks.md).
+
+---
+
 ## Key Features
 
 ### 🔐 **Security & Permissions**
@@ -712,6 +788,12 @@ Folders with the view tracking feature can provide:
 - Cooldown protection against spam views
 - User-specific view statistics
 - Privacy-respecting tracking (respects folder permissions)
+
+### 🔖 **Bookmarking Support**
+- Users can bookmark folders for quick access
+- Real-time bookmark status in folder responses
+- Integrated with the main Bookmarks API
+- Folder responses include `is_bookmarked` and `bookmarks_count` fields
 
 ### 🎯 **API Consistency**
 - **IMPROVED**: Folder details endpoint now follows the same response structure as other detail endpoints

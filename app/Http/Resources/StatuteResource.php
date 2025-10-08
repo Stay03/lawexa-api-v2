@@ -162,6 +162,8 @@ class StatuteResource extends JsonResource
             
             'files_count' => $this->when($this->relationLoaded('files'), $this->files->count()),
             'views_count' => $this->viewsCount(),
+            'is_bookmarked' => $this->isBookmarkedBy($request->user()),
+            'bookmarks_count' => $this->bookmarks_count ?? $this->getBookmarksCount(),
         ];
 
         // Add bot indicator if it's a bot request

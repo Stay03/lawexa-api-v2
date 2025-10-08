@@ -42,15 +42,32 @@ class OptionalAuthMiddleware
      */
     private function handleBotAuth(Request $request): void
     {
+        // First, check if there's a valid authenticated user (e.g., via Bearer token)
+        $token = $this->getTokenFromRequest($request);
+
+        if ($token) {
+            $accessToken = PersonalAccessToken::findToken($token);
+            if ($accessToken) {
+                $user = $accessToken->tokenable;
+                if ($user) {
+                    // User is authenticated - don't override with bot guest user
+                    $request->setUserResolver(function () use ($user) {
+                        return $user;
+                    });
+                    return;
+                }
+            }
+        }
+
         // Check if bot access with guest users is enabled
         if (!config('bot-detection.bot_access.create_guest_users', true)) {
             return;
         }
 
-        // For bots, create a guest user for view tracking purposes
+        // For bots without authentication, create a guest user for view tracking purposes
         $botInfo = $request->attributes->get('bot_info', []);
         $guestUser = $this->createBotGuestUser($request, $botInfo);
-        
+
         if ($guestUser) {
             // Set the bot guest user for the request
             $request->setUserResolver(function () use ($guestUser) {

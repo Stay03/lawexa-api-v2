@@ -119,6 +119,8 @@ curl -X GET "https://rest.lawexa.com/api/cases?search=property&country=Nigeria&p
         "files": [],
         "files_count": 0,
         "views_count": 0,
+        "is_bookmarked": false,
+        "bookmarks_count": 1,
         "similar_cases": {},
         "similar_cases_count": {},
         "cited_cases": {},
@@ -183,6 +185,8 @@ curl -X GET "https://rest.lawexa.com/api/cases/sanusi-v-makinde-5194" \
       "files": [],
       "files_count": 0,
       "views_count": 0,
+      "is_bookmarked": false,
+      "bookmarks_count": 1,
       "similar_cases": [
         {
           "id": 5208,
@@ -454,6 +458,8 @@ Include related case information:
 - `files_count`: Number of attached files
 - `similar_cases_count`: Number of similar cases
 - `cited_cases_count`: Number of cited cases
+- `is_bookmarked`: Boolean indicating if the current authenticated user has bookmarked this case
+- `bookmarks_count`: Total number of users who have bookmarked this case
 
 ### Bot-Specific Fields (when accessed by bots)
 - `isBot`: Boolean indicating if request came from a bot
@@ -470,12 +476,40 @@ When authenticated users access case details, their views are automatically trac
 - User activity is logged for analytics
 - Personalized recommendations can be generated
 
+### Bookmarking Cases
+Authenticated users can bookmark cases for quick access later. Case responses include bookmark status information:
+- `is_bookmarked`: Shows if the current user has bookmarked this case
+- `bookmarks_count`: Shows total number of bookmarks across all users
+
+**Example Case Response with Bookmark Info:**
+```json
+{
+  "status": "success",
+  "message": "Case retrieved successfully",
+  "data": {
+    "case": {
+      "id": 5101,
+      "title": "Samuels v Stubbs, [1972] 4 SASR 200",
+      // ... other case fields
+      "views_count": 37,
+      "is_bookmarked": true,
+      "bookmarks_count": 2,
+      // ... rest of case data
+    }
+  }
+}
+```
+
+**Bookmark Management:**
+For complete bookmark management API documentation, including how to bookmark/unbookmark cases, see the [Bookmarks API Documentation](./bookmarks.md).
+
 ### Enhanced Experience
 Authenticated users get:
 - View history tracking
 - Personalized case recommendations
-- Ability to bookmark cases (if implemented)
+- Ability to bookmark and organize cases
 - Access to premium content (based on subscription)
+- User-specific case recommendations based on viewing history
 
 ## Error Responses
 

@@ -33,6 +33,8 @@ class NoteResource extends JsonResource
             }),
             'comments_count' => $this->commentCount(),
             'views_count' => $this->viewsCount(),
+            'is_bookmarked' => $this->isBookmarkedBy($request->user()),
+            'bookmarks_count' => $this->bookmarks_count ?? $this->getBookmarksCount(),
             'comments' => CommentResource::collection($this->whenLoaded('comments')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
