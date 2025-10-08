@@ -130,10 +130,10 @@ class TrendingService
                 DB::raw('MAX(viewed_at) as latest_view'),
                 DB::raw('MIN(viewed_at) as earliest_view'),
                 // Weight recent views more heavily (SQLite compatible)
-                DB::raw('SUM(CASE 
+                DB::raw('SUM(CASE
                     WHEN viewed_at >= datetime("now", "-1 day") THEN 3
                     WHEN viewed_at >= datetime("now", "-3 days") THEN 2
-                    ELSE 1 
+                    ELSE 1
                 END) as weighted_score')
             ])
             ->groupBy('viewable_id', 'viewable_type')
@@ -144,15 +144,21 @@ class TrendingService
 
         // Load the actual models with their data
         $modelIds = $trendingData->pluck('viewable_id');
+        $user = request()->user();
+
         $models = $modelClass::whereIn('id', $modelIds)
             ->with($this->getModelRelations($modelClass))
+            ->withCount('bookmarks')
+            ->when($user, function ($query) use ($user) {
+                $query->withUserBookmark($user);
+            })
             ->get()
             ->keyBy('id');
 
         // Combine trending data with model data
         return $trendingData->map(function ($trendingItem) use ($models) {
             $model = $models[$trendingItem->viewable_id] ?? null;
-            
+
             if (!$model) {
                 return null;
             }
@@ -163,7 +169,7 @@ class TrendingService
             $model->latest_view = $trendingItem->latest_view;
             $model->earliest_view = $trendingItem->earliest_view;
             $model->weighted_score = $trendingItem->weighted_score;
-            
+
             return $model;
         })->filter();
     }

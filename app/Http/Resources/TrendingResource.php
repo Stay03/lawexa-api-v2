@@ -104,6 +104,9 @@ class TrendingResource extends JsonResource
                     ];
                 });
             }),
+            'is_bookmarked' => $this->isBookmarkedBy($request->user()),
+            'bookmark_id' => $this->getBookmarkIdFor($request->user()),
+            'bookmarks_count' => $this->bookmarks_count ?? $this->getBookmarksCount(),
         ];
     }
 
@@ -131,6 +134,9 @@ class TrendingResource extends JsonResource
                     ];
                 });
             }),
+            'is_bookmarked' => $this->isBookmarkedBy($request->user()),
+            'bookmark_id' => $this->getBookmarkIdFor($request->user()),
+            'bookmarks_count' => $this->bookmarks_count ?? $this->getBookmarksCount(),
         ];
     }
 
@@ -166,6 +172,9 @@ class TrendingResource extends JsonResource
                     'slug' => $this->parentDivision->slug,
                 ];
             }),
+            'is_bookmarked' => $this->isBookmarkedBy($request->user()),
+            'bookmark_id' => $this->getBookmarkIdFor($request->user()),
+            'bookmarks_count' => $this->bookmarks_count ?? $this->getBookmarksCount(),
         ];
     }
 
@@ -196,6 +205,9 @@ class TrendingResource extends JsonResource
             }),
             'path' => $this->buildProvisionPath($this->resource),
             'immediate_parent' => $this->getProvisionImmediateParent(),
+            'is_bookmarked' => $this->isBookmarkedBy($request->user()),
+            'bookmark_id' => $this->getBookmarkIdFor($request->user()),
+            'bookmarks_count' => $this->bookmarks_count ?? $this->getBookmarksCount(),
         ];
     }
 
@@ -226,6 +238,9 @@ class TrendingResource extends JsonResource
                     ];
                 });
             }),
+            'is_bookmarked' => $this->isBookmarkedBy($request->user()),
+            'bookmark_id' => $this->getBookmarkIdFor($request->user()),
+            'bookmarks_count' => $this->bookmarks_count ?? $this->getBookmarksCount(),
         ];
     }
 
@@ -244,6 +259,9 @@ class TrendingResource extends JsonResource
                     'name' => $this->user->name,
                 ];
             }),
+            'is_bookmarked' => $this->isBookmarkedBy($request->user()),
+            'bookmark_id' => $this->getBookmarkIdFor($request->user()),
+            'bookmarks_count' => $this->bookmarks_count ?? $this->getBookmarksCount(),
         ];
     }
 
