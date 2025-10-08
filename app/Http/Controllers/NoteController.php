@@ -20,12 +20,14 @@ class NoteController extends Controller
     ) {}
     public function index(Request $request): JsonResponse
     {
-        $query = Note::with(['user:id,name,email', 'comments'])
+        $query = Note::with(['user:id,name,email,avatar', 'comments'])
                     ->withViewsCount()
                     ->accessibleByUser($request->user()->id);
 
         if ($request->has('search')) {
             $query->search($request->search);
+            // When searching, only show public notes (exclude private notes from other users)
+            $query->public();
         }
 
         if ($request->has('tag')) {
@@ -65,7 +67,7 @@ class NoteController extends Controller
 
     public function myNotes(Request $request): JsonResponse
     {
-        $query = Note::with(['user:id,name,email', 'comments'])
+        $query = Note::with(['user:id,name,email,avatar', 'comments'])
                     ->withViewsCount()
                     ->forUser($request->user()->id);
 
@@ -115,7 +117,7 @@ class NoteController extends Controller
 
         try {
             $note = Note::create($validated);
-            $note->load('user:id,name,email');
+            $note->load('user:id,name,email,avatar');
 
             return ApiResponse::success([
                 'note' => new NoteResource($note)
@@ -133,8 +135,8 @@ class NoteController extends Controller
             return ApiResponse::forbidden('You can only view your own notes or public notes');
         }
 
-        $note->load(['user:id,name,email', 'comments']);
-        
+        $note->load(['user:id,name,email,avatar', 'comments']);
+
         return ApiResponse::success([
             'note' => new NoteResource($note)
         ], 'Note retrieved successfully');
@@ -146,7 +148,7 @@ class NoteController extends Controller
 
         try {
             $note->update($validated);
-            $note->load('user:id,name,email');
+            $note->load('user:id,name,email,avatar');
 
             return ApiResponse::success([
                 'note' => new NoteResource($note)

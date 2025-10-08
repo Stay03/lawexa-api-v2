@@ -205,7 +205,6 @@ class TrendingResource extends JsonResource
             'id' => $this->id,
             'title' => $this->title,
             'slug' => $this->slug,
-            'content' => $this->content,
             'tags' => $this->tags,
             'is_private' => $this->is_private,
             'created_at' => $this->created_at,
@@ -214,6 +213,7 @@ class TrendingResource extends JsonResource
                 return [
                     'id' => $this->user->id,
                     'name' => $this->user->name,
+                    'avatar' => $this->user->avatar,
                 ];
             }),
             'files' => $this->whenLoaded('files', function () {

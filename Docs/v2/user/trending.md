@@ -45,11 +45,11 @@ All trending endpoints return complete content data for each item, not just basi
 
 ### Notes
 **Full note content:**
-- `title`, `content` - Complete note title and text content
+- `title` - Note title (content field excluded for performance)
 - `tags` - Associated tags
 - `is_private` - Privacy setting
 - `created_at`, `updated_at` - Timestamps
-- `user` - Note author
+- `user` - Note author (includes id, name, avatar)
 
 ### Divisions
 **Complete division content:**

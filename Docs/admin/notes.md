@@ -57,7 +57,7 @@ Retrieves a paginated list of notes belonging to the authenticated user with fil
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `search` | string | No | - | Search in title and content |
+| `search` | string | No | - | Search in title and content (excludes private notes from other users) |
 | `tag` | string | No | - | Filter by specific tag |
 | `is_private` | boolean | No | - | Filter by privacy (true/false) |
 | `page` | integer | No | 1 | Page number |
@@ -85,7 +85,8 @@ GET /notes?search=meeting&tag=work&is_private=false&page=1&per_page=10
         "user": {
           "id": 2,
           "name": "Dr. Arturo Rogahn",
-          "email": "Johnathon.Prohaska@hotmail.com"
+          "email": "Johnathon.Prohaska@hotmail.com",
+          "avatar": "https://example.com/avatars/user-2.jpg"
         },
         "created_at": "2025-07-27T02:09:05.000000Z",
         "updated_at": "2025-07-27T02:09:13.000000Z"
@@ -150,7 +151,8 @@ GET /notes/my-notes?search=meeting&tag=work&page=1&per_page=10
         "user": {
           "id": 2,
           "name": "Dr. Arturo Rogahn",
-          "email": "Johnathon.Prohaska@hotmail.com"
+          "email": "Johnathon.Prohaska@hotmail.com",
+          "avatar": "https://example.com/avatars/user-2.jpg"
         },
         "created_at": "2025-07-27T02:09:05.000000Z",
         "updated_at": "2025-07-27T02:09:13.000000Z"
@@ -434,7 +436,8 @@ GET /admin/notes?search=meeting&user_id=2&page=1&per_page=15
         "user": {
           "id": 2,
           "name": "Dr. Arturo Rogahn",
-          "email": "Johnathon.Prohaska@hotmail.com"
+          "email": "Johnathon.Prohaska@hotmail.com",
+          "avatar": "https://example.com/avatars/user-2.jpg"
         },
         "created_at": "2025-07-27T02:09:05.000000Z",
         "updated_at": "2025-07-27T02:09:13.000000Z"
@@ -549,7 +552,8 @@ Creates a new note for any user in the system.
       "user": {
         "id": 3,
         "name": "John Doe",
-        "email": "john@example.com"
+        "email": "john@example.com",
+        "avatar": "https://example.com/avatars/user-3.jpg"
       },
       "created_at": "2025-07-27T02:25:00.000000Z",
       "updated_at": "2025-07-27T02:25:00.000000Z"
@@ -601,7 +605,8 @@ Same as Admin Create Note endpoint (all fields optional for updates except user_
       "user": {
         "id": 3,
         "name": "John Doe",
-        "email": "john@example.com"
+        "email": "john@example.com",
+        "avatar": "https://example.com/avatars/user-3.jpg"
       },
       "created_at": "2025-07-27T02:25:00.000000Z",
       "updated_at": "2025-07-27T02:30:00.000000Z"
@@ -716,6 +721,7 @@ DELETE /admin/notes/3
 | `id` | integer | No | User ID |
 | `name` | string | No | User name |
 | `email` | string | No | User email address |
+| `avatar` | string | Yes | User avatar URL |
 
 ### Pagination Meta Object
 
@@ -811,6 +817,7 @@ GET /admin/notes?search=important&user_id=2&tag=system&page=2&per_page=25
 - Searches across title and content fields
 - Case-insensitive search
 - Partial word matching supported
+- **Important**: When using the search parameter on `/notes` endpoint, only public notes are returned (private notes from other users are excluded for privacy)
 
 ### Ownership & Security
 - Users can only view, edit, and delete their own notes
