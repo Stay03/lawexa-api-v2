@@ -146,9 +146,15 @@ class TrendingService
         $modelIds = $trendingData->pluck('viewable_id');
         $user = request()->user();
 
+        // Determine counts to load based on model type
+        $countsToLoad = ['bookmarks'];
+        if ($modelClass === Folder::class) {
+            $countsToLoad[] = 'items';
+        }
+
         $models = $modelClass::whereIn('id', $modelIds)
             ->with($this->getModelRelations($modelClass))
-            ->withCount('bookmarks')
+            ->withCount($countsToLoad)
             ->when($user, function ($query) use ($user) {
                 $query->withUserBookmark($user);
             })
@@ -227,7 +233,7 @@ class TrendingService
             StatuteDivision::class => ['statute:id,title,slug', 'parentDivision'],
             StatuteProvision::class => ['division', 'statute:id,title,slug', 'parentProvision'],
             Note::class => ['user:id,name,avatar'],
-            Folder::class => ['user:id,name'],
+            Folder::class => ['user:id,name,avatar'],
             Comment::class => ['user:id,name'],
             default => [],
         };

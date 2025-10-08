@@ -257,6 +257,7 @@ class TrendingResource extends JsonResource
                 return [
                     'id' => $this->user->id,
                     'name' => $this->user->name,
+                    'avatar' => $this->user->avatar,
                 ];
             }),
             'is_bookmarked' => $this->isBookmarkedBy($request->user()),

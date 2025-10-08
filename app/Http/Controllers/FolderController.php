@@ -22,8 +22,8 @@ class FolderController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Folder::with(['user:id,name', 'children'])
-            ->withCount('bookmarks')
+        $query = Folder::with(['user:id,name,avatar', 'children'])
+            ->withCount(['bookmarks', 'items'])
             ->withUserBookmark($request->user())
             ->accessibleByUser($request->user()->id);
 
@@ -64,8 +64,8 @@ class FolderController extends Controller
 
     public function mine(Request $request): JsonResponse
     {
-        $query = Folder::with(['user:id,name', 'children'])
-            ->withCount('bookmarks')
+        $query = Folder::with(['user:id,name,avatar', 'children'])
+            ->withCount(['bookmarks', 'items'])
             ->withUserBookmark($request->user())
             ->forUser($request->user()->id);
 
