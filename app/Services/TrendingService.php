@@ -220,7 +220,7 @@ class TrendingService
             Statute::class => ['creator:id,name', 'files:id,viewable_id,file_name,file_size'],
             StatuteDivision::class => ['statute:id,title,slug', 'parentDivision'],
             StatuteProvision::class => ['division', 'statute:id,title,slug', 'parentProvision'],
-            Note::class => ['user:id,name'],
+            Note::class => ['user:id,name,avatar'],
             Folder::class => ['user:id,name'],
             Comment::class => ['user:id,name'],
             default => [],
