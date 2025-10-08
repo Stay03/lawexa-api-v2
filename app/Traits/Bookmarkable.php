@@ -56,6 +56,26 @@ trait Bookmarkable
     }
 
     /**
+     * Get the bookmark ID for a specific user
+     */
+    public function getBookmarkIdFor(?User $user): ?int
+    {
+        if (!$user) {
+            return null;
+        }
+
+        // Check if user_bookmarks relationship is loaded (eager loaded via withUserBookmark)
+        if ($this->relationLoaded('userBookmarks')) {
+            return $this->userBookmarks->first()?->id;
+        }
+
+        // Fallback to database query if not eager loaded
+        return $this->bookmarks()
+                   ->where('user_id', $user->id)
+                   ->value('id');
+    }
+
+    /**
      * Relationship to get bookmarks for a specific user
      * This is used for eager loading with scopeWithUserBookmark
      */

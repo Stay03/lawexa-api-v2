@@ -6,6 +6,8 @@ The Bookmark API allows users to bookmark various content types for easy access 
 
 Bookmark responses include complete model data using the standard resource classes for each content type. This ensures consistency with other API endpoints and provides full access to all model properties without truncation or data loss.
 
+**Important**: All bookmarkable content resources (cases, notes, statutes, etc.) now include a `bookmark_id` field alongside `is_bookmarked`. When `is_bookmarked: true`, the `bookmark_id` contains the ID needed for unbookmarking via `DELETE /api/bookmarks/{bookmark_id}`. When `is_bookmarked: false`, `bookmark_id` is `null`.
+
 ## Base URL
 ```
 http://127.0.0.1:8000/api
@@ -587,6 +589,30 @@ curl -H "Authorization: Bearer 226|tOS05YhJWRuxGp4n2v2nXmjjYrZ3w9jVEZlq57N3ef89e
 
 7. **Standard Resources**: Each bookmarkable item uses its corresponding resource class (CaseResource, NoteResource, StatuteResource, etc.) providing complete model data with proper formatting.
 
+8. **Bookmark ID in Content Responses**: All content endpoints (cases, notes, statutes, statute divisions, statute provisions) now include both `is_bookmarked` and `bookmark_id` fields. This allows the frontend to directly unbookmark items without an additional lookup.
+
+   Example content response with bookmark data:
+   ```json
+   {
+     "id": 7192,
+     "title": "Brown v. Green Ltd - Employment Rights",
+     "is_bookmarked": true,
+     "bookmark_id": 123,
+     "bookmarks_count": 5
+   }
+   ```
+
+   When not bookmarked:
+   ```json
+   {
+     "id": 7192,
+     "title": "Brown v. Green Ltd - Employment Rights",
+     "is_bookmarked": false,
+     "bookmark_id": null,
+     "bookmarks_count": 5
+   }
+   ```
+
 ---
 
 ## Rate Limiting
@@ -596,6 +622,12 @@ Standard API rate limiting applies to all bookmark endpoints. Please refer to th
 ---
 
 ## Changelog
+
+- **v2.0.2**: Added `bookmark_id` to content responses
+  - All content resources (CaseResource, NoteResource, StatuteResource, etc.) now include `bookmark_id` field
+  - Enables direct unbookmarking without additional API calls
+  - `bookmark_id` is `null` when item is not bookmarked
+  - Added `getBookmarkIdFor()` method to Bookmarkable trait
 
 - **v2.0.1**: Updated bookmark response structure for consistency
   - BookmarkResource now uses standard model resources (CaseResource, NoteResource, etc.)

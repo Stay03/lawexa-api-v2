@@ -34,6 +34,7 @@ class NoteListResource extends JsonResource
             'comments_count' => $this->commentCount(),
             'views_count' => $this->viewsCount(),
             'is_bookmarked' => $this->isBookmarkedBy($request->user()),
+            'bookmark_id' => $this->getBookmarkIdFor($request->user()),
             'bookmarks_count' => $this->bookmarks_count ?? $this->getBookmarksCount(),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
