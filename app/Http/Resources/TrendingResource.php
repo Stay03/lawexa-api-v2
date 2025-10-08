@@ -207,6 +207,7 @@ class TrendingResource extends JsonResource
             'slug' => $this->slug,
             'tags' => $this->tags,
             'is_private' => $this->is_private,
+            'comments_count' => $this->commentCount(),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             'user' => $this->whenLoaded('user', function () {

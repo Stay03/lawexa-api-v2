@@ -46,8 +46,10 @@ All trending endpoints return complete content data for each item, not just basi
 ### Notes
 **Full note content:**
 - `title` - Note title (content field excluded for performance)
+- `slug` - URL-friendly identifier (may be null)
 - `tags` - Associated tags
 - `is_private` - Privacy setting
+- `comments_count` - Number of approved comments on the note
 - `created_at`, `updated_at` - Timestamps
 - `user` - Note author (includes id, name, avatar)
 
@@ -140,9 +142,9 @@ GET /api/trending?time_range=month&per_page=3
         "id": 11,
         "title": "Comments System Test Note",
         "slug": null,
-        "content": "This is a test note for testing the comments functionality",
         "tags": null,
         "is_private": false,
+        "comments_count": 7,
         "created_at": "2025-08-19T12:09:39.000000Z",
         "updated_at": "2025-08-19T12:09:39.000000Z",
         "user": {
@@ -296,9 +298,9 @@ GET /api/trending/notes
         "id": 14,
         "title": "xxxx",
         "slug": null,
-        "content": "<p></p><p>...</p>",
         "tags": [],
         "is_private": false,
+        "comments_count": 0,
         "created_at": "2025-09-01T18:32:31.000000Z",
         "updated_at": "2025-09-01T18:51:51.000000Z",
         "user": {
