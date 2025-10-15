@@ -50,8 +50,22 @@ class FolderController extends Controller
             }
         }
 
-        $folders = $query->orderBySortOrder()
-            ->orderByName()
+        // Handle dynamic sorting
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortOrder = $request->get('sort_order', 'desc');
+
+        // Validate sort_by against allowed columns
+        $allowedSortColumns = ['created_at', 'updated_at', 'name'];
+        if (!in_array($sortBy, $allowedSortColumns)) {
+            $sortBy = 'created_at';
+        }
+
+        // Validate sort_order
+        if (!in_array($sortOrder, ['asc', 'desc'])) {
+            $sortOrder = 'desc';
+        }
+
+        $folders = $query->orderBy($sortBy, $sortOrder)
             ->paginate($request->get('per_page', 15));
 
         $folderCollection = new FolderCollection($folders);
@@ -92,8 +106,22 @@ class FolderController extends Controller
             }
         }
 
-        $folders = $query->orderBySortOrder()
-            ->orderByName()
+        // Handle dynamic sorting
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortOrder = $request->get('sort_order', 'desc');
+
+        // Validate sort_by against allowed columns
+        $allowedSortColumns = ['created_at', 'updated_at', 'name'];
+        if (!in_array($sortBy, $allowedSortColumns)) {
+            $sortBy = 'created_at';
+        }
+
+        // Validate sort_order
+        if (!in_array($sortOrder, ['asc', 'desc'])) {
+            $sortOrder = 'desc';
+        }
+
+        $folders = $query->orderBy($sortBy, $sortOrder)
             ->paginate($request->get('per_page', 15));
 
         $folderCollection = new FolderCollection($folders);
