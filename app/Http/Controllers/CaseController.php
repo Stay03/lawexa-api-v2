@@ -51,6 +51,14 @@ class CaseController extends Controller
             $query->byTopic($request->topic);
         }
 
+        if ($request->has('tag')) {
+            $query->byTag($request->tag);
+        }
+
+        if ($request->has('course')) {
+            $query->byCourse($request->course);
+        }
+
         if ($request->has('level')) {
             $query->byLevel($request->level);
         }

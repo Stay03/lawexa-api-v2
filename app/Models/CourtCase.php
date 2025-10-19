@@ -116,7 +116,17 @@ class CourtCase extends Model
 
     public function scopeByTopic($query, $topic)
     {
-        return $query->where('topic', $topic);
+        return $query->whereRaw('LOWER(topic) = ?', [strtolower($topic)]);
+    }
+
+    public function scopeByTag($query, $tag)
+    {
+        return $query->whereRaw('LOWER(tag) LIKE ?', ['%' . strtolower($tag) . '%']);
+    }
+
+    public function scopeByCourse($query, $course)
+    {
+        return $query->whereRaw('LOWER(course) = ?', [strtolower($course)]);
     }
 
     public function scopeByLevel($query, $level)

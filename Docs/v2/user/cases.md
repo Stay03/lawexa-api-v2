@@ -71,9 +71,10 @@ Retrieve a paginated list of cases with optional filtering and search capabiliti
 | `search` | string | No | - | Search in case title, body, court, or citation |
 | `country` | string | No | - | Filter by country |
 | `court` | string | No | - | Filter by court |
-| `topic` | string | No | - | Filter by topic |
+| `topic` | string | No | - | Filter by topic (exact, case-insensitive match) |
 | `level` | string | No | - | Filter by academic level |
-| `course` | string | No | - | Filter by course |
+| `course` | string | No | - | Filter by course (exact, case-insensitive match) |
+| `tag` | string | No | - | Filter by tag (partial, case-insensitive LIKE match) |
 | `date_from` | date | No | - | Filter cases from this date (YYYY-MM-DD) |
 | `date_to` | date | No | - | Filter cases to this date (YYYY-MM-DD) |
 | `per_page` | integer | No | 15 | Number of items per page (max 100) |
@@ -83,7 +84,12 @@ Retrieve a paginated list of cases with optional filtering and search capabiliti
 
 **Example Request:**
 ```bash
+# Basic filtering
 curl -X GET "https://rest.lawexa.com/api/cases?search=property&country=Nigeria&per_page=10" \
+  -H "Accept: application/json"
+
+# Advanced filtering with tag, course, and topic
+curl -X GET "https://rest.lawexa.com/api/cases?tag=Family%20Land&course=Land%20Law&per_page=5" \
   -H "Accept: application/json"
 ```
 
@@ -405,18 +411,221 @@ curl -X GET "https://rest.lawexa.com/api/cases?search=property rights" \
 ```
 
 ### Filtering Options
+- **Tag:** Filter by tags (partial match, case-insensitive) (e.g., `tag=Criminal`, `tag=Family%20Land`)
+- **Course:** Filter by course subject (exact match, case-insensitive) (e.g., `course=Land%20Law`)
+- **Topic:** Filter by legal topic (exact match, case-insensitive) (e.g., `topic=Family%20Land`)
 - **Country:** Filter by jurisdiction (e.g., `country=Nigeria`)
 - **Court:** Filter by specific court (e.g., `court=Supreme Court`)
-- **Topic:** Filter by legal topic (e.g., `topic=Family Law`)
 - **Level:** Filter by academic level (e.g., `level=400`)
-- **Course:** Filter by course subject (e.g., `course=Land Law`)
 - **Date Range:** Filter by case date (`date_from=1990-01-01&date_to=2000-12-31`)
+
+**Note:** See the "Advanced Filtering with Tag, Course, and Topic" section below for detailed examples and implementation details.
 
 ### Combined Filtering
 ```bash
 curl -X GET "https://rest.lawexa.com/api/cases?search=contract&country=Nigeria&level=400&per_page=5" \
   -H "Accept: application/json"
 ```
+
+## Advanced Filtering with Tag, Course, and Topic
+
+The Cases API now supports powerful filtering capabilities using `tag`, `course`, and `topic` parameters. These filters can be used individually or combined for precise case discovery.
+
+### Filter Matching Behavior
+
+| Filter Type | Matching Method | Case Sensitivity | Example |
+|-------------|----------------|------------------|---------|
+| **Tag** | Partial match (LIKE) | Case-insensitive | `tag=Criminal` matches "Criminal Damage", "Criminal Law" |
+| **Course** | Exact match | Case-insensitive | `course=Land Law` matches "Land Law" only |
+| **Topic** | Exact match | Case-insensitive | `topic=Family Land` matches "Family Land" only |
+
+### URL Encoding for Spaces
+
+When filter values contain spaces, they must be URL-encoded:
+- `Land Law` → `Land%20Law`
+- `Family Land` → `Family%20Land`
+- `Property Rights` → `Property%20Rights`
+
+### Filtering Examples
+
+#### Single Tag Filtering
+**Find cases with "Criminal" in tags:**
+```bash
+curl -X GET "https://rest.lawexa.com/api/cases?tag=Criminal&per_page=3" \
+  -H "Accept: application/json"
+```
+*Result: 107 cases found*
+
+**Sample Response:**
+```json
+{
+  "status": "success",
+  "message": "Cases retrieved successfully",
+  "data": {
+    "cases": [
+      {
+        "id": 5101,
+        "title": "Samuels v Stubbs, [1972] 4 SASR 200",
+        "course": "Criminal Law",
+        "topic": "Malicious Damage To Property",
+        "tag": "Criminal Damage",
+        // ... other fields
+      },
+      {
+        "id": 5723,
+        "title": "Ozana Ubierho v The State, [2005] 5 NWLR (Pt. 919) 644",
+        "course": "Criminal Law",
+        "topic": "Parties to an Offence",
+        "tag": "Common Intention,Criminal Conspiracy,Murder",
+        // ... other fields
+      }
+    ],
+    "meta": {
+      "current_page": 1,
+      "last_page": 36,
+      "per_page": 3,
+      "total": 107
+    }
+  }
+}
+```
+
+#### Course Filtering
+**Find Land Law cases:**
+```bash
+curl -X GET "https://rest.lawexa.com/api/cases?course=Land%20Law&per_page=3" \
+  -H "Accept: application/json"
+```
+*Result: 474 cases found*
+
+#### Case Insensitive Filtering
+**Case insensitive course filtering works:**
+```bash
+curl -X GET "https://rest.lawexa.com/api/cases?course=land%20law&per_page=2" \
+  -H "Accept: application/json"
+```
+*Result: 474 cases found (same as uppercase)*
+
+#### Combined Tag and Course Filtering
+**Find cases about Family Land in Land Law:**
+```bash
+curl -X GET "https://rest.lawexa.com/api/cases?tag=Family%20Land&course=Land%20Law&per_page=3" \
+  -H "Accept: application/json"
+```
+*Result: 80 cases found*
+
+**Sample Combined Response:**
+```json
+{
+  "status": "success",
+  "message": "Cases retrieved successfully",
+  "data": {
+    "cases": [
+      {
+        "id": 5107,
+        "title": "Santeng v Darkwa, (1976) 3 OYSHC (PT 1) 127",
+        "course": "Land Law",
+        "topic": "",
+        "tag": "Family Land, Will, Customary Land Tenure System",
+        "principles": "A building erected on family land could be passed to beneficiaries under a person's will, separate and distinct from the land which remained family property."
+      },
+      {
+        "id": 5109,
+        "title": "Sanusi v Makinde, (1994) 5 NWLR (PT. 343) 214",
+        "course": "Land Law",
+        "topic": "Family Land",
+        "tag": "Right of Allotment,Family Land,Partition of Land,Improvement on Family property",
+        "principles": "When land is jointly owned by multiple branches of a family, it remains the collective property of all descendants."
+      }
+    ],
+    "meta": {
+      "current_page": 1,
+      "last_page": 27,
+      "per_page": 3,
+      "total": 80
+    }
+  }
+}
+```
+
+#### Triple Parameter Filtering
+**Find cases matching all three criteria:**
+```bash
+curl -X GET "https://rest.lawexa.com/api/cases?tag=Family%20Land&course=Land%20Law&topic=Property%20Rights&per_page=3" \
+  -H "Accept: application/json"
+```
+*Result: 0 cases found (no cases match all three criteria exactly)*
+
+**Empty Response Example:**
+```json
+{
+  "status": "success",
+  "message": "Cases retrieved successfully",
+  "data": {
+    "cases": [],
+    "meta": {
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 3,
+      "total": 0,
+      "from": null,
+      "to": null
+    }
+  }
+}
+```
+
+#### Filtering with Search
+**Combine text search with tag filtering:**
+```bash
+curl -X GET "https://rest.lawexa.com/api/cases?search=contract&tag=Damages&per_page=5" \
+  -H "Accept: application/json"
+```
+
+#### Pagination with Filtering
+**Navigate through filtered results:**
+```bash
+# Page 1
+curl -X GET "https://rest.lawexa.com/api/cases?course=Land%20Law&per_page=2&page=1" \
+  -H "Accept: application/json"
+
+# Page 2
+curl -X GET "https://rest.lawexa.com/api/cases?course=Land%20Law&per_page=2&page=2" \
+  -H "Accept: application/json"
+```
+
+### Implementation Details
+
+#### Tag Filtering (LIKE Query)
+- Uses SQL `LIKE` operator with wildcards
+- Matches any tag containing the search term
+- Case-insensitive comparison
+- Multiple tags are searched (comma-separated values)
+
+**Examples:**
+- `tag=Criminal` matches: "Criminal Damage", "Criminal Law", "Criminal Conspiracy"
+- `tag=Family` matches: "Family Land", "Family Property", "Customary Family Law"
+
+#### Course & Topic Filtering (Exact Match)
+- Uses SQL `=` operator with case-insensitive comparison
+- Requires exact match to course/topic value
+- More precise than tag filtering
+
+**Examples:**
+- `course=Land Law` matches: "Land Law" only
+- `course=land law` matches: "Land Law" (case-insensitive)
+- `course=Land` matches: nothing (exact match required)
+
+#### Filter Combination Logic
+When multiple filters are applied, they use **AND** logic:
+- `?tag=Family&course=Land Law` = cases where tag contains "Family" **AND** course equals "Land Law"
+- `?tag=Family&course=Land Law&topic=Property Rights` = cases where all three conditions are true
+
+#### Performance Considerations
+- Tag filtering (LIKE) may be slower on large datasets
+- Course and topic filtering (exact match) are optimized for performance
+- Combined filters reduce result sets progressively
+- Use pagination for large result sets
 
 ### Pagination
 - **per_page:** Number of results per page (default: 15, max: 100)

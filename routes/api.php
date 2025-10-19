@@ -29,6 +29,7 @@ use App\Http\Controllers\BookmarkController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\ReferenceDataController;
 use App\Http\Controllers\TrendingController;
+use App\Http\Controllers\GlobalSearchController;
 use App\Http\Middleware\ViewTrackingMiddleware;
 
 // Configure route model bindings - admin routes use ID, user routes use slug
@@ -220,6 +221,10 @@ Route::middleware(['auth:sanctum', 'track.guest.activity'])->group(function () {
     Route::prefix('cases')->group(function () {
         Route::get('/', [CaseController::class, 'index']);
     });
+
+    // Global search routes
+    Route::get('divisions', [GlobalSearchController::class, 'divisions']);
+    Route::get('provisions', [GlobalSearchController::class, 'provisions']);
 
     // User note routes
     Route::prefix('notes')->group(function () {
