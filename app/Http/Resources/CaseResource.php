@@ -111,21 +111,21 @@ class CaseResource extends JsonResource
             'bookmarks_count' => $this->bookmarks_count ?? $this->getBookmarksCount(),
             'similar_cases' => $this->when(
                 $this->relationLoaded('similarCases') || $this->relationLoaded('casesWhereThisIsSimilar'),
-                function () {
+                function () use ($request) {
                     $similarCases = collect();
-                    
+
                     // Add cases this case is similar to
                     if ($this->relationLoaded('similarCases')) {
                         $similarCases = $similarCases->merge($this->similarCases);
                     }
-                    
+
                     // Add cases where this case is marked as similar
                     if ($this->relationLoaded('casesWhereThisIsSimilar')) {
                         $similarCases = $similarCases->merge($this->casesWhereThisIsSimilar);
                     }
-                    
+
                     // Remove duplicates and map to desired format
-                    return $similarCases->unique('id')->map(function ($similarCase) {
+                    return $similarCases->unique('id')->map(function ($similarCase) use ($request) {
                         return [
                             'id' => $similarCase->id,
                             'title' => $similarCase->title,
@@ -134,6 +134,9 @@ class CaseResource extends JsonResource
                             'date' => $similarCase->date?->format('Y-m-d'),
                             'country' => $similarCase->country,
                             'citation' => $similarCase->citation,
+                            'is_bookmarked' => $similarCase->isBookmarkedBy($request->user()),
+                            'bookmark_count' => $similarCase->bookmarks_count ?? $similarCase->getBookmarksCount(),
+                            'bookmark_id' => $similarCase->getBookmarkIdFor($request->user()),
                         ];
                     })->values();
                 }

@@ -88,10 +88,6 @@ class CaseController extends Controller
             'creator:id,name',
             'files',
             'caseReport',
-            'similarCases:id,title,slug,court,date,country,citation',
-            'casesWhereThisIsSimilar:id,title,slug,court,date,country,citation',
-            'citedCases:id,title,slug,court,date,country,citation',
-            'casesThatCiteThis:id,title,slug,court,date,country,citation',
         ];
 
         // Add user bookmarks only if user is authenticated
@@ -102,6 +98,22 @@ class CaseController extends Controller
         }
 
         $case->load($with)->loadCount('bookmarks');
+
+        // Load similar cases with bookmark information
+        $case->load([
+            'similarCases' => function ($query) use ($request) {
+                $query->select('court_cases.id', 'title', 'slug', 'court', 'date', 'country', 'citation')
+                      ->withCount('bookmarks')
+                      ->withUserBookmark($request->user());
+            },
+            'casesWhereThisIsSimilar' => function ($query) use ($request) {
+                $query->select('court_cases.id', 'title', 'slug', 'court', 'date', 'country', 'citation')
+                      ->withCount('bookmarks')
+                      ->withUserBookmark($request->user());
+            },
+            'citedCases:id,title,slug,court,date,country,citation',
+            'casesThatCiteThis:id,title,slug,court,date,country,citation',
+        ]);
 
         return ApiResponse::success([
             'case' => new CaseResource($case)

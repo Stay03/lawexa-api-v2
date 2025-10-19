@@ -201,7 +201,10 @@ curl -X GET "https://rest.lawexa.com/api/cases/sanusi-v-makinde-5194" \
           "court": null,
           "date": "1957-01-01",
           "country": "Nigeria",
-          "citation": "(1957) 2 FSC 65; (1957) NSCC 55"
+          "citation": "(1957) 2 FSC 65; (1957) NSCC 55",
+          "is_bookmarked": false,
+          "bookmark_count": 0,
+          "bookmark_id": null
         }
       ],
       "similar_cases_count": 2,
@@ -659,7 +662,7 @@ Include related case information:
 ### Relationships
 - `creator`: User who created the case
 - `files`: Associated file attachments
-- `similar_cases`: Related similar cases
+- `similar_cases`: Related similar cases with bookmark information for authenticated users
 - `cited_cases`: Cases that cite or are cited by this case
 
 ### Computed Fields
@@ -669,6 +672,13 @@ Include related case information:
 - `cited_cases_count`: Number of cited cases
 - `is_bookmarked`: Boolean indicating if the current authenticated user has bookmarked this case
 - `bookmarks_count`: Total number of users who have bookmarked this case
+- `bookmark_id`: ID of the current user's bookmark for this case (null if not bookmarked)
+
+### Similar Cases Bookmark Fields (Authenticated Users Only)
+When accessed by authenticated users, each similar case includes additional bookmark information:
+- `is_bookmarked`: Boolean indicating if the current user has bookmarked this similar case
+- `bookmark_count`: Total number of users who have bookmarked this similar case
+- `bookmark_id`: ID of the current user's bookmark for this similar case (null if not bookmarked)
 
 ### Bot-Specific Fields (when accessed by bots)
 - `isBot`: Boolean indicating if request came from a bot
@@ -686,9 +696,18 @@ When authenticated users access case details, their views are automatically trac
 - Personalized recommendations can be generated
 
 ### Bookmarking Cases
-Authenticated users can bookmark cases for quick access later. Case responses include bookmark status information:
+Authenticated users can bookmark cases for quick access later. Case responses include comprehensive bookmark status information:
+
+**Main Case Bookmark Information:**
 - `is_bookmarked`: Shows if the current user has bookmarked this case
 - `bookmarks_count`: Shows total number of bookmarks across all users
+- `bookmark_id`: ID of the current user's bookmark (null if not bookmarked)
+
+**Similar Cases Bookmark Information:**
+When viewing a case, authenticated users also see bookmark information for related similar cases:
+- Each similar case includes `is_bookmarked`, `bookmark_count`, and `bookmark_id`
+- This helps users quickly identify which related cases they've already bookmarked
+- Enables efficient navigation and organization of related legal content
 
 **Example Case Response with Bookmark Info:**
 ```json
@@ -702,7 +721,34 @@ Authenticated users can bookmark cases for quick access later. Case responses in
       // ... other case fields
       "views_count": 37,
       "is_bookmarked": true,
+      "bookmark_id": 15,
       "bookmarks_count": 2,
+      "similar_cases": [
+        {
+          "id": 5208,
+          "title": "Shelle v Asajon, (1957) 2 FSC 65; (1957) NSCC 55",
+          "slug": "shelle-v-asajon-1957-2-fsc-65-5298",
+          "court": null,
+          "date": "1957-01-01",
+          "country": "Nigeria",
+          "citation": "(1957) 2 FSC 65; (1957) NSCC 55",
+          "is_bookmarked": false,
+          "bookmark_count": 0,
+          "bookmark_id": null
+        },
+        {
+          "id": 757,
+          "title": "Bassey v Cobham, (1924) 5 NLR 90",
+          "slug": "bassey-v-cobham-1924-5-nlr-90-775",
+          "court": null,
+          "date": "1924-01-01",
+          "country": "Nigeria",
+          "citation": "(1924) 5 NLR 90",
+          "is_bookmarked": true,
+          "bookmark_count": 3,
+          "bookmark_id": 23
+        }
+      ],
       // ... rest of case data
     }
   }
@@ -717,6 +763,7 @@ Authenticated users get:
 - View history tracking
 - Personalized case recommendations
 - Ability to bookmark and organize cases
+- Bookmark information for similar cases to easily track related content
 - Access to premium content (based on subscription)
 - User-specific case recommendations based on viewing history
 
