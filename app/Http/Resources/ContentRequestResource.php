@@ -4,6 +4,11 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Http\Resources\CaseResource;
+use App\Http\Resources\StatuteResource;
+use App\Http\Resources\StatuteProvisionResource;
+use App\Http\Resources\StatuteDivisionResource;
+use App\Http\Resources\CommentResource;
 
 class ContentRequestResource extends JsonResource
 {
@@ -35,13 +40,22 @@ class ContentRequestResource extends JsonResource
 
             // Created content (when fulfilled)
             'created_content' => $this->when(
-                $this->isFulfilled() && $this->relationLoaded('createdContent'),
+                $this->isFulfilled() && $this->created_content_type && $this->created_content_id,
                 function () {
+                    // Manually load the content to avoid morphTo caching issues
+                    $content = null;
+                    if ($this->relationLoaded('createdContent') && $this->createdContent) {
+                        $content = $this->createdContent;
+                    } else {
+                        // Fallback: manually load the content
+                        $content = $this->created_content_type::find($this->created_content_id);
+                    }
+
                     return match($this->created_content_type) {
-                        'App\Models\CourtCase' => new CaseResource($this->createdContent),
-                        'App\Models\Statute' => new StatuteResource($this->createdContent),
-                        'App\Models\StatuteProvision' => new StatuteProvisionResource($this->createdContent),
-                        'App\Models\StatuteDivision' => new StatuteDivisionResource($this->createdContent),
+                        'App\Models\CourtCase' => $content ? new CaseResource($content) : null,
+                        'App\Models\Statute' => $content ? new StatuteResource($content) : null,
+                        'App\Models\StatuteProvision' => $content ? new StatuteProvisionResource($content) : null,
+                        'App\Models\StatuteDivision' => $content ? new StatuteDivisionResource($content) : null,
                         default => null,
                     };
                 }

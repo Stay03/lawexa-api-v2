@@ -54,6 +54,39 @@ curl -X GET "http://127.0.0.1:8000/api/admin/content-requests?status=pending&per
   "data": {
     "content_requests": [
       {
+        "id": 335,
+        "type": "case",
+        "type_name": "Case",
+        "title": "Test Case Request for Content Request System",
+        "additional_notes": "Please include recent case law and precedents",
+        "status": "fulfilled",
+        "status_name": "Fulfilled",
+        "user": {
+          "id": 301,
+          "name": "Test User",
+          "role": "user",
+          "avatar": null
+        },
+        "created_content": {
+          "id": 7188,
+          "title": "Contract Law Breach - Digital Services Agreement",
+          "court": "Federal High Court",
+          "created_at": "2025-10-21T03:47:03.000000Z"
+        },
+        "fulfilled_by": {
+          "id": 355,
+          "name": "Test Admin User"
+        },
+        "fulfilled_at": "2025-10-21T03:51:06.000000Z",
+        "rejected_by": null,
+        "rejected_at": null,
+        "duplicate_count": 0,
+        "can_edit": false,
+        "can_delete": false,
+        "created_at": "2025-10-21T03:44:49.000000Z",
+        "updated_at": "2025-10-21T03:51:06.000000Z"
+      },
+      {
         "id": 319,
         "type": "statute",
         "type_name": "Statute",
@@ -200,7 +233,7 @@ curl -X PUT "http://127.0.0.1:8000/api/admin/content-requests/318" \
 }'
 ```
 
-**Example Response:**
+**Example Response (Mark as In Progress):**
 ```json
 {
   "status": "success",
@@ -226,6 +259,51 @@ curl -X PUT "http://127.0.0.1:8000/api/admin/content-requests/318" \
       "rejected_at": null,
       "created_at": "2025-10-21T01:39:30.000000Z",
       "updated_at": "2025-10-21T01:42:48.000000Z"
+    }
+  }
+}
+```
+
+**Example Response (Fulfilled with Content):**
+```json
+{
+  "status": "success",
+  "message": "Content request updated successfully",
+  "data": {
+    "content_request": {
+      "id": 318,
+      "type": "case",
+      "type_name": "Case",
+      "title": "Request for landmark contract law case on breach of fiduciary duty",
+      "additional_notes": "Looking for a case that establishes precedent for director liability in corporate governance disputes, particularly cases involving technology companies.",
+      "status": "fulfilled",
+      "status_name": "Fulfilled",
+      "user": {
+        "id": 353,
+        "name": "Test User",
+        "role": "user",
+        "avatar": null
+      },
+      "created_content": {
+        "id": 7188,
+        "title": "Contract Law Breach - Digital Services Agreement",
+        "court": "Federal High Court",
+        "jurisdiction": "Federal",
+        "decision_date": "2024-03-15",
+        "body": "This case involves a dispute between a software development company and a client regarding the delivery and quality of a custom software solution. The plaintiff alleges that the defendant failed to meet agreed-upon specifications and timelines, resulting in significant business losses...",
+        "created_at": "2025-10-21T03:47:03.000000Z",
+        "updated_at": "2025-10-21T03:47:03.000000Z"
+      },
+      "fulfilled_by": {
+        "id": 355,
+        "name": "Test Admin User",
+        "role": "admin"
+      },
+      "fulfilled_at": "2025-10-21T03:51:06.000000Z",
+      "rejected_by": null,
+      "rejected_at": null,
+      "created_at": "2025-10-21T01:39:30.000000Z",
+      "updated_at": "2025-10-21T03:51:06.000000Z"
     }
   }
 }
@@ -406,6 +484,40 @@ When fulfilling requests, you can link to existing content:
   "status": "fulfilled",
   "created_content_type": "App\\Models\\CourtCase",
   "created_content_id": 456
+}
+```
+
+### created_content Field (Fulfilled Requests Only)
+
+When a request is successfully fulfilled, the API response will include a `created_content` field containing the full details of the content that was linked to fulfill the request. This allows you to:
+
+1. **Verify the correct content was linked** - Confirm the case, statute, or provision matches the user's request
+2. **View complete content details** - Access all content fields without making additional API calls
+3. **Validate content quality** - Ensure the created content meets standards before notifying users
+
+**Example created_content for Case:**
+```json
+"created_content": {
+  "id": 7188,
+  "title": "Contract Law Breach - Digital Services Agreement",
+  "court": "Federal High Court",
+  "jurisdiction": "Federal",
+  "decision_date": "2024-03-15",
+  "body": "Full case content here...",
+  "created_at": "2025-10-21T03:47:03.000000Z",
+  "updated_at": "2025-10-21T03:47:03.000000Z"
+}
+```
+
+**Example created_content for Statute:**
+```json
+"created_content": {
+  "id": 123,
+  "title": "Companies Act 2020",
+  "jurisdiction": "Federal",
+  "year": "2020",
+  "description": "An Act to provide for the incorporation...",
+  "created_at": "2025-10-21T02:15:30.000000Z"
 }
 ```
 

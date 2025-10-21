@@ -176,7 +176,7 @@ curl -X GET "http://127.0.0.1:8000/api/content-requests/318" \
 -H "Accept: application/json"
 ```
 
-**Example Response:**
+**Example Response (Pending Request):**
 ```json
 {
   "status": "success",
@@ -208,6 +208,56 @@ curl -X GET "http://127.0.0.1:8000/api/content-requests/318" \
       "comments": [],
       "created_at": "2025-10-21T01:39:30.000000Z",
       "updated_at": "2025-10-21T01:39:30.000000Z"
+    }
+  }
+}
+```
+
+**Example Response (Fulfilled Request):**
+```json
+{
+  "status": "success",
+  "message": "Content request retrieved successfully",
+  "data": {
+    "content_request": {
+      "id": 318,
+      "type": "case",
+      "type_name": "Case",
+      "title": "Request for landmark contract law case on breach of fiduciary duty",
+      "additional_notes": "Looking for a case that establishes precedent for director liability in corporate governance disputes, particularly cases involving technology companies.",
+      "status": "fulfilled",
+      "status_name": "Fulfilled",
+      "user": {
+        "id": 353,
+        "name": "Test User",
+        "role": "user",
+        "avatar": null
+      },
+      "statute": null,
+      "parent_division": null,
+      "parent_provision": null,
+      "created_content": {
+        "id": 7188,
+        "title": "Contract Law Breach - Digital Services Agreement",
+        "court": "Federal High Court",
+        "jurisdiction": "Federal",
+        "decision_date": "2024-03-15",
+        "body": "This case involves a dispute between a software development company and a client regarding the delivery and quality of a custom software solution...",
+        "created_at": "2025-10-21T03:47:03.000000Z"
+      },
+      "fulfilled_by": {
+        "id": 355,
+        "name": "Test Admin User",
+        "role": "admin"
+      },
+      "fulfilled_at": "2025-10-21T03:51:06.000000Z",
+      "rejected_by": null,
+      "rejected_at": null,
+      "can_edit": false,
+      "can_delete": false,
+      "comments": [],
+      "created_at": "2025-10-21T01:39:30.000000Z",
+      "updated_at": "2025-10-21T03:51:06.000000Z"
     }
   }
 }
@@ -253,11 +303,34 @@ curl -X DELETE "http://127.0.0.1:8000/api/content-requests/319" \
 ### Case Requests
 For requesting specific court cases or judgments. All requests through this API are for case content.
 
+## Response Fields
+
+### created_content (Fulfilled Requests Only)
+When a request has been fulfilled, the response will include a `created_content` field containing the details of the content that was created to fulfill your request:
+
+```json
+"created_content": {
+  "id": 7188,
+  "title": "Contract Law Breach - Digital Services Agreement",
+  "court": "Federal High Court",
+  "jurisdiction": "Federal",
+  "decision_date": "2024-03-15",
+  "body": "Full case content here...",
+  "created_at": "2025-10-21T03:47:03.000000Z"
+}
+```
+
+The `created_content` field will contain different object types depending on your request:
+- **Case requests**: Full case details including body, court, jurisdiction, etc.
+- **Statute requests**: Complete statute information
+- **Provision requests**: Specific provision details
+- **Division requests**: Division structure and content
+
 ## Status Flow
 
 1. **pending**: Request submitted, awaiting review
 2. **in_progress**: Request being processed by content team
-3. **fulfilled**: Request completed and content added
+3. **fulfilled**: Request completed and content added (with `created_content` visible)
 4. **rejected**: Request declined (with reason)
 
 ## Permissions
