@@ -32,6 +32,10 @@ use App\Http\Controllers\TrendingController;
 use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\ContentRequestController;
 use App\Http\Controllers\AdminContentRequestController;
+use App\Http\Controllers\CourseController;
+use App\Http\Controllers\CourtController;
+use App\Http\Controllers\AdminCourseController;
+use App\Http\Controllers\AdminCourtController;
 use App\Http\Middleware\ViewTrackingMiddleware;
 
 // Configure route model bindings - admin routes use ID, user routes use slug
@@ -103,13 +107,35 @@ Route::bind('statuteSchedule', function ($value, $route) {
 
 Route::bind('folder', function ($value, $route) {
     $uri = $route->uri();
-    
+
     if (str_contains($uri, 'admin/folders')) {
         // Admin routes: bind by ID
         return \App\Models\Folder::findOrFail($value);
     }
     // User routes: bind by slug (default behavior via getRouteKeyName)
     return \App\Models\Folder::where('slug', $value)->firstOrFail();
+});
+
+Route::bind('course', function ($value, $route) {
+    $uri = $route->uri();
+
+    if (str_contains($uri, 'admin/courses')) {
+        // Admin routes: bind by ID
+        return \App\Models\Course::findOrFail($value);
+    }
+    // User routes: bind by slug (default behavior via getRouteKeyName)
+    return \App\Models\Course::where('slug', $value)->firstOrFail();
+});
+
+Route::bind('court', function ($value, $route) {
+    $uri = $route->uri();
+
+    if (str_contains($uri, 'admin/courts')) {
+        // Admin routes: bind by ID
+        return \App\Models\Court::findOrFail($value);
+    }
+    // User routes: bind by slug (default behavior via getRouteKeyName)
+    return \App\Models\Court::where('slug', $value)->firstOrFail();
 });
 
 
@@ -222,6 +248,16 @@ Route::middleware(['auth:sanctum', 'track.guest.activity'])->group(function () {
     // User case routes (slug-based)
     Route::prefix('cases')->group(function () {
         Route::get('/', [CaseController::class, 'index']);
+    });
+
+    // User course routes (slug-based)
+    Route::prefix('courses')->group(function () {
+        Route::get('/', [CourseController::class, 'index']);
+    });
+
+    // User court routes (slug-based)
+    Route::prefix('courts')->group(function () {
+        Route::get('/', [CourtController::class, 'index']);
     });
 
     // Global search routes
@@ -458,6 +494,24 @@ Route::middleware(['auth:sanctum', 'track.guest.activity'])->group(function () {
             Route::delete('{contentRequest}', [AdminContentRequestController::class, 'destroy']);
         });
 
+        // Admin course management routes (ID-based)
+        Route::prefix('courses')->group(function () {
+            Route::get('/', [AdminCourseController::class, 'index']);
+            Route::post('/', [AdminCourseController::class, 'store']);
+            Route::get('{id}', [AdminCourseController::class, 'show'])->where('id', '[0-9]+');
+            Route::put('{id}', [AdminCourseController::class, 'update'])->where('id', '[0-9]+');
+            Route::delete('{id}', [AdminCourseController::class, 'destroy'])->where('id', '[0-9]+');
+        });
+
+        // Admin court management routes (ID-based)
+        Route::prefix('courts')->group(function () {
+            Route::get('/', [AdminCourtController::class, 'index']);
+            Route::post('/', [AdminCourtController::class, 'store']);
+            Route::get('{id}', [AdminCourtController::class, 'show'])->where('id', '[0-9]+');
+            Route::put('{id}', [AdminCourtController::class, 'update'])->where('id', '[0-9]+');
+            Route::delete('{id}', [AdminCourtController::class, 'destroy'])->where('id', '[0-9]+');
+        });
+
         // Admin views routes
         Route::get('views', [App\Http\Controllers\ViewStatsController::class, 'index']);
         
@@ -488,4 +542,12 @@ Route::prefix('statutes')->group(function () {
     Route::get('{statute}/divisions/{division:slug}', [StatuteController::class, 'showDivision'])->middleware(['bot.detection', 'optional.auth', 'track.views']);
     Route::get('{statute}/provisions/{provision:slug}', [StatuteController::class, 'showProvision'])->middleware(['bot.detection', 'optional.auth', 'track.views']);
     Route::get('{statute}/schedules/{schedule:slug}', [StatuteController::class, 'showSchedule'])->middleware(['bot.detection', 'optional.auth', 'track.views']);
+});
+
+Route::prefix('courses')->group(function () {
+    Route::get('{course}', [CourseController::class, 'show']);
+});
+
+Route::prefix('courts')->group(function () {
+    Route::get('{court}', [CourtController::class, 'show']);
 });
