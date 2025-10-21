@@ -33,6 +33,8 @@ class ModelView extends Model
         'bot_name',
         'is_search_engine',
         'is_social_media',
+        'search_query',
+        'is_from_search',
     ];
 
     protected $casts = [
@@ -40,6 +42,7 @@ class ModelView extends Model
         'is_bot' => 'boolean',
         'is_search_engine' => 'boolean',
         'is_social_media' => 'boolean',
+        'is_from_search' => 'boolean',
     ];
 
     public function viewable(): MorphTo
@@ -203,6 +206,38 @@ class ModelView extends Model
         return $query->whereBetween('viewed_at', [$startDate, $endDate]);
     }
 
+    /**
+     * Scope to filter views that came from search
+     */
+    public function scopeFromSearch(Builder $query): Builder
+    {
+        return $query->where('is_from_search', true);
+    }
+
+    /**
+     * Scope to filter views that didn't come from search
+     */
+    public function scopeNotFromSearch(Builder $query): Builder
+    {
+        return $query->where('is_from_search', false);
+    }
+
+    /**
+     * Scope to filter views by specific search query (exact match)
+     */
+    public function scopeBySearchQuery(Builder $query, string $searchQuery): Builder
+    {
+        return $query->where('search_query', $searchQuery);
+    }
+
+    /**
+     * Scope to filter views by similar search queries (LIKE match)
+     */
+    public function scopeSimilarSearchQueries(Builder $query, string $searchQuery): Builder
+    {
+        return $query->where('search_query', 'LIKE', '%' . $searchQuery . '%');
+    }
+
     public static function recordView(
         string $viewableType,
         int $viewableId,
@@ -224,9 +259,21 @@ class ModelView extends Model
         ?bool $isBot = null,
         ?string $botName = null,
         ?bool $isSearchEngine = null,
-        ?bool $isSocialMedia = null
+        ?bool $isSocialMedia = null,
+        ?string $searchQuery = null,
+        ?bool $isFromSearch = null
     ): ?static {
         try {
+            // Truncate search query to 500 characters if provided
+            if ($searchQuery !== null && strlen($searchQuery) > 500) {
+                $searchQuery = substr($searchQuery, 0, 500);
+            }
+
+            // Auto-detect is_from_search if not explicitly provided
+            if ($isFromSearch === null) {
+                $isFromSearch = !empty($searchQuery);
+            }
+
             return static::create([
                 'viewable_type' => $viewableType,
                 'viewable_id' => $viewableId,
@@ -250,6 +297,8 @@ class ModelView extends Model
                 'bot_name' => $botName,
                 'is_search_engine' => $isSearchEngine,
                 'is_social_media' => $isSocialMedia,
+                'search_query' => $searchQuery,
+                'is_from_search' => $isFromSearch,
             ]);
         } catch (\Exception $e) {
             // Handle duplicate key constraint violations gracefully

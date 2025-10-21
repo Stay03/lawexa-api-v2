@@ -314,6 +314,13 @@ Route::middleware(['auth:sanctum', 'track.guest.activity'])->group(function () {
         Route::delete('{contentRequest}', [ContentRequestController::class, 'destroy']);
     });
 
+    // Search History routes (user - authenticated and guest)
+    Route::prefix('search-history')->middleware('optional.auth')->group(function () {
+        Route::get('/', [App\Http\Controllers\SearchHistoryController::class, 'index']);
+        Route::get('/views', [App\Http\Controllers\SearchHistoryController::class, 'views']);
+        Route::get('/stats', [App\Http\Controllers\SearchHistoryController::class, 'stats']);
+    });
+
     Route::middleware('role:admin,researcher,superadmin')->prefix('admin')->group(function () {
         Route::get('dashboard', [App\Http\Controllers\AdminController::class, 'dashboard']);
         Route::get('users', [App\Http\Controllers\AdminController::class, 'getUsers']);

@@ -154,11 +154,39 @@ Retrieve detailed information about a specific case using its slug.
 
 **Note:** This endpoint automatically tracks views when accessed by authenticated users via the `track.views` middleware.
 
-**Example Request:**
+#### Search Tracking Support
+
+This endpoint supports search tracking to help users understand which searches lead to specific content views. When a user views a case after performing a search, include the `search_query` parameter to track this relationship.
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `search_query` | string | No | null | The search query that led to this case view (URL-encoded) |
+
+**Example Requests:**
 ```bash
+# Basic case view
 curl -X GET "https://rest.lawexa.com/api/cases/sanusi-v-makinde-5194" \
   -H "Accept: application/json"
+
+# Case view with search tracking
+curl -X GET "https://rest.lawexa.com/api/cases/sanusi-v-makinde-5194?search_query=family+land" \
+  -H "Accept: application/json"
+
+# Authenticated user with search tracking
+curl -X GET "https://rest.lawexa.com/api/cases/sanusi-v-makinde-5194?search_query=right+of+allotment" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Accept: application/json"
 ```
+
+**Important Notes for Search Tracking:**
+- The `search_query` parameter should be URL-encoded by the frontend
+- Search queries are limited to 500 characters (longer queries are automatically truncated)
+- This enables search history tracking for users (see [Search History API](search-history.md))
+- Views with `search_query` are classified as "search-initiated views"
+- Views without `search_query` are classified as "direct/browsing views"
+- Works for both authenticated and guest users
 
 **Success Response (200) - Human User:**
 ```json

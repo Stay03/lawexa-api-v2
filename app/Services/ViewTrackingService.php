@@ -82,7 +82,9 @@ class ViewTrackingService
             $viewData['is_bot'],
             $viewData['bot_name'],
             $viewData['is_search_engine'],
-            $viewData['is_social_media']
+            $viewData['is_social_media'],
+            $viewData['search_query'] ?? null,
+            $viewData['is_from_search'] ?? false
         );
     }
 
@@ -101,10 +103,33 @@ class ViewTrackingService
         // Get bot information from request attributes (set by BotDetectionMiddleware)
         $isBot = $request->attributes->get('is_bot', false);
         $botInfo = $request->attributes->get('bot_info', []);
-        
+
+        // Extract search query from request
+        $searchQuery = $request->query('search_query') ?? $request->query('q');
+        if ($searchQuery !== null) {
+            // URL decode (Laravel does this automatically, but being explicit)
+            $searchQuery = urldecode($searchQuery);
+
+            // Trim whitespace
+            $searchQuery = trim($searchQuery);
+
+            // Remove control characters and null bytes
+            $searchQuery = preg_replace('/[\x00-\x1F\x7F]/u', '', $searchQuery);
+
+            // Truncate to 500 characters
+            if (strlen($searchQuery) > 500) {
+                $searchQuery = substr($searchQuery, 0, 500);
+            }
+
+            // Set to null if empty after sanitization
+            if ($searchQuery === '') {
+                $searchQuery = null;
+            }
+        }
+
         // With guest authentication system, we always have a user (either real user or guest)
         // No need for session-based tracking anymore
-        
+
         return [
             'viewable_type' => get_class($model),
             'viewable_id' => $model->getKey(),
@@ -128,6 +153,9 @@ class ViewTrackingService
             'bot_name' => $botInfo['bot_name'] ?? null,
             'is_search_engine' => $botInfo['is_search_engine'] ?? null,
             'is_social_media' => $botInfo['is_social_media'] ?? null,
+            // Search tracking
+            'search_query' => $searchQuery,
+            'is_from_search' => !empty($searchQuery),
         ];
     }
 
