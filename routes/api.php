@@ -30,6 +30,8 @@ use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\ReferenceDataController;
 use App\Http\Controllers\TrendingController;
 use App\Http\Controllers\GlobalSearchController;
+use App\Http\Controllers\ContentRequestController;
+use App\Http\Controllers\AdminContentRequestController;
 use App\Http\Middleware\ViewTrackingMiddleware;
 
 // Configure route model bindings - admin routes use ID, user routes use slug
@@ -304,6 +306,14 @@ Route::middleware(['auth:sanctum', 'track.guest.activity'])->group(function () {
         Route::get('stats', [BookmarkController::class, 'stats']);
     });
 
+    // Content Request routes (user)
+    Route::prefix('content-requests')->middleware('verified')->group(function () {
+        Route::get('/', [ContentRequestController::class, 'index']);
+        Route::post('/', [ContentRequestController::class, 'store']);
+        Route::get('{contentRequest}', [ContentRequestController::class, 'show']);
+        Route::delete('{contentRequest}', [ContentRequestController::class, 'destroy']);
+    });
+
     Route::middleware('role:admin,researcher,superadmin')->prefix('admin')->group(function () {
         Route::get('dashboard', [App\Http\Controllers\AdminController::class, 'dashboard']);
         Route::get('users', [App\Http\Controllers\AdminController::class, 'getUsers']);
@@ -430,7 +440,17 @@ Route::middleware(['auth:sanctum', 'track.guest.activity'])->group(function () {
             Route::post('{comment}/reject', [AdminCommentController::class, 'reject'])->where('comment', '[0-9]+');
             Route::delete('{comment}', [AdminCommentController::class, 'destroy'])->where('comment', '[0-9]+')->middleware('role:admin,superadmin');
         });
-        
+
+        // Admin content request management routes
+        Route::prefix('content-requests')->group(function () {
+            Route::get('stats', [AdminContentRequestController::class, 'stats']);
+            Route::get('duplicates', [AdminContentRequestController::class, 'duplicates']);
+            Route::get('/', [AdminContentRequestController::class, 'index']);
+            Route::get('{contentRequest}', [AdminContentRequestController::class, 'show']);
+            Route::put('{contentRequest}', [AdminContentRequestController::class, 'update']);
+            Route::delete('{contentRequest}', [AdminContentRequestController::class, 'destroy']);
+        });
+
         // Admin views routes
         Route::get('views', [App\Http\Controllers\ViewStatsController::class, 'index']);
         

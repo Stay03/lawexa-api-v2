@@ -104,6 +104,14 @@ class CourtCase extends Model
         return $this->citedCases()->union($this->casesThatCiteThis());
     }
 
+    /**
+     * Get all content requests that were fulfilled by creating this case.
+     */
+    public function contentRequests(): MorphMany
+    {
+        return $this->morphMany(ContentRequest::class, 'created_content');
+    }
+
     public function scopeByCountry($query, $country)
     {
         return $query->where('country', $country);
