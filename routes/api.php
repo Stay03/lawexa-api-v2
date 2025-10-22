@@ -36,6 +36,8 @@ use App\Http\Controllers\CourseController;
 use App\Http\Controllers\CourtController;
 use App\Http\Controllers\AdminCourseController;
 use App\Http\Controllers\AdminCourtController;
+use App\Http\Controllers\FeedbackController;
+use App\Http\Controllers\AdminFeedbackController;
 use App\Http\Middleware\ViewTrackingMiddleware;
 
 // Configure route model bindings - admin routes use ID, user routes use slug
@@ -350,6 +352,13 @@ Route::middleware(['auth:sanctum', 'track.guest.activity'])->group(function () {
         Route::delete('{contentRequest}', [ContentRequestController::class, 'destroy']);
     });
 
+    // Feedback routes (user)
+    Route::prefix('feedback')->middleware('verified')->group(function () {
+        Route::get('/', [FeedbackController::class, 'index']);
+        Route::post('/', [FeedbackController::class, 'store']);
+        Route::get('{feedback}', [FeedbackController::class, 'show']);
+    });
+
     // Search History routes (user - authenticated and guest)
     Route::prefix('search-history')->middleware('optional.auth')->group(function () {
         Route::get('/', [App\Http\Controllers\SearchHistoryController::class, 'index']);
@@ -492,6 +501,14 @@ Route::middleware(['auth:sanctum', 'track.guest.activity'])->group(function () {
             Route::get('{contentRequest}', [AdminContentRequestController::class, 'show']);
             Route::put('{contentRequest}', [AdminContentRequestController::class, 'update']);
             Route::delete('{contentRequest}', [AdminContentRequestController::class, 'destroy']);
+        });
+
+        // Admin feedback management routes
+        Route::prefix('feedback')->group(function () {
+            Route::get('/', [AdminFeedbackController::class, 'index']);
+            Route::get('{feedback}', [AdminFeedbackController::class, 'show']);
+            Route::patch('{feedback}/status', [AdminFeedbackController::class, 'updateStatus']);
+            Route::post('{feedback}/move-to-issues', [AdminFeedbackController::class, 'moveToIssues']);
         });
 
         // Admin course management routes (ID-based)
