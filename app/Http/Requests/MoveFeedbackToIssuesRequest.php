@@ -11,8 +11,8 @@ class MoveFeedbackToIssuesRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // User must be an admin (handled by middleware)
-        return $this->user() && $this->user()->role === 'admin';
+        // User must have admin access (admin, researcher, or superadmin)
+        return $this->user() && $this->user()->hasAdminAccess();
     }
 
     /**
