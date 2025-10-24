@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Traits\HasViewTracking;
 use App\Traits\Folderable;
 use App\Traits\Bookmarkable;
+use App\Services\CitationService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -51,6 +52,68 @@ class CourtCase extends Model
         static::updating(function ($case) {
             if ($case->isDirty('title')) {
                 $case->slug = Str::slug($case->title);
+            }
+        });
+
+        // Auto-generate citation after case is created (when ID is available)
+        static::created(function ($case) {
+            // Skip if user manually provided a citation
+            if (!empty($case->citation)) {
+                return;
+            }
+
+            $citationService = new CitationService();
+            $citation = $citationService->generateCitation($case);
+
+            if ($citation) {
+                // Update without triggering events to avoid infinite loop
+                $case->updateQuietly([
+                    'citation' => $citation,
+                    'title' => $citationService->appendCitationToTitle($case->title, $citation),
+                    'slug' => Str::slug($citationService->appendCitationToTitle($case->title, $citation))
+                ]);
+            }
+        });
+
+        // Regenerate citation when country, court, or date changes
+        static::updated(function ($case) {
+            // Check if country, court, or date changed
+            $relevantFieldsChanged = $case->wasChanged('country') ||
+                                    $case->wasChanged('court') ||
+                                    $case->wasChanged('date');
+
+            if (!$relevantFieldsChanged) {
+                return;
+            }
+
+            // Skip if user manually updated the citation field in the same update
+            if ($case->wasChanged('citation')) {
+                return;
+            }
+
+            $citationService = new CitationService();
+
+            // Remove old citation from title
+            $cleanTitle = $citationService->removeCitationFromTitle($case->title);
+
+            // Generate new citation
+            $newCitation = $citationService->generateCitation($case);
+
+            if ($newCitation) {
+                // Update with new citation
+                $newTitle = $citationService->appendCitationToTitle($cleanTitle, $newCitation);
+                $case->updateQuietly([
+                    'citation' => $newCitation,
+                    'title' => $newTitle,
+                    'slug' => Str::slug($newTitle)
+                ]);
+            } else {
+                // Clear citation if requirements not met
+                $case->updateQuietly([
+                    'citation' => null,
+                    'title' => $cleanTitle,
+                    'slug' => Str::slug($cleanTitle)
+                ]);
             }
         });
     }

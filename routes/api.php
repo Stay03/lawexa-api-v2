@@ -34,8 +34,10 @@ use App\Http\Controllers\ContentRequestController;
 use App\Http\Controllers\AdminContentRequestController;
 use App\Http\Controllers\CourseController;
 use App\Http\Controllers\CourtController;
+use App\Http\Controllers\CountryController;
 use App\Http\Controllers\AdminCourseController;
 use App\Http\Controllers\AdminCourtController;
+use App\Http\Controllers\AdminCountryController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\AdminFeedbackController;
 use App\Http\Middleware\ViewTrackingMiddleware;
@@ -138,6 +140,17 @@ Route::bind('court', function ($value, $route) {
     }
     // User routes: bind by slug (default behavior via getRouteKeyName)
     return \App\Models\Court::where('slug', $value)->firstOrFail();
+});
+
+Route::bind('country', function ($value, $route) {
+    $uri = $route->uri();
+
+    if (str_contains($uri, 'admin/countries')) {
+        // Admin routes: bind by ID
+        return \App\Models\Country::findOrFail($value);
+    }
+    // User routes: bind by slug (default behavior via getRouteKeyName)
+    return \App\Models\Country::where('slug', $value)->firstOrFail();
 });
 
 
@@ -260,6 +273,11 @@ Route::middleware(['auth:sanctum', 'track.guest.activity'])->group(function () {
     // User court routes (slug-based)
     Route::prefix('courts')->group(function () {
         Route::get('/', [CourtController::class, 'index']);
+    });
+
+    // User country routes (slug-based)
+    Route::prefix('countries')->group(function () {
+        Route::get('/', [CountryController::class, 'index']);
     });
 
     // Global search routes
@@ -529,6 +547,15 @@ Route::middleware(['auth:sanctum', 'track.guest.activity'])->group(function () {
             Route::delete('{id}', [AdminCourtController::class, 'destroy'])->where('id', '[0-9]+');
         });
 
+        // Admin country management routes (ID-based)
+        Route::prefix('countries')->group(function () {
+            Route::get('/', [AdminCountryController::class, 'index']);
+            Route::post('/', [AdminCountryController::class, 'store']);
+            Route::get('{id}', [AdminCountryController::class, 'show'])->where('id', '[0-9]+');
+            Route::put('{id}', [AdminCountryController::class, 'update'])->where('id', '[0-9]+');
+            Route::delete('{id}', [AdminCountryController::class, 'destroy'])->where('id', '[0-9]+');
+        });
+
         // Admin views routes
         Route::get('views', [App\Http\Controllers\ViewStatsController::class, 'index']);
         
@@ -567,4 +594,8 @@ Route::prefix('courses')->group(function () {
 
 Route::prefix('courts')->group(function () {
     Route::get('{court}', [CourtController::class, 'show']);
+});
+
+Route::prefix('countries')->group(function () {
+    Route::get('{country}', [CountryController::class, 'show']);
 });

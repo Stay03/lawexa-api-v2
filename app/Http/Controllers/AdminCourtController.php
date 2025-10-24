@@ -21,7 +21,11 @@ class AdminCourtController extends Controller
         $query = Court::with(['creator:id,name']);
 
         if ($request->has('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                  ->orWhere('abbreviation', 'like', '%' . $search . '%');
+            });
         }
 
         $courts = $query->latest()

@@ -23,6 +23,7 @@ class UpdateCourtRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:255',
+            'abbreviation' => 'nullable|string|max:50',
         ];
     }
 
@@ -36,6 +37,7 @@ class UpdateCourtRequest extends FormRequest
         return [
             'name.required' => 'Court name is required',
             'name.max' => 'Court name cannot exceed 255 characters',
+            'abbreviation.max' => 'Court abbreviation cannot exceed 50 characters',
         ];
     }
 }

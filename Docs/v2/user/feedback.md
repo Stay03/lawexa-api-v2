@@ -313,8 +313,50 @@ curl -X GET "https://rest.lawexa.com/api/feedback/1" \
 Feedback goes through the following status transitions:
 
 1. **pending** - Initial status when feedback is submitted
-2. **under_review** - Admin is reviewing the feedback
+2. **under_review** - Admin is reviewing the feedback (or linked issue is in progress)
 3. **resolved** - Feedback has been addressed and resolved
+
+### Moved to Issues
+
+Critical or complex feedback may be moved to the issue tracking system by admins. When this happens:
+
+- The `moved_to_issues` field becomes `true`
+- The `moved_by` field shows which admin moved it
+- The `moved_at` field shows when it was moved
+- An `issue` object appears in the response with details about the created issue
+
+**Example of feedback moved to issues:**
+
+```json
+{
+  "id": 4,
+  "feedback_text": "The case citation appears incorrect",
+  "status": "under_review",
+  "moved_to_issues": true,
+  "moved_by": {
+    "id": 789,
+    "name": "Admin User",
+    "role": "admin"
+  },
+  "moved_at": "2025-10-24T15:00:00Z",
+  "issue": {
+    "id": 104,
+    "title": "Feedback: case/123",
+    "status": "in_progress",
+    "severity": "high",
+    "type": "bug"
+  }
+}
+```
+
+**Status Synchronization:**
+
+When your feedback is linked to an issue, the statuses stay synchronized:
+- When the issue is being worked on (`in_progress`), your feedback shows `under_review`
+- When the issue is resolved, your feedback is automatically marked as `resolved` too
+- If the issue is reopened, your feedback status updates accordingly
+
+This ensures you always see the current status of your feedback even when it's being handled through the issue tracking system.
 
 ## Image Upload Guidelines
 

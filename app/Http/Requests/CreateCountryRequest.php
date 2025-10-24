@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class CreateCourtRequest extends FormRequest
+class CreateCountryRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -35,9 +35,9 @@ class CreateCourtRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required' => 'Court name is required',
-            'name.max' => 'Court name cannot exceed 255 characters',
-            'abbreviation.max' => 'Court abbreviation cannot exceed 50 characters',
+            'name.required' => 'Country name is required',
+            'name.max' => 'Country name cannot exceed 255 characters',
+            'abbreviation.max' => 'Country abbreviation cannot exceed 50 characters',
         ];
     }
 }

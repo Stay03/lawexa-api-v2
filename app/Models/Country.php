@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
-class Court extends Model
+class Country extends Model
 {
     /**
      * The attributes that are mass assignable.
@@ -27,21 +27,21 @@ class Court extends Model
     {
         parent::boot();
 
-        static::creating(function ($court) {
-            if (empty($court->slug)) {
-                $court->slug = Str::slug($court->name);
+        static::creating(function ($country) {
+            if (empty($country->slug)) {
+                $country->slug = Str::slug($country->name);
             }
         });
 
-        static::updating(function ($court) {
-            if ($court->isDirty('name') && !$court->isDirty('slug')) {
-                $court->slug = Str::slug($court->name);
+        static::updating(function ($country) {
+            if ($country->isDirty('name') && !$country->isDirty('slug')) {
+                $country->slug = Str::slug($country->name);
             }
         });
     }
 
     /**
-     * Get the creator of the court.
+     * Get the creator of the country.
      */
     public function creator(): BelongsTo
     {

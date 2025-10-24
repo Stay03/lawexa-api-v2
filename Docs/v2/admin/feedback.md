@@ -278,7 +278,7 @@ curl -X PATCH "https://rest.lawexa.com/api/admin/feedback/1/status" \
 
 ### 4. Move Feedback to Issues
 
-Move critical feedback to the issues tracking system for prioritized action.
+Move critical feedback to the issues tracking system for prioritized action. This creates an actual Issue record with bidirectional linking and automatic status synchronization.
 
 **Endpoint:** `POST /admin/feedback/{id}/move-to-issues`
 
@@ -287,14 +287,42 @@ Move critical feedback to the issues tracking system for prioritized action.
 **Path Parameters:**
 - `id`: Feedback ID
 
-**Request Body:** None required
+**Request Body (All Optional):**
 
-**Example Request:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `type` | string | No | Issue type (bug, feature_request, improvement, other) |
+| `severity` | string | No | Issue severity (low, medium, high, critical) |
+| `priority` | string | No | Issue priority (low, medium, high, urgent) |
+| `status` | string | No | Initial issue status (open, in_progress, resolved, closed, duplicate) |
+| `area` | string | No | Affected area (frontend, backend, both, ai-ml-research) |
+| `category` | string | No | Issue category (max 100 characters) |
+| `assigned_to` | integer | No | User ID to assign issue to |
+| `admin_notes` | string | No | Admin notes for the issue |
+
+**Example Requests:**
 
 ```bash
+# Basic move (uses defaults)
 curl -X POST "https://rest.lawexa.com/api/admin/feedback/1/move-to-issues" \
   -H "Authorization: Bearer ADMIN_TOKEN" \
   -H "Accept: application/json"
+
+# Move with custom parameters
+curl -X POST "https://rest.lawexa.com/api/admin/feedback/4/move-to-issues" \
+  -H "Authorization: Bearer ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{
+    "type": "bug",
+    "severity": "high",
+    "priority": "urgent",
+    "status": "in_progress",
+    "area": "frontend",
+    "category": "UI/UX",
+    "assigned_to": 5,
+    "admin_notes": "Critical UI bug affecting case viewing"
+  }'
 ```
 
 **Success Response (200):**
@@ -304,9 +332,9 @@ curl -X POST "https://rest.lawexa.com/api/admin/feedback/1/move-to-issues" \
   "message": "Feedback moved to issues successfully",
   "data": {
     "feedback": {
-      "id": 1,
-      "feedback_text": "Critical security vulnerability found in authentication system",
-      "page": null,
+      "id": 4,
+      "feedback_text": "The case title appears to have incorrect citation",
+      "page": "case/123",
       "status": "under_review",
       "status_name": "Under Review",
       "status_color": "blue",
@@ -316,8 +344,18 @@ curl -X POST "https://rest.lawexa.com/api/admin/feedback/1/move-to-issues" \
         "email": "john@example.com",
         "role": "user"
       },
-      "content": null,
-      "images": [],
+      "content": {
+        "type": "Case",
+        "id": 456,
+        "title": "Smith v Jones [2023] UKSC 42"
+      },
+      "images": [
+        {
+          "id": 1,
+          "url": "https://s3.amazonaws.com/bucket/feedback/screenshot.jpg",
+          "order": 0
+        }
+      ],
       "resolved_by": null,
       "resolved_at": null,
       "moved_to_issues": true,
@@ -326,9 +364,55 @@ curl -X POST "https://rest.lawexa.com/api/admin/feedback/1/move-to-issues" \
         "name": "Admin User",
         "role": "admin"
       },
-      "moved_at": "2025-10-22T15:00:00Z",
+      "moved_at": "2025-10-24T15:00:00Z",
+      "issue": {
+        "id": 104,
+        "title": "Feedback: case/123",
+        "status": "in_progress",
+        "severity": "high",
+        "type": "bug"
+      },
       "created_at": "2025-10-22T10:00:00Z",
-      "updated_at": "2025-10-22T15:00:00Z"
+      "updated_at": "2025-10-24T15:00:00Z"
+    },
+    "issue": {
+      "id": 104,
+      "title": "Feedback: case/123",
+      "description": "[User Feedback]\nThe case title appears to have incorrect citation\n\nRelated to: Case - Smith v Jones [2023] UKSC 42\nPage: case/123\nSubmitted by: John Doe (john@example.com)",
+      "type": "bug",
+      "severity": "high",
+      "priority": "urgent",
+      "status": "in_progress",
+      "area": "frontend",
+      "category": "UI/UX",
+      "user": {
+        "id": 123,
+        "name": "John Doe",
+        "email": "john@example.com",
+        "role": "user"
+      },
+      "assigned_to": {
+        "id": 5,
+        "name": "Developer User",
+        "role": "admin"
+      },
+      "resolved_by": null,
+      "from_feedback": true,
+      "feedback": {
+        "id": 4
+      },
+      "files": [
+        {
+          "id": 15,
+          "original_name": "screenshot.jpg",
+          "s3_path": "issues/2025/10/104/screenshot.jpg",
+          "mime_type": "image/jpeg"
+        }
+      ],
+      "admin_notes": "Critical UI bug affecting case viewing",
+      "resolved_at": null,
+      "created_at": "2025-10-24T15:00:00Z",
+      "updated_at": "2025-10-24T15:00:00Z"
     }
   }
 }
@@ -342,6 +426,173 @@ curl -X POST "https://rest.lawexa.com/api/admin/feedback/1/move-to-issues" \
   "data": null
 }
 ```
+
+#### What Happens When Moving Feedback to Issues
+
+1. **Issue Creation**: A new Issue record is created in the issues tracking system
+2. **Enhanced Description**: Issue description includes the original feedback text plus contextual information (case title, page URL, user details)
+3. **Image Transfer**: All feedback images are copied to the issue as File attachments
+4. **Bidirectional Linking**: Both records are linked (`feedback.issue_id` and `issue.feedback_id`)
+5. **Status Tracking**: The feedback is marked as moved with `moved_by` and `moved_at` timestamps
+6. **Status Sync**: Future status changes automatically sync between feedback and issue (see Bidirectional Status Sync below)
+
+## Bidirectional Status Synchronization
+
+When feedback is moved to issues, the two records become linked and their statuses automatically sync in **both directions**. This ensures consistency between the feedback and issue tracking systems.
+
+### How It Works
+
+#### Feedback → Issue Sync
+
+When you update a feedback's status using `PATCH /admin/feedback/{id}/status`, if the feedback has been moved to issues (has an `issue_id`), the linked issue's status will automatically update.
+
+**Status Mapping (Feedback → Issue):**
+
+| Feedback Status | Issue Status | Notes |
+|----------------|--------------|-------|
+| `pending` | `open` | Feedback reopened or needs attention |
+| `under_review` | `in_progress` | Admin actively working on the issue |
+| `resolved` | `resolved` | Issue completed and closed |
+
+**Example:**
+```bash
+# Update feedback to "pending"
+curl -X PATCH "https://rest.lawexa.com/api/admin/feedback/4/status" \
+  -H "Authorization: Bearer ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"status": "pending"}'
+
+# The linked issue (e.g., #104) automatically updates to "open"
+```
+
+#### Issue → Feedback Sync
+
+When you update an issue's status using `PUT /admin/issues/{id}`, if the issue came from feedback (has a `feedback_id`), the original feedback's status will automatically update.
+
+**Status Mapping (Issue → Feedback):**
+
+| Issue Status | Feedback Status | Notes |
+|-------------|-----------------|-------|
+| `open` | No change | Doesn't sync backwards to avoid loops |
+| `in_progress` | `under_review` | Work has started |
+| `resolved` | `resolved` | Issue completed |
+| `closed` | `resolved` | Issue closed |
+| `duplicate` | No change | Doesn't affect feedback status |
+
+**Example:**
+```bash
+# Update issue to "in_progress"
+curl -X PUT "https://rest.lawexa.com/api/admin/issues/104" \
+  -H "Authorization: Bearer ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"status": "in_progress"}'
+
+# The linked feedback (#4) automatically updates to "under_review"
+```
+
+### Synced Fields
+
+When status changes sync, the following fields are also synchronized:
+
+| Field | Syncs When | Direction |
+|-------|-----------|-----------|
+| `status` | Always on status change | Both directions |
+| `resolved_by` | Status changes to "resolved" | Both directions |
+| `resolved_at` | Status changes to "resolved" | Both directions |
+
+**Example: Resolving an Issue**
+```bash
+# Resolve the issue
+curl -X PUT "https://rest.lawexa.com/api/admin/issues/104" \
+  -H "Authorization: Bearer ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"status": "resolved"}'
+
+# Both records now have:
+# - status: "resolved"
+# - resolved_by: {admin user who made the change}
+# - resolved_at: {timestamp of the change}
+```
+
+### Sync Workflow Example
+
+Here's a complete workflow showing bidirectional sync in action:
+
+```bash
+# Step 1: Move feedback to issues
+curl -X POST "https://rest.lawexa.com/api/admin/feedback/4/move-to-issues" \
+  -H "Authorization: Bearer ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "bug",
+    "severity": "high",
+    "status": "open"
+  }'
+# Creates Issue #104
+# Feedback status: pending (unchanged initially)
+# Issue status: open
+
+# Step 2: Start working on the issue
+curl -X PUT "https://rest.lawexa.com/api/admin/issues/104" \
+  -H "Authorization: Bearer ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"status": "in_progress"}'
+# Issue → Feedback sync triggers
+# Feedback status: under_review
+# Issue status: in_progress
+
+# Step 3: Resolve the issue
+curl -X PUT "https://rest.lawexa.com/api/admin/issues/104" \
+  -H "Authorization: Bearer ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"status": "resolved"}'
+# Issue → Feedback sync triggers
+# Feedback status: resolved (with resolved_by and resolved_at)
+# Issue status: resolved (with resolved_by and resolved_at)
+
+# Step 4: Reopen if needed (from feedback side)
+curl -X PATCH "https://rest.lawexa.com/api/admin/feedback/4/status" \
+  -H "Authorization: Bearer ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"status": "pending"}'
+# Feedback → Issue sync triggers
+# Feedback status: pending
+# Issue status: open
+```
+
+### Important Notes
+
+1. **Automatic Sync**: No manual action required - status changes sync immediately
+2. **Logged**: All sync operations are logged for debugging
+3. **One-Way per Action**: Each status update only syncs once (no infinite loops)
+4. **Error Handling**: If sync fails, the original status update still succeeds
+5. **Timestamps Preserved**: When syncing resolved status, timestamps are copied exactly
+6. **Admin Tracking**: The `resolved_by` field tracks which admin resolved the item in both systems
+
+### Feedback Response with Issue Link
+
+When feedback has been moved to issues, the response includes an `issue` object:
+
+```json
+{
+  "id": 4,
+  "feedback_text": "Bug report text",
+  "status": "under_review",
+  "moved_to_issues": true,
+  "issue": {
+    "id": 104,
+    "title": "Feedback: case/123",
+    "status": "in_progress",
+    "severity": "high",
+    "type": "bug"
+  }
+}
+```
+
+This allows you to:
+- See which issue was created from the feedback
+- Check the current issue status
+- Navigate to the issue for more details
 
 ## Feedback Management Workflow
 
@@ -524,3 +775,38 @@ Use these stats to:
 - Status changes are audited (resolved_by, moved_by tracking)
 - Images are securely stored on S3
 - All actions are logged for accountability
+
+## Changelog
+
+### 2025-10-24
+
+#### Enhanced Move to Issues Functionality
+- **Issue Creation**: The `POST /admin/feedback/{id}/move-to-issues` endpoint now creates actual Issue records in the issues tracking system
+- **Optional Parameters**: Added support for customizing issue creation with optional parameters:
+  - `type`, `severity`, `priority`, `status`, `area`, `category`
+  - `assigned_to`, `admin_notes`
+- **Enhanced Descriptions**: Issue descriptions now include contextual information from the original feedback:
+  - Case title and content type
+  - Page URL where feedback originated
+  - User details (name and email)
+- **Image Transfer**: Feedback images are automatically copied to the issue as File attachments
+
+#### Bidirectional Status Synchronization
+- **Automatic Sync**: Status changes now sync automatically between linked feedback and issues in both directions
+- **Status Mapping**:
+  - Feedback → Issue: pending→open, under_review→in_progress, resolved→resolved
+  - Issue → Feedback: in_progress→under_review, resolved/closed→resolved
+- **Timestamp Sync**: `resolved_by` and `resolved_at` timestamps sync when either record is marked as resolved
+- **Loop Prevention**: Intelligent sync logic prevents infinite update loops
+- **Error Handling**: Sync failures are logged but don't affect the primary status update
+
+#### New Response Fields
+- **`issue` object**: Feedback responses now include an `issue` object when moved to issues, showing:
+  - Issue ID, title, status, severity, and type
+  - Allows tracking issue details directly from feedback API
+- **`issue_id` field**: Direct link to the created issue record
+
+#### Database Changes
+- Added `issue_id` foreign key to feedback table
+- Added `feedback_id` foreign key to issues table
+- Both fields are nullable with proper indexes and cascading deletes

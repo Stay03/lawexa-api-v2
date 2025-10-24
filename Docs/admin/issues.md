@@ -1786,5 +1786,158 @@ All list endpoints (`GET /issues`, `GET /admin/issues`) return paginated respons
 ### Performance Considerations
 - **Pagination**: All list endpoints are paginated (default 15 items per page for user endpoints, 20 for admin endpoints)
 - **Selective Loading**: User relationships and files are loaded efficiently
-- **Indexing**: Database indexes on status, severity, area, user_id, assigned_to, and created_at
+- **Indexing**: Database indexes on status, severity, area, user_id, assigned_to, resolved_by, and created_at
 - **Filtering**: Multiple filter combinations supported without performance impact
+
+---
+
+## Integration with Feedback System
+
+### Bidirectional Status Synchronization
+
+Issues and Feedback systems are tightly integrated with **automatic bidirectional status synchronization**. When an issue is created from feedback or when linked issue/feedback statuses change, the systems sync automatically.
+
+#### Feedback → Issue Creation
+
+Issues can be created from user feedback via the admin feedback endpoint:
+
+**POST** `/admin/feedback/{id}/move-to-issues`
+
+**Optional Parameters:**
+```json
+{
+  "type": "bug",
+  "severity": "high",
+  "priority": "urgent",
+  "status": "open",
+  "area": "frontend",
+  "category": "ui",
+  "admin_notes": "Created from user feedback"
+}
+```
+
+**Enhanced Description Format:**
+When issues are created from feedback, the description includes rich context:
+```
+[User Feedback]
+{original_feedback_text}
+
+Related to: Case - {case_title}
+Page: {page_url}
+Submitted by: {user_name} ({email})
+```
+
+**Response includes both:**
+- Updated feedback with `issue` object
+- Created issue with `from_feedback: true` flag
+
+#### Status Mapping Tables
+
+**Issue → Feedback (Automatic Sync)**
+
+| Issue Status | Syncs To Feedback Status |
+|-------------|-------------------------|
+| `resolved` | `resolved` |
+| `closed` | `resolved` |
+| `in_progress` | `under_review` |
+| `open` | *(no change)* |
+| `duplicate` | *(no change)* |
+
+**Feedback → Issue (Automatic Sync)**
+
+| Feedback Status | Syncs To Issue Status |
+|----------------|---------------------|
+| `resolved` | `resolved` |
+| `under_review` | `in_progress` |
+| `pending` | `open` |
+
+#### Synced Fields
+
+When status changes trigger synchronization, the following fields are also synced:
+
+- **resolved_by**: ID of admin who marked as resolved
+- **resolved_at**: Timestamp when marked as resolved
+- Both directions sync these fields automatically
+
+#### Example Workflow
+
+```bash
+# 1. User submits feedback
+POST /feedback
+{
+  "feedback_text": "The app crashed when I tried to login",
+  "content_type": "App\\Models\\CourtCase",
+  "content_id": 5175
+}
+
+# 2. Admin moves feedback to issues
+POST /admin/feedback/4/move-to-issues
+{
+  "type": "bug",
+  "severity": "high",
+  "area": "frontend"
+}
+# Response includes both updated feedback and created issue #104
+
+# 3. Admin resolves issue - feedback auto-syncs to "resolved"
+PUT /admin/issues/104
+{
+  "status": "resolved"
+}
+# Feedback #4 automatically marked as "resolved" with same resolved_by and resolved_at
+
+# 4. Admin reopens via feedback - issue auto-syncs to "open"
+PATCH /admin/feedback/4/status
+{
+  "status": "pending"
+}
+# Issue #104 automatically changed to "open"
+```
+
+#### Issue Response Fields (Feedback Integration)
+
+When retrieving issues via admin endpoints, feedback-sourced issues include:
+
+```json
+{
+  "id": 104,
+  "title": "The app crashed when I tried to login",
+  "description": "[User Feedback]\nThe app crashed when I tried to login\n\nRelated to: Case - Senator Abubakar v Yandoma\nSubmitted by: precious daniel (danielprecious484@gmail.com)",
+  "from_feedback": true,
+  "feedback": {
+    "id": 4,
+    "feedback_text": "The app crashed when I tried to login",
+    "user": { /* user object */ },
+    "content": { /* related content */ }
+  },
+  "resolved_by": {
+    "id": 2,
+    "name": "Stay Njokede",
+    "role": "superadmin"
+  },
+  "resolved_at": "2025-10-24T01:25:12.000000Z"
+  /* ... other issue fields ... */
+}
+```
+
+### Resolved By Tracking
+
+The `resolved_by` field tracks which admin marked an issue as resolved:
+
+- **Automatically populated** when issue status changes to `resolved` or `closed`
+- **Returns user object** with id, name, email, and role
+- **Syncs with linked feedback** when bidirectional sync is active
+- **Visible in both** admin and user issue endpoints (when loaded)
+
+---
+
+## Changelog
+
+### 2025-10-24
+- ✨ Added `resolved_by` field to track admin who resolved issues
+- ✨ Implemented bidirectional status sync between Issues and Feedback systems
+- ✨ Enhanced issue descriptions when created from feedback (includes context)
+- ✨ Added `from_feedback` flag to identify feedback-sourced issues
+- 🔧 Status changes in issues automatically sync to linked feedback
+- 🔧 Status changes in feedback automatically sync to linked issues
+- 🔧 `resolved_by` and `resolved_at` timestamps sync bidirectionally
