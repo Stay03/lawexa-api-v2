@@ -12,6 +12,7 @@ class Issue extends Model
     use Commentable;
     protected $fillable = [
         'user_id',
+        'feedback_id',
         'title',
         'description',
         'type',
@@ -45,6 +46,11 @@ class Issue extends Model
     public function assignedTo(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function feedback(): BelongsTo
+    {
+        return $this->belongsTo(Feedback::class, 'feedback_id');
     }
 
     public function files(): MorphMany

@@ -36,6 +36,7 @@ class Feedback extends Model
         'moved_to_issues',
         'moved_by',
         'moved_at',
+        'issue_id',
     ];
 
     /**
@@ -90,6 +91,14 @@ class Feedback extends Model
     public function movedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'moved_by');
+    }
+
+    /**
+     * Get the issue that was created from this feedback.
+     */
+    public function issue(): BelongsTo
+    {
+        return $this->belongsTo(Issue::class, 'issue_id');
     }
 
     /**

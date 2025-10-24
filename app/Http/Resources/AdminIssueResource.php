@@ -31,6 +31,15 @@ class AdminIssueResource extends JsonResource
             'actual_behavior' => $this->actual_behavior,
             'user' => new UserResource($this->whenLoaded('user')),
             'assigned_to' => new UserResource($this->whenLoaded('assignedTo')),
+            'from_feedback' => $this->feedback_id !== null,
+            'feedback' => $this->when($this->feedback_id, function() {
+                if ($this->relationLoaded('feedback')) {
+                    return new FeedbackResource($this->feedback);
+                }
+                return [
+                    'id' => $this->feedback_id,
+                ];
+            }),
             'files' => FileResource::collection($this->whenLoaded('files')),
             'screenshots' => FileResource::collection($this->whenLoaded('screenshots')),
             'comments_count' => $this->when(isset($this->comments_count), $this->comments_count),

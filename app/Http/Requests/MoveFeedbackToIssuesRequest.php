@@ -22,8 +22,15 @@ class MoveFeedbackToIssuesRequest extends FormRequest
      */
     public function rules(): array
     {
-        // No validation rules needed for this request
-        // The controller will validate that the feedback hasn't already been moved
-        return [];
+        return [
+            'type' => ['nullable', 'string', 'in:bug,feature_request,improvement,other'],
+            'severity' => ['nullable', 'string', 'in:low,medium,high,critical'],
+            'priority' => ['nullable', 'string', 'in:low,medium,high,urgent'],
+            'status' => ['nullable', 'string', 'in:open,in_progress,resolved,closed,duplicate'],
+            'area' => ['nullable', 'string', 'in:frontend,backend,both,ai-ml-research'],
+            'category' => ['nullable', 'string', 'max:100'],
+            'assigned_to' => ['nullable', 'integer', 'exists:users,id'],
+            'admin_notes' => ['nullable', 'string'],
+        ];
     }
 }

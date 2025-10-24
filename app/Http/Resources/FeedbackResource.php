@@ -62,6 +62,20 @@ class FeedbackResource extends JsonResource
                 ];
             }),
             'moved_at' => $this->moved_at?->toIso8601String(),
+            'issue' => $this->when($this->issue_id, function() {
+                if ($this->relationLoaded('issue')) {
+                    return [
+                        'id' => $this->issue->id,
+                        'title' => $this->issue->title,
+                        'status' => $this->issue->status,
+                        'severity' => $this->issue->severity,
+                        'type' => $this->issue->type,
+                    ];
+                }
+                return [
+                    'id' => $this->issue_id,
+                ];
+            }),
 
             // Timestamps
             'created_at' => $this->created_at->toIso8601String(),

@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Feedback;
+use App\Models\Issue;
+use App\Models\File;
 use App\Http\Requests\UpdateFeedbackStatusRequest;
 use App\Http\Requests\MoveFeedbackToIssuesRequest;
 use App\Http\Resources\FeedbackResource;
+use App\Http\Resources\AdminIssueResource;
 use App\Http\Responses\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -188,8 +191,45 @@ class AdminFeedbackController extends Controller
                 );
             }
 
-            // Move to issues
-            $feedback->moveToIssues($request->user()->id);
+            // Create an Issue from the feedback
+            $issue = Issue::create([
+                'user_id' => $feedback->user_id,
+                'feedback_id' => $feedback->id,
+                'title' => $this->generateIssueTitle($feedback),
+                'description' => $feedback->feedback_text,
+                'type' => $request->input('type', 'other'),
+                'severity' => $request->input('severity', 'medium'),
+                'priority' => $request->input('priority', 'medium'),
+                'status' => $request->input('status', 'open'),
+                'area' => $request->input('area'),
+                'category' => $request->input('category'),
+                'assigned_to' => $request->input('assigned_to'),
+                'admin_notes' => $request->input('admin_notes'),
+            ]);
+
+            // Transfer feedback images to the Issue as File records
+            if ($feedback->images()->exists()) {
+                foreach ($feedback->images as $image) {
+                    // Create a File record for the issue
+                    File::create([
+                        'fileable_type' => Issue::class,
+                        'fileable_id' => $issue->id,
+                        'user_id' => $feedback->user_id,
+                        'original_name' => basename($image->s3_path),
+                        's3_path' => $image->s3_path,
+                        'mime_type' => 'image/jpeg', // Default, can be enhanced
+                        'size' => 0, // Not tracked in FeedbackImage
+                    ]);
+                }
+            }
+
+            // Update feedback: mark as moved and link to the created issue
+            $feedback->update([
+                'moved_to_issues' => true,
+                'moved_by' => $request->user()->id,
+                'moved_at' => now(),
+                'issue_id' => $issue->id,
+            ]);
 
             $feedback->load([
                 'user',
@@ -197,12 +237,18 @@ class AdminFeedbackController extends Controller
                 'content',
                 'resolvedBy',
                 'movedBy',
+                'issue',
             ]);
+
+            $issue->load(['user', 'feedback', 'files', 'assignedTo']);
 
             DB::commit();
 
             return ApiResponse::success(
-                ['feedback' => new FeedbackResource($feedback)],
+                [
+                    'feedback' => new FeedbackResource($feedback),
+                    'issue' => new AdminIssueResource($issue),
+                ],
                 'Feedback moved to issues successfully'
             );
 
@@ -211,6 +257,28 @@ class AdminFeedbackController extends Controller
             Log::error('Error moving feedback to issues: ' . $e->getMessage());
             return ApiResponse::error('An error occurred while moving feedback to issues', null, 500);
         }
+    }
+
+    /**
+     * Generate a concise title for the issue from feedback.
+     *
+     * @param Feedback $feedback
+     * @return string
+     */
+    private function generateIssueTitle(Feedback $feedback): string
+    {
+        // Truncate feedback text to create a title
+        $title = $feedback->feedback_text;
+
+        // Remove extra whitespace and newlines
+        $title = preg_replace('/\s+/', ' ', $title);
+
+        // Truncate to 100 characters
+        if (strlen($title) > 100) {
+            $title = substr($title, 0, 97) . '...';
+        }
+
+        return trim($title);
     }
 
     /**
