@@ -8,9 +8,11 @@ use App\Http\Resources\IssueCollection;
 use App\Http\Responses\ApiResponse;
 use App\Models\Issue;
 use App\Models\File;
+use App\Models\Feedback;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class AdminIssueController extends Controller
 {
@@ -126,9 +128,9 @@ class AdminIssueController extends Controller
      */
     public function show(Issue $adminIssue)
     {
-        $adminIssue->load(['user', 'assignedTo', 'files', 'screenshots', 'comments']);
+        $adminIssue->load(['user', 'assignedTo', 'resolvedBy', 'files', 'screenshots', 'comments']);
         $adminIssue->loadCount(['comments']);
-        
+
         return ApiResponse::success([
             'issue' => new AdminIssueResource($adminIssue)
         ], 'Issue retrieved successfully');
@@ -147,23 +149,35 @@ class AdminIssueController extends Controller
             $changes = [];
             
             $data = $request->validated();
-            
+
+            // Handle resolved status and resolved_by tracking
             if (isset($data['status']) && $data['status'] === 'resolved' && !$adminIssue->resolved_at) {
                 $data['resolved_at'] = now();
+                $data['resolved_by'] = $request->user()->id;
+            } elseif (isset($data['status']) && in_array($data['status'], ['resolved', 'closed'])) {
+                // If already resolved, just update resolved_by if not set
+                if (!$adminIssue->resolved_by) {
+                    $data['resolved_by'] = $request->user()->id;
+                }
             }
-            
+
             $adminIssue->update($data);
-            
+
             // Detect changes for email notification
             $updatedAttributes = $adminIssue->getAttributes();
             foreach (['title', 'status', 'description', 'type', 'severity', 'area', 'assigned_to'] as $field) {
-                if (isset($originalAttributes[$field], $updatedAttributes[$field]) && 
+                if (isset($originalAttributes[$field], $updatedAttributes[$field]) &&
                     $originalAttributes[$field] !== $updatedAttributes[$field]) {
                     $changes[$field] = [
                         'from' => $originalAttributes[$field],
                         'to' => $updatedAttributes[$field]
                     ];
                 }
+            }
+
+            // Sync status with linked feedback (Issue → Feedback)
+            if ($adminIssue->feedback_id && isset($changes['status'])) {
+                $this->syncIssueStatusToFeedback($adminIssue, $request->user()->id);
             }
             
             if ($request->has('file_ids')) {
@@ -183,8 +197,8 @@ class AdminIssueController extends Controller
                 }
             }
             
-            $adminIssue->load(['user', 'assignedTo', 'files', 'screenshots']);
-            
+            $adminIssue->load(['user', 'assignedTo', 'resolvedBy', 'files', 'screenshots']);
+
             DB::commit();
             
             // Send update notifications if there are changes
@@ -323,6 +337,55 @@ class AdminIssueController extends Controller
             
         } catch (\Exception $e) {
             return ApiResponse::error('Failed to generate AI analysis', null, 500);
+        }
+    }
+
+    /**
+     * Sync issue status to linked feedback (Issue → Feedback).
+     *
+     * @param Issue $issue
+     * @param int $adminId
+     * @return void
+     */
+    private function syncIssueStatusToFeedback(Issue $issue, int $adminId): void
+    {
+        try {
+            if (!$issue->feedback_id) {
+                return;
+            }
+
+            $feedback = Feedback::find($issue->feedback_id);
+            if (!$feedback) {
+                return;
+            }
+
+            // Map issue status to feedback status
+            $feedbackStatus = match($issue->status) {
+                'resolved', 'closed' => 'resolved',
+                'in_progress' => 'under_review',
+                default => null, // Don't change for 'open' or 'duplicate'
+            };
+
+            if ($feedbackStatus) {
+                $updateData = ['status' => $feedbackStatus];
+
+                // Sync resolved_by and resolved_at for resolved status
+                if ($feedbackStatus === 'resolved') {
+                    $updateData['resolved_by'] = $issue->resolved_by ?? $adminId;
+                    $updateData['resolved_at'] = $issue->resolved_at ?? now();
+                }
+
+                $feedback->update($updateData);
+
+                Log::info('Synced issue status to feedback', [
+                    'issue_id' => $issue->id,
+                    'feedback_id' => $feedback->id,
+                    'issue_status' => $issue->status,
+                    'feedback_status' => $feedbackStatus,
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to sync issue status to feedback: ' . $e->getMessage());
         }
     }
 }

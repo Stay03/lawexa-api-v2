@@ -138,6 +138,7 @@ class AdminFeedbackController extends Controller
         DB::beginTransaction();
 
         try {
+            $oldStatus = $feedback->status;
             $newStatus = $request->status;
 
             // If marking as resolved, record who resolved it
@@ -146,6 +147,11 @@ class AdminFeedbackController extends Controller
             } else {
                 // Update status only
                 $feedback->update(['status' => $newStatus]);
+            }
+
+            // Sync status with linked issue (Feedback → Issue)
+            if ($feedback->issue_id && $oldStatus !== $newStatus) {
+                $this->syncFeedbackStatusToIssue($feedback, $request->user()->id);
             }
 
             $feedback->load([
@@ -191,12 +197,15 @@ class AdminFeedbackController extends Controller
                 );
             }
 
+            // Load content relationship for description generation
+            $feedback->load('content', 'user');
+
             // Create an Issue from the feedback
             $issue = Issue::create([
                 'user_id' => $feedback->user_id,
                 'feedback_id' => $feedback->id,
                 'title' => $this->generateIssueTitle($feedback),
-                'description' => $feedback->feedback_text,
+                'description' => $this->generateIssueDescription($feedback),
                 'type' => $request->input('type', 'other'),
                 'severity' => $request->input('severity', 'medium'),
                 'priority' => $request->input('priority', 'medium'),
@@ -282,6 +291,41 @@ class AdminFeedbackController extends Controller
     }
 
     /**
+     * Generate enhanced description for the issue from feedback with context.
+     *
+     * @param Feedback $feedback
+     * @return string
+     */
+    private function generateIssueDescription(Feedback $feedback): string
+    {
+        $description = "[User Feedback]\n";
+        $description .= $feedback->feedback_text . "\n\n";
+
+        // Add content context if available
+        if ($feedback->content_type && $feedback->content) {
+            $description .= "Related to: " . $feedback->content_type_name;
+
+            $contentTitle = $feedback->content->title ?? $feedback->content->name ?? null;
+            if ($contentTitle) {
+                $description .= " - " . $contentTitle;
+            }
+            $description .= "\n";
+        }
+
+        // Add page context if available
+        if ($feedback->page) {
+            $description .= "Page: " . $feedback->page . "\n";
+        }
+
+        // Add user info
+        if ($feedback->user) {
+            $description .= "Submitted by: " . $feedback->user->name . " (" . $feedback->user->email . ")\n";
+        }
+
+        return trim($description);
+    }
+
+    /**
      * Get feedback statistics.
      *
      * @param Request $request
@@ -306,5 +350,55 @@ class AdminFeedbackController extends Controller
             'resolved' => (clone $query)->resolved()->count(),
             'moved_to_issues' => (clone $query)->movedToIssues()->count(),
         ];
+    }
+
+    /**
+     * Sync feedback status to linked issue (Feedback → Issue).
+     *
+     * @param Feedback $feedback
+     * @param int $adminId
+     * @return void
+     */
+    private function syncFeedbackStatusToIssue(Feedback $feedback, int $adminId): void
+    {
+        try {
+            if (!$feedback->issue_id) {
+                return;
+            }
+
+            $issue = Issue::find($feedback->issue_id);
+            if (!$issue) {
+                return;
+            }
+
+            // Map feedback status to issue status
+            $issueStatus = match($feedback->status) {
+                'resolved' => 'resolved',
+                'under_review' => 'in_progress',
+                'pending' => 'open',
+                default => null,
+            };
+
+            if ($issueStatus) {
+                $updateData = ['status' => $issueStatus];
+
+                // Sync resolved_by and resolved_at for resolved status
+                if ($issueStatus === 'resolved') {
+                    $updateData['resolved_by'] = $feedback->resolved_by ?? $adminId;
+                    $updateData['resolved_at'] = $feedback->resolved_at ?? now();
+                }
+
+                $issue->update($updateData);
+
+                Log::info('Synced feedback status to issue', [
+                    'feedback_id' => $feedback->id,
+                    'issue_id' => $issue->id,
+                    'feedback_status' => $feedback->status,
+                    'issue_status' => $issueStatus,
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Failed to sync feedback status to issue: ' . $e->getMessage());
+        }
     }
 }

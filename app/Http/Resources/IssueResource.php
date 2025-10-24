@@ -31,6 +31,7 @@ class IssueResource extends JsonResource
             'actual_behavior' => $this->actual_behavior,
             'user' => new UserResource($this->whenLoaded('user')),
             'assigned_to' => new UserResource($this->whenLoaded('assignedTo')),
+            'resolved_by' => new UserResource($this->whenLoaded('resolvedBy')),
             'files' => FileResource::collection($this->whenLoaded('files')),
             'screenshots' => FileResource::collection($this->whenLoaded('screenshots')),
             'comments_count' => $this->when(isset($this->comments_count), $this->comments_count),

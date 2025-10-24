@@ -27,6 +27,7 @@ class Issue extends Model
         'expected_behavior',
         'actual_behavior',
         'assigned_to',
+        'resolved_by',
         'resolved_at',
         'ai_analysis',
         'admin_notes',
@@ -51,6 +52,11 @@ class Issue extends Model
     public function feedback(): BelongsTo
     {
         return $this->belongsTo(Feedback::class, 'feedback_id');
+    }
+
+    public function resolvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'resolved_by');
     }
 
     public function files(): MorphMany

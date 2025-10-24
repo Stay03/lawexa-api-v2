@@ -31,6 +31,7 @@ class AdminIssueResource extends JsonResource
             'actual_behavior' => $this->actual_behavior,
             'user' => new UserResource($this->whenLoaded('user')),
             'assigned_to' => new UserResource($this->whenLoaded('assignedTo')),
+            'resolved_by' => new UserResource($this->whenLoaded('resolvedBy')),
             'from_feedback' => $this->feedback_id !== null,
             'feedback' => $this->when($this->feedback_id, function() {
                 if ($this->relationLoaded('feedback')) {
