@@ -75,13 +75,5 @@
       "C:\\c\\Users\\stayn\\OneDrive\\Desktop\\2023\\lawexaAPIV2",
       "C:\\mnt\\c\\Users\\stayn\\OneDrive\\Desktop\\2023\\lawexaAPIV2"
     ]
-  },
-    "env":{
-      "ANTHROPIC_BASE_URL": "https://api.minimax.io/anthropic",
-      "ANTHROPIC_AUTH_TOKEN": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJHcm91cE5hbWUiOiJTdGF5IE5qb2tlZGUiLCJVc2VyTmFtZSI6IlN0YXkgTmpva2VkZSIsIkFjY291bnQiOiIiLCJTdWJqZWN0SUQiOiIxODgxMDkyNTU2MjIyMTA4Mjc5IiwiUGhvbmUiOiIiLCJHcm91cElEIjoiMTg4MTA5MjU1NjIxMzcxOTY3MSIsIlBhZ2VOYW1lIjoiIiwiTWFpbCI6InN0YXluam9rZWRlQGdtYWlsLmNvbSIsIkNyZWF0ZVRpbWUiOiIyMDI1LTEwLTI3IDA3OjM5OjQzIiwiVG9rZW5UeXBlIjoxLCJpc3MiOiJtaW5pbWF4In0.qIQUt72nDVJhv-JeRpeMqzK5SDyfRw-EeSqoOZn0mzOoEnhswfZQiQygFi-Ac2PmGerOgcslJRHE5HLK6Ogm_4RxruTaWyOnKfmdDQocHDFQDuiTD1kAJMzGPZ0orOocr2pd0XdVA-yIwnITff5WzWu3QggL12Q-bQTNTs3n61R28c_25-dntFzrHdng1N_IxIInSlPzMoWuFnHTcHtLe_BPs1dgLXu91CHLGUxLc6O-Qym6IvhdStqlWpDdcPFHZ-9kKAcqn_X-Y8J6RD7O5tG5Gw0nUOWr1T4BY9KMdjlpA6wPz7hFNaCnMyelDz2_SH0M9BHPNnF8U7u5RBVIJg",
-      "API_TIMEOUT_MS": "3000000",
-      "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": 1,
-      "ANTHROPIC_MODEL": "MiniMax-M2",
-      "ANTHROPIC_SMALL_FAST_MODEL": "MiniMax-M2"
   }
 }

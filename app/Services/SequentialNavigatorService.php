@@ -315,13 +315,28 @@ class SequentialNavigatorService
             $item = [
                 'order_index' => $result->order_index,
                 'type' => $result->content_type,
-                'content' => $this->formatContent($result),
-                'children' => []
+                'content' => $this->formatContent($result)
             ];
 
-            // Load children if requested
-            if ($includeChildren && $result->content_type === 'division') {
-                $item['children'] = $this->loadDivisionChildren($result->id);
+            // Load children if requested - use type-specific keys
+            if ($includeChildren) {
+                if ($result->content_type === 'division') {
+                    $children = $this->loadDivisionChildren($result->id);
+                    $item['childDivisions'] = $children['childDivisions'];
+                    $item['provisions'] = $children['provisions'];
+                } else {
+                    // For provisions, load child provisions
+                    $children = $this->loadProvisionChildren($result->id);
+                    $item['childProvisions'] = $children['childProvisions'];
+                }
+            } else {
+                // Set empty arrays when children not included
+                if ($result->content_type === 'division') {
+                    $item['childDivisions'] = [];
+                    $item['provisions'] = [];
+                } else {
+                    $item['childProvisions'] = [];
+                }
             }
 
             $items[] = $item;
@@ -346,7 +361,6 @@ class SequentialNavigatorService
             'number' => $result->number,
             'title' => $result->title,
             'level' => $result->level,
-            'parent_id' => $result->parent_id,
             'status' => $result->status,
             'created_at' => $result->created_at,
             'updated_at' => $result->updated_at
@@ -355,12 +369,14 @@ class SequentialNavigatorService
         if ($result->content_type === 'division') {
             $content['subtitle'] = $result->subtitle;
             $content['content'] = $result->content;
+            $content['parent_division_id'] = $result->parent_id; // Rename to be explicit
             // Calculate has_children and child_count
             $content['has_children'] = $this->divisionHasChildren($result->id);
             $content['child_count'] = $this->getDivisionChildCount($result->id);
         } else {
             $content['provision_text'] = $result->provision_text;
             $content['division_id'] = $result->division_id;
+            $content['parent_provision_id'] = $result->parent_id; // Rename to be explicit
             $content['has_children'] = $this->provisionHasChildren($result->id);
         }
 
@@ -368,21 +384,85 @@ class SequentialNavigatorService
     }
 
     /**
-     * Load immediate children for a division
+     * Load immediate children for a division (both child divisions and provisions)
      *
      * @param int $divisionId
      * @return array
      */
     private function loadDivisionChildren(int $divisionId): array
     {
-        $children = StatuteDivision::where('parent_division_id', $divisionId)
+        // Load child divisions with parent reference
+        $childDivisions = StatuteDivision::where('parent_division_id', $divisionId)
             ->where('status', 'active')
             ->orderBy('sort_order')
             ->limit(10) // Limit immediate children to prevent large payloads
-            ->get(['id', 'slug', 'division_type', 'division_number', 'division_title', 'order_index'])
+            ->get([
+                'id', 'slug', 'division_type', 'division_number', 'division_title',
+                'division_subtitle', 'content', 'parent_division_id', 'level',
+                'order_index', 'status'
+            ])
+            ->map(function ($div) {
+                $divArray = $div->toArray();
+                // Add has_children flag
+                $divArray['has_children'] = $this->divisionHasChildren($div->id);
+                return $divArray;
+            })
             ->toArray();
 
-        return $children;
+        // Load provisions at this division level
+        $provisions = StatuteProvision::where('division_id', $divisionId)
+            ->where('status', 'active')
+            ->whereNull('parent_provision_id') // Only top-level provisions
+            ->orderBy('sort_order')
+            ->limit(10)
+            ->get([
+                'id', 'slug', 'provision_type', 'provision_number', 'provision_title',
+                'provision_text', 'marginal_note', 'interpretation_note',
+                'division_id', 'parent_provision_id', 'level', 'order_index', 'status'
+            ])
+            ->map(function ($prov) {
+                $provArray = $prov->toArray();
+                // Add has_children flag
+                $provArray['has_children'] = $this->provisionHasChildren($prov->id);
+                return $provArray;
+            })
+            ->toArray();
+
+        // Return separate arrays
+        return [
+            'childDivisions' => $childDivisions,
+            'provisions' => $provisions
+        ];
+    }
+
+    /**
+     * Load child provisions for a provision (subsections, paragraphs, clauses)
+     *
+     * @param int $provisionId
+     * @return array
+     */
+    private function loadProvisionChildren(int $provisionId): array
+    {
+        $childProvisions = StatuteProvision::where('parent_provision_id', $provisionId)
+            ->where('status', 'active')
+            ->orderBy('sort_order')
+            ->limit(20)
+            ->get([
+                'id', 'slug', 'provision_type', 'provision_number', 'provision_title',
+                'provision_text', 'marginal_note', 'interpretation_note',
+                'division_id', 'parent_provision_id', 'level', 'order_index', 'status'
+            ])
+            ->map(function ($prov) {
+                $provArray = $prov->toArray();
+                // Add has_children flag
+                $provArray['has_children'] = $this->provisionHasChildren($prov->id);
+                return $provArray;
+            })
+            ->toArray();
+
+        return [
+            'childProvisions' => $childProvisions
+        ];
     }
 
     /**

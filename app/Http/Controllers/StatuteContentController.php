@@ -61,11 +61,26 @@ class StatuteContentController extends Controller
                 $response['breadcrumb'] = null;
             }
 
-            // Add children if requested
+            // Add children if requested - use type-specific keys
             if ($includeChildren) {
-                $response['children'] = $this->loadChildren($resolution['content'], $resolution['type']);
+                $children = $this->loadChildren($resolution['content'], $resolution['type']);
+
+                // For divisions: add childDivisions and provisions
+                if ($resolution['type'] === 'division') {
+                    $response['childDivisions'] = $children['childDivisions'];
+                    $response['provisions'] = $children['provisions'];
+                } else {
+                    // For provisions: add childProvisions
+                    $response['childProvisions'] = $children['childProvisions'];
+                }
             } else {
-                $response['children'] = null;
+                // Set empty arrays when children not included
+                if ($resolution['type'] === 'division') {
+                    $response['childDivisions'] = [];
+                    $response['provisions'] = [];
+                } else {
+                    $response['childProvisions'] = [];
+                }
             }
 
             // Add siblings if requested
@@ -180,32 +195,74 @@ class StatuteContentController extends Controller
     private function loadChildren($content, string $type): array
     {
         if ($type === 'division') {
-            // Load child divisions
+            // Load child divisions with parent reference and has_children flag
             $childDivisions = $content->childDivisions()
                 ->where('status', 'active')
                 ->orderBy('sort_order')
                 ->limit(20)
-                ->get(['id', 'slug', 'division_type', 'division_number', 'division_title', 'order_index', 'level'])
+                ->get([
+                    'id', 'slug', 'division_type', 'division_number', 'division_title',
+                    'division_subtitle', 'content', 'parent_division_id', 'level',
+                    'order_index', 'status'
+                ])
+                ->map(function ($div) {
+                    $divArray = $div->toArray();
+                    // Check if division has children (child divisions or provisions)
+                    $divArray['has_children'] = $div->childDivisions()->where('status', 'active')->exists()
+                        || $div->provisions()->where('status', 'active')->exists();
+                    return $divArray;
+                })
                 ->toArray();
 
-            // Load provisions
+            // Load provisions at this division level with parent references
             $provisions = $content->provisions()
                 ->where('status', 'active')
                 ->whereNull('parent_provision_id')
                 ->orderBy('sort_order')
                 ->limit(20)
-                ->get(['id', 'slug', 'provision_type', 'provision_number', 'provision_title', 'order_index', 'level'])
+                ->get([
+                    'id', 'slug', 'provision_type', 'provision_number', 'provision_title',
+                    'provision_text', 'marginal_note', 'interpretation_note',
+                    'division_id', 'parent_provision_id', 'level', 'order_index', 'status'
+                ])
+                ->map(function ($prov) {
+                    $provArray = $prov->toArray();
+                    // Check if provision has child provisions
+                    $provArray['has_children'] = $prov->childProvisions()->where('status', 'active')->exists();
+                    // Recursively load child provisions if has children
+                    $provArray['childProvisions'] = [];
+                    return $provArray;
+                })
                 ->toArray();
 
-            return array_merge($childDivisions, $provisions);
+            // Return separate arrays for child divisions and provisions
+            return [
+                'childDivisions' => $childDivisions,
+                'provisions' => $provisions
+            ];
         } else {
-            // Load child provisions
-            return $content->childProvisions()
+            // Load child provisions with parent reference and has_children flag
+            $childProvisions = $content->childProvisions()
                 ->where('status', 'active')
                 ->orderBy('sort_order')
                 ->limit(20)
-                ->get(['id', 'slug', 'provision_type', 'provision_number', 'provision_title', 'order_index', 'level'])
+                ->get([
+                    'id', 'slug', 'provision_type', 'provision_number', 'provision_title',
+                    'provision_text', 'marginal_note', 'interpretation_note',
+                    'division_id', 'parent_provision_id', 'level', 'order_index', 'status'
+                ])
+                ->map(function ($prov) {
+                    $provArray = $prov->toArray();
+                    // Check if provision has child provisions
+                    $provArray['has_children'] = $prov->childProvisions()->where('status', 'active')->exists();
+                    return $provArray;
+                })
                 ->toArray();
+
+            // Return child provisions array
+            return [
+                'childProvisions' => $childProvisions
+            ];
         }
     }
 

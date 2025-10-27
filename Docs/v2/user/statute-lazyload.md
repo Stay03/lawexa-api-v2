@@ -58,6 +58,32 @@ Constitution (statute)
   └─ Chapter II (order_index: 600)
 ```
 
+## Response Structure
+
+### Type-Specific Child Arrays
+
+All endpoints return type-specific child arrays to support proper frontend rendering:
+
+**For Division Responses:**
+- `childDivisions`: Array of child divisions
+- `provisions`: Array of provisions at this division level
+
+**For Provision Responses:**
+- `childProvisions`: Array of child provisions (subsections, paragraphs, clauses)
+
+**Parent Reference Fields:**
+All items include parent reference fields:
+- Divisions: `parent_division_id`
+- Provisions: `parent_provision_id` and `division_id`
+- `has_children`: Boolean flag indicating if the item has children
+
+This structure enables frontend components to:
+- Render divisions and provisions with different styling
+- Apply correct indentation based on type
+- Implement separate lazy-loading logic for each type
+
+---
+
 ## Endpoints
 
 ---
@@ -159,15 +185,20 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/general-prov
         "order_index": 100
       }
     ],
-    "children": [
+    "childDivisions": [
       {
         "id": 376,
         "slug": "federal-republic-of-nigeria-5LZnaids",
         "division_type": "part",
         "division_number": "I",
         "division_title": "Federal Republic of Nigeria",
+        "division_subtitle": null,
+        "content": null,
+        "parent_division_id": 375,
+        "level": 2,
         "order_index": 200,
-        "level": 2
+        "status": "active",
+        "has_children": true
       },
       {
         "id": 377,
@@ -175,10 +206,16 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/general-prov
         "division_type": "part",
         "division_number": "II",
         "division_title": "Powers of the Federal Republic of Nigeria",
+        "division_subtitle": null,
+        "content": null,
+        "parent_division_id": 375,
+        "level": 2,
         "order_index": 1700,
-        "level": 2
+        "status": "active",
+        "has_children": true
       }
     ],
+    "provisions": [],
     "siblings": null
   }
 }
@@ -252,15 +289,22 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/general-prov
         "order_index": 300
       }
     ],
-    "children": [
+    "childProvisions": [
       {
         "id": 80,
         "slug": "1-TayN0J8b",
         "provision_type": "subsection",
         "provision_number": "(1)",
         "provision_title": null,
+        "provision_text": "This Constitution is supreme and its provisions shall have binding force on the authorities and persons throughout the Federal Republic of Nigeria.",
+        "marginal_note": null,
+        "interpretation_note": null,
+        "division_id": 376,
+        "parent_provision_id": 79,
+        "level": 4,
         "order_index": 400,
-        "level": 4
+        "status": "active",
+        "has_children": false
       },
       {
         "id": 81,
@@ -268,8 +312,15 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/general-prov
         "provision_type": "subsection",
         "provision_number": "(2)",
         "provision_title": null,
+        "provision_text": "The Federal Republic of Nigeria shall not be governed, nor shall any persons or group of persons take control of the Government of Nigeria or any part thereof, except in accordance with the provisions of this Constitution.",
+        "marginal_note": null,
+        "interpretation_note": null,
+        "division_id": 376,
+        "parent_provision_id": 79,
+        "level": 4,
         "order_index": 500,
-        "level": 4
+        "status": "active",
+        "has_children": false
       },
       {
         "id": 82,
@@ -277,8 +328,15 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/general-prov
         "provision_type": "subsection",
         "provision_number": "(3)",
         "provision_title": null,
+        "provision_text": "If any other law is inconsistent with the provisions of this Constitution, this Constitution shall prevail, and that other law shall, to the extent of the inconsistency, be void.",
+        "marginal_note": null,
+        "interpretation_note": null,
+        "division_id": 376,
+        "parent_provision_id": 79,
+        "level": 4,
         "order_index": 600,
-        "level": 4
+        "status": "active",
+        "has_children": false
       }
     ],
     "siblings": null
@@ -383,7 +441,7 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/sequential?f
           "number": "I",
           "title": "Federal Republic of Nigeria",
           "level": 2,
-          "parent_id": 375,
+          "parent_division_id": 375,
           "status": "active",
           "created_at": "2025-08-17 07:17:39",
           "updated_at": "2025-10-27 04:31:19",
@@ -392,7 +450,8 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/sequential?f
           "has_children": true,
           "child_count": 3
         },
-        "children": []
+        "childDivisions": [],
+        "provisions": []
       },
       {
         "order_index": 100,
@@ -405,7 +464,7 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/sequential?f
           "number": "I",
           "title": "General Provisions",
           "level": 1,
-          "parent_id": null,
+          "parent_division_id": null,
           "status": "active",
           "created_at": "2025-08-17 07:17:35",
           "updated_at": "2025-10-27 04:31:19",
@@ -414,14 +473,20 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/sequential?f
           "has_children": true,
           "child_count": 2
         },
-        "children": [
+        "childDivisions": [
           {
             "id": 376,
             "slug": "federal-republic-of-nigeria-5LZnaids",
             "division_type": "part",
             "division_number": "I",
             "division_title": "Federal Republic of Nigeria",
-            "order_index": 200
+            "division_subtitle": null,
+            "content": null,
+            "parent_division_id": 375,
+            "level": 2,
+            "order_index": 200,
+            "status": "active",
+            "has_children": true
           },
           {
             "id": 377,
@@ -429,9 +494,16 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/sequential?f
             "division_type": "part",
             "division_number": "II",
             "division_title": "Powers of the Federal Republic of Nigeria",
-            "order_index": 1700
+            "division_subtitle": null,
+            "content": null,
+            "parent_division_id": 375,
+            "level": 2,
+            "order_index": 1700,
+            "status": "active",
+            "has_children": true
           }
-        ]
+        ],
+        "provisions": []
       }
     ],
     "meta": {
@@ -465,15 +537,15 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/sequential?f
           "number": "(1)",
           "title": null,
           "level": 4,
-          "parent_id": 79,
+          "parent_provision_id": 79,
+          "division_id": 376,
           "status": "active",
           "created_at": "2025-08-17 07:18:34",
           "updated_at": "2025-10-27 04:31:19",
           "provision_text": "This Constitution is supreme and its provisions shall have binding force on the authorities and persons throughout the Federal Republic of Nigeria.",
-          "division_id": null,
           "has_children": false
         },
-        "children": []
+        "childProvisions": []
       },
       {
         "order_index": 500,
@@ -486,15 +558,15 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/sequential?f
           "number": "(2)",
           "title": null,
           "level": 4,
-          "parent_id": 79,
+          "parent_provision_id": 79,
+          "division_id": 376,
           "status": "active",
           "created_at": "2025-08-17 07:18:42",
           "updated_at": "2025-10-27 04:31:19",
           "provision_text": "The Federal Republic of Nigeria shall not be governed, nor shall any persons or group of persons take control of the Government of Nigeria or any part thereof, except in accordance with the provisions of this Constitution.",
-          "division_id": null,
           "has_children": false
         },
-        "children": []
+        "childProvisions": []
       },
       {
         "order_index": 600,
@@ -507,15 +579,15 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/sequential?f
           "number": "(3)",
           "title": null,
           "level": 4,
-          "parent_id": 79,
+          "parent_provision_id": 79,
+          "division_id": 376,
           "status": "active",
           "created_at": "2025-08-17 07:18:47",
           "updated_at": "2025-10-27 04:31:19",
           "provision_text": "If any other law is inconsistent with the provisions of this Constitution, this Constitution shall prevail, and that other law shall, to the extent of the inconsistency, be void.",
-          "division_id": null,
           "has_children": false
         },
-        "children": []
+        "childProvisions": []
       }
     ],
     "meta": {
@@ -649,15 +721,15 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/range?start_
           "number": "1",
           "title": "Supremacy of constitution",
           "level": 3,
-          "parent_id": null,
+          "parent_provision_id": null,
+          "division_id": 376,
           "status": "active",
           "created_at": "2025-08-17 07:18:28",
           "updated_at": "2025-10-27 04:31:19",
           "provision_text": "See subsections",
-          "division_id": 376,
           "has_children": true
         },
-        "children": []
+        "childProvisions": []
       },
       {
         "order_index": 400,
@@ -670,15 +742,15 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/range?start_
           "number": "(1)",
           "title": null,
           "level": 4,
-          "parent_id": 79,
+          "parent_provision_id": 79,
+          "division_id": 376,
           "status": "active",
           "created_at": "2025-08-17 07:18:34",
           "updated_at": "2025-10-27 04:31:19",
           "provision_text": "This Constitution is supreme and its provisions shall have binding force on the authorities and persons throughout the Federal Republic of Nigeria.",
-          "division_id": null,
           "has_children": false
         },
-        "children": []
+        "childProvisions": []
       },
       {
         "order_index": 500,
@@ -691,15 +763,15 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/range?start_
           "number": "(2)",
           "title": null,
           "level": 4,
-          "parent_id": 79,
+          "parent_provision_id": 79,
+          "division_id": 376,
           "status": "active",
           "created_at": "2025-08-17 07:18:42",
           "updated_at": "2025-10-27 04:31:19",
           "provision_text": "The Federal Republic of Nigeria shall not be governed, nor shall any persons or group of persons take control of the Government of Nigeria or any part thereof, except in accordance with the provisions of this Constitution.",
-          "division_id": null,
           "has_children": false
         },
-        "children": []
+        "childProvisions": []
       }
     ],
     "meta": {
