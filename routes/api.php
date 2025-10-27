@@ -305,16 +305,22 @@ Route::middleware(['auth:sanctum', 'track.guest.activity'])->group(function () {
     // User statute routes (slug-based)
     Route::prefix('statutes')->group(function () {
         Route::get('/', [StatuteController::class, 'index']);
-        
+
+        // Lazy Loading Endpoints (Hash-First Navigation)
+        // IMPORTANT: Specific routes must come BEFORE the catch-all {contentSlug} route
+        Route::get('{statute}/content/sequential', [App\Http\Controllers\StatuteContentController::class, 'sequential']);
+        Route::get('{statute}/content/range', [App\Http\Controllers\StatuteContentController::class, 'range']);
+        Route::get('{statute}/content/{contentSlug}', [App\Http\Controllers\StatuteContentController::class, 'lookup']);
+
         // Statute Divisions - Hierarchical Navigation
         Route::get('{statute}/divisions', [StatuteController::class, 'divisions']);
         Route::get('{statute}/divisions/{division:slug}/children', [StatuteController::class, 'divisionChildren']);
         Route::get('{statute}/divisions/{division:slug}/provisions', [StatuteController::class, 'divisionProvisions']);
-        
+
         // Statute Provisions - Hierarchical Navigation
         Route::get('{statute}/provisions', [StatuteController::class, 'provisions']);
         Route::get('{statute}/provisions/{provision:slug}/children', [StatuteController::class, 'provisionChildren']);
-        
+
         // Statute Schedules
         Route::get('{statute}/schedules', [StatuteController::class, 'schedules']);
     });

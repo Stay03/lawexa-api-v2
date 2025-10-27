@@ -16,7 +16,7 @@ class StatuteProvision extends Model
     protected $fillable = [
         'slug', 'statute_id', 'division_id', 'parent_provision_id', 'provision_type',
         'provision_number', 'provision_title', 'provision_text', 'marginal_note',
-        'interpretation_note', 'range', 'sort_order', 'level', 'status', 'effective_date'
+        'interpretation_note', 'range', 'sort_order', 'level', 'order_index', 'status', 'effective_date'
     ];
 
     protected $casts = [
