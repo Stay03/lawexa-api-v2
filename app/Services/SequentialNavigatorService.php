@@ -27,18 +27,20 @@ class SequentialNavigatorService
      * @param int $fromOrder
      * @param int $limit
      * @param bool $includeChildren
+     * @param string $format 'nested' or 'flat'
      * @return array
      */
     public function loadBefore(
         Statute $statute,
         int $fromOrder,
         int $limit = 5,
-        bool $includeChildren = true
+        bool $includeChildren = true,
+        string $format = 'nested'
     ): array {
         $limit = min($limit, self::MAX_LIMIT);
 
         // Build UNION query for content before the given order
-        $items = $this->buildUnionQuery($statute, $fromOrder, 'before', $limit, $includeChildren);
+        $items = $this->buildUnionQuery($statute, $fromOrder, 'before', $limit, $includeChildren, $format);
 
         // Check if there's more content before
         $hasMore = $this->hasContentBefore($statute, $items);
@@ -49,6 +51,7 @@ class SequentialNavigatorService
         return [
             'items' => $items,
             'meta' => [
+                'format' => $format,
                 'direction' => 'before',
                 'from_order' => $fromOrder,
                 'limit' => $limit,
@@ -66,18 +69,20 @@ class SequentialNavigatorService
      * @param int $fromOrder
      * @param int $limit
      * @param bool $includeChildren
+     * @param string $format 'nested' or 'flat'
      * @return array
      */
     public function loadAfter(
         Statute $statute,
         int $fromOrder,
         int $limit = 5,
-        bool $includeChildren = true
+        bool $includeChildren = true,
+        string $format = 'nested'
     ): array {
         $limit = min($limit, self::MAX_LIMIT);
 
         // Build UNION query for content after the given order
-        $items = $this->buildUnionQuery($statute, $fromOrder, 'after', $limit, $includeChildren);
+        $items = $this->buildUnionQuery($statute, $fromOrder, 'after', $limit, $includeChildren, $format);
 
         // Check if there's more content after
         $hasMore = $this->hasContentAfter($statute, $items);
@@ -88,6 +93,7 @@ class SequentialNavigatorService
         return [
             'items' => $items,
             'meta' => [
+                'format' => $format,
                 'direction' => 'after',
                 'from_order' => $fromOrder,
                 'limit' => $limit,
@@ -105,13 +111,15 @@ class SequentialNavigatorService
      * @param int $startOrder
      * @param int $endOrder
      * @param bool $includeChildren
+     * @param string $format 'nested' or 'flat'
      * @return array
      */
     public function loadRange(
         Statute $statute,
         int $startOrder,
         int $endOrder,
-        bool $includeChildren = true
+        bool $includeChildren = true,
+        string $format = 'nested'
     ): array {
         if ($endOrder < $startOrder) {
             throw new \InvalidArgumentException('end_order must be greater than or equal to start_order');
@@ -122,7 +130,7 @@ class SequentialNavigatorService
         // the actual count of returned items to ensure we don't exceed the limit.
 
         // Build UNION query for range
-        $items = $this->buildRangeQuery($statute, $startOrder, $endOrder, $includeChildren);
+        $items = $this->buildRangeQuery($statute, $startOrder, $endOrder, $includeChildren, $format);
 
         // Validate that we don't return more than 100 actual items
         if (count($items) > 100) {
@@ -135,6 +143,7 @@ class SequentialNavigatorService
         return [
             'items' => $items,
             'meta' => [
+                'format' => $format,
                 'start_order' => $startOrder,
                 'end_order' => $endOrder,
                 'returned' => count($items),
@@ -151,6 +160,7 @@ class SequentialNavigatorService
      * @param string $direction 'before' or 'after'
      * @param int $limit
      * @param bool $includeChildren
+     * @param string $format 'nested' or 'flat'
      * @return array
      */
     private function buildUnionQuery(
@@ -158,7 +168,8 @@ class SequentialNavigatorService
         int $fromOrder,
         string $direction,
         int $limit,
-        bool $includeChildren
+        bool $includeChildren,
+        string $format = 'nested'
     ): array {
         $operator = $direction === 'before' ? '<' : '>';
         $orderDirection = $direction === 'before' ? 'DESC' : 'ASC';
@@ -221,7 +232,11 @@ class SequentialNavigatorService
             $limit
         ]);
 
-        // Transform results and optionally load children
+        // Transform results based on format
+        if ($format === 'flat') {
+            return $this->transformResultsFlat($results);
+        }
+
         return $this->transformResults($results, $includeChildren);
     }
 
@@ -232,13 +247,15 @@ class SequentialNavigatorService
      * @param int $startOrder
      * @param int $endOrder
      * @param bool $includeChildren
+     * @param string $format 'nested' or 'flat'
      * @return array
      */
     private function buildRangeQuery(
         Statute $statute,
         int $startOrder,
         int $endOrder,
-        bool $includeChildren
+        bool $includeChildren,
+        string $format = 'nested'
     ): array {
         // Wrapped in subquery for SQLite compatibility
         $query = "
@@ -297,6 +314,11 @@ class SequentialNavigatorService
             $endOrder
         ]);
 
+        // Transform results based on format
+        if ($format === 'flat') {
+            return $this->transformResultsFlat($results);
+        }
+
         return $this->transformResults($results, $includeChildren);
     }
 
@@ -343,6 +365,67 @@ class SequentialNavigatorService
         }
 
         return $items;
+    }
+
+    /**
+     * Transform query results into flat format (no nested children arrays)
+     *
+     * @param array $results
+     * @return array
+     */
+    private function transformResultsFlat(array $results): array
+    {
+        $items = [];
+
+        foreach ($results as $result) {
+            $item = [
+                'order_index' => $result->order_index,
+                'type' => $result->content_type,
+                'content' => $this->formatContentFlat($result)
+            ];
+
+            $items[] = $item;
+        }
+
+        return $items;
+    }
+
+    /**
+     * Format content data for flat format
+     *
+     * @param object $result
+     * @return array
+     */
+    private function formatContentFlat(object $result): array
+    {
+        $content = [
+            'id' => $result->id,
+            'slug' => $result->slug,
+            'order_index' => $result->order_index,
+            'type_name' => $result->type_name,
+            'number' => $result->number,
+            'title' => $result->title,
+            'level' => $result->level,
+            'status' => $result->status,
+            'created_at' => $result->created_at,
+            'updated_at' => $result->updated_at
+        ];
+
+        if ($result->content_type === 'division') {
+            $content['subtitle'] = $result->subtitle;
+            $content['content'] = $result->content;
+            $content['parent_division_id'] = $result->parent_id;
+            $content['has_children'] = $this->divisionHasChildren($result->id);
+            $content['child_count'] = $this->getDivisionChildCount($result->id);
+        } else {
+            $content['provision_text'] = $result->provision_text;
+            $content['parent_provision_id'] = $result->parent_id;
+            $content['parent_division_id'] = $result->division_id;
+            $content['has_children'] = $this->provisionHasChildren($result->id);
+            $content['child_count'] = $this->getProvisionChildCount($result->id);
+        }
+
+        return $content;
     }
 
     /**
@@ -516,6 +599,19 @@ class SequentialNavigatorService
         return StatuteProvision::where('parent_provision_id', $provisionId)
             ->where('status', 'active')
             ->exists();
+    }
+
+    /**
+     * Get child count for provision
+     *
+     * @param int $provisionId
+     * @return int
+     */
+    private function getProvisionChildCount(int $provisionId): int
+    {
+        return StatuteProvision::where('parent_provision_id', $provisionId)
+            ->where('status', 'active')
+            ->count();
     }
 
     /**

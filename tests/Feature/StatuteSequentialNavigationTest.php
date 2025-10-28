@@ -437,4 +437,246 @@ class StatuteSequentialNavigationTest extends TestCase
 
         $response->assertStatus(401);
     }
+
+    /** @test */
+    public function it_supports_flat_format_parameter()
+    {
+        // Create a division with children
+        $parentDivision = StatuteDivision::create([
+            'statute_id' => $this->statute->id,
+            'slug' => 'parent-division',
+            'division_type' => 'chapter',
+            'division_number' => '11',
+            'division_title' => 'Parent Division',
+            'level' => 1,
+            'order_index' => 550,
+            'sort_order' => 11,
+            'status' => 'active',
+        ]);
+
+        // Add a child division
+        StatuteDivision::create([
+            'statute_id' => $this->statute->id,
+            'parent_division_id' => $parentDivision->id,
+            'slug' => 'child-division',
+            'division_type' => 'section',
+            'division_number' => '1',
+            'division_title' => 'Child Division',
+            'level' => 2,
+            'order_index' => 560,
+            'sort_order' => 1,
+            'status' => 'active',
+        ]);
+
+        // Add a provision with a parent provision
+        $parentProvision = StatuteProvision::create([
+            'statute_id' => $this->statute->id,
+            'slug' => 'parent-provision',
+            'provision_type' => 'section',
+            'provision_number' => '1',
+            'provision_text' => 'Parent provision text',
+            'level' => 1,
+            'order_index' => 250,
+            'sort_order' => 1,
+            'status' => 'active',
+        ]);
+
+        StatuteProvision::create([
+            'statute_id' => $this->statute->id,
+            'parent_provision_id' => $parentProvision->id,
+            'slug' => 'child-provision',
+            'provision_type' => 'subsection',
+            'provision_number' => '1',
+            'provision_text' => 'Child provision text',
+            'level' => 2,
+            'order_index' => 260,
+            'sort_order' => 1,
+            'status' => 'active',
+        ]);
+
+        $response = $this->getJson(
+            "/api/statutes/{$this->statute->slug}/content/sequential?from_order=600&direction=before&limit=5&format=flat"
+        );
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'status',
+                'message',
+                'data' => [
+                    'items' => [
+                        '*' => [
+                            'order_index',
+                            'type',
+                            'content' => [
+                                'id',
+                                'slug',
+                                'has_children',
+                                'child_count',
+                            ],
+                        ],
+                    ],
+                    'meta' => [
+                        'format',
+                        'direction',
+                        'from_order',
+                        'limit',
+                        'returned',
+                        'has_more',
+                        'next_from_order',
+                    ],
+                ],
+            ])
+            ->assertJson([
+                'data' => [
+                    'meta' => [
+                        'format' => 'flat',
+                    ],
+                ],
+            ]);
+
+        $items = $response->json('data.items');
+
+        // Verify flat format: no nested arrays
+        foreach ($items as $item) {
+            $this->assertArrayNotHasKey('childDivisions', $item);
+            $this->assertArrayNotHasKey('provisions', $item);
+            $this->assertArrayNotHasKey('childProvisions', $item);
+
+            // Verify flat format includes parent IDs and child_count
+            $content = $item['content'];
+            $this->assertArrayHasKey('child_count', $content);
+            $this->assertIsInt($content['child_count']);
+
+            if ($item['type'] === 'division') {
+                $this->assertArrayHasKey('parent_division_id', $content);
+            } else {
+                $this->assertArrayHasKey('parent_provision_id', $content);
+                $this->assertArrayHasKey('parent_division_id', $content);
+            }
+        }
+
+        // Find the parent division in response
+        $parentDivItem = collect($items)->firstWhere('order_index', 550);
+        $this->assertNotNull($parentDivItem);
+        $this->assertEquals(1, $parentDivItem['content']['child_count']); // Has 1 child division
+        $this->assertTrue($parentDivItem['content']['has_children']);
+
+        // Find the parent provision in response
+        $parentProvItem = collect($items)->firstWhere('order_index', 250);
+        $this->assertNotNull($parentProvItem);
+        $this->assertEquals(1, $parentProvItem['content']['child_count']); // Has 1 child provision
+        $this->assertTrue($parentProvItem['content']['has_children']);
+    }
+
+    /** @test */
+    public function it_defaults_to_nested_format_for_backward_compatibility()
+    {
+        // Create a division with children
+        $parentDivision = StatuteDivision::create([
+            'statute_id' => $this->statute->id,
+            'slug' => 'parent-division',
+            'division_type' => 'chapter',
+            'division_number' => '11',
+            'division_title' => 'Parent Division',
+            'level' => 1,
+            'order_index' => 550,
+            'sort_order' => 11,
+            'status' => 'active',
+        ]);
+
+        StatuteDivision::create([
+            'statute_id' => $this->statute->id,
+            'parent_division_id' => $parentDivision->id,
+            'slug' => 'child-division',
+            'division_type' => 'section',
+            'division_number' => '1',
+            'division_title' => 'Child Division',
+            'level' => 2,
+            'order_index' => 560,
+            'sort_order' => 1,
+            'status' => 'active',
+        ]);
+
+        // Request without format parameter
+        $response = $this->getJson(
+            "/api/statutes/{$this->statute->slug}/content/sequential?from_order=600&direction=before&limit=5"
+        );
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'data' => [
+                    'meta' => [
+                        'format' => 'nested',
+                    ],
+                ],
+            ]);
+
+        $items = $response->json('data.items');
+
+        // Verify nested format: has nested arrays
+        $parentDivItem = collect($items)->firstWhere('order_index', 550);
+        if ($parentDivItem) {
+            $this->assertArrayHasKey('childDivisions', $parentDivItem);
+            $this->assertArrayHasKey('provisions', $parentDivItem);
+            $this->assertIsArray($parentDivItem['childDivisions']);
+            $this->assertIsArray($parentDivItem['provisions']);
+        }
+    }
+
+    /** @test */
+    public function it_supports_explicit_nested_format_parameter()
+    {
+        $response = $this->getJson(
+            "/api/statutes/{$this->statute->slug}/content/sequential?from_order=500&direction=before&limit=3&format=nested"
+        );
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'data' => [
+                    'meta' => [
+                        'format' => 'nested',
+                    ],
+                ],
+            ]);
+
+        $items = $response->json('data.items');
+
+        // Verify nested format structure
+        foreach ($items as $item) {
+            if ($item['type'] === 'division') {
+                $this->assertArrayHasKey('childDivisions', $item);
+                $this->assertArrayHasKey('provisions', $item);
+            } else {
+                $this->assertArrayHasKey('childProvisions', $item);
+            }
+        }
+    }
+
+    /** @test */
+    public function it_validates_format_parameter()
+    {
+        $response = $this->getJson(
+            "/api/statutes/{$this->statute->slug}/content/sequential?from_order=500&direction=before&format=invalid"
+        );
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['format']);
+    }
+
+    /** @test */
+    public function it_includes_format_in_range_endpoint()
+    {
+        $response = $this->getJson(
+            "/api/statutes/{$this->statute->slug}/content/range?start_order=100&end_order=500&format=flat"
+        );
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'data' => [
+                    'meta' => [
+                        'format' => 'flat',
+                    ],
+                ],
+            ]);
+    }
 }

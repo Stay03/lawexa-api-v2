@@ -115,20 +115,22 @@ class StatuteContentController extends Controller
             'from_order' => 'required|integer|min:1',
             'direction' => 'required|in:before,after',
             'limit' => 'nullable|integer|min:1', // Max is enforced by the service (clamped to 50)
-            'include_children' => 'nullable|in:true,false,1,0' // Accept string or boolean values
+            'include_children' => 'nullable|in:true,false,1,0', // Accept string or boolean values
+            'format' => 'nullable|in:nested,flat' // Format parameter: nested (default) or flat
         ]);
 
         $fromOrder = $request->integer('from_order');
         $direction = $request->input('direction');
         $limit = $request->integer('limit', 5);
         $includeChildren = $request->boolean('include_children', true);
+        $format = $request->input('format', 'nested'); // Default to nested for backward compatibility
 
         try {
             // Load content based on direction
             if ($direction === 'before') {
-                $result = $this->sequentialNavigator->loadBefore($statute, $fromOrder, $limit, $includeChildren);
+                $result = $this->sequentialNavigator->loadBefore($statute, $fromOrder, $limit, $includeChildren, $format);
             } else {
-                $result = $this->sequentialNavigator->loadAfter($statute, $fromOrder, $limit, $includeChildren);
+                $result = $this->sequentialNavigator->loadAfter($statute, $fromOrder, $limit, $includeChildren, $format);
             }
 
             return ApiResponse::success($result, 'Sequential content retrieved successfully');
@@ -153,12 +155,14 @@ class StatuteContentController extends Controller
         $request->validate([
             'start_order' => 'required|integer|min:1',
             'end_order' => 'required|integer|min:1',
-            'include_children' => 'nullable|in:true,false,1,0' // Accept string or boolean values
+            'include_children' => 'nullable|in:true,false,1,0', // Accept string or boolean values
+            'format' => 'nullable|in:nested,flat' // Format parameter: nested (default) or flat
         ]);
 
         $startOrder = $request->integer('start_order');
         $endOrder = $request->integer('end_order');
         $includeChildren = $request->boolean('include_children', true);
+        $format = $request->input('format', 'nested'); // Default to nested for backward compatibility
 
         // Validate range
         if ($endOrder < $startOrder) {
@@ -173,7 +177,8 @@ class StatuteContentController extends Controller
                 $statute,
                 $startOrder,
                 $endOrder,
-                $includeChildren
+                $includeChildren,
+                $format
             );
 
             return ApiResponse::success($result, 'Content range retrieved successfully');
