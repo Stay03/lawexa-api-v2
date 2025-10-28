@@ -395,6 +395,41 @@ Load content sequentially before or after a given position. This enables bidirec
 | `direction` | string | Yes | - | `"before"` or `"after"` |
 | `limit` | integer | No | `5` | Number of items to return (max: 50) |
 | `include_children` | boolean | No | `true` | Include immediate children for divisions |
+| `format` | string | No | `"nested"` | Response format: `"nested"` or `"flat"` |
+
+### Response Format Options
+
+The API supports two response formats to optimize for different use cases:
+
+#### `format=nested` (Default - Backward Compatible)
+Returns items with nested child arrays:
+- Divisions include `childDivisions` and `provisions` arrays
+- Provisions include `childProvisions` array
+- Best for tree-based rendering and hierarchical displays
+
+#### `format=flat` (Optimized for Lazy Loading)
+Returns simplified items without nested arrays:
+- No `childDivisions`, `provisions`, or `childProvisions` arrays
+- Includes `parent_division_id` and `parent_provision_id` fields directly in content
+- Includes `child_count` (number) instead of child arrays
+- **Benefits:**
+  - 40-60% smaller response payloads
+  - Simpler DOM manipulation (just append/prepend items)
+  - No recursive tree processing needed
+  - Faster JSON parsing
+  - Ideal for scroll-based lazy loading
+
+**When to use flat format:**
+- Sequential scroll loading (infinite scroll)
+- Mobile applications (bandwidth optimization)
+- Simple list rendering without nested UI
+- High-frequency lazy loading operations
+
+**When to use nested format:**
+- Initial page load with full tree structure
+- Tree/accordion UI components
+- Navigation sidebars showing hierarchy
+- Existing frontend code (backward compatible)
 
 ### Example Requests
 
@@ -417,6 +452,14 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/sequential?f
 **Load items without children (faster):**
 ```bash
 curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/sequential?from_order=300&direction=after&limit=3&include_children=false" \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer {your_token}"
+```
+
+**Load items with flat format (optimized for lazy loading):**
+```bash
+curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/sequential?from_order=300&direction=before&limit=5&format=flat" \
   -H "Accept: application/json" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer {your_token}"
@@ -602,6 +645,97 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/sequential?f
 }
 ```
 
+### Success Response (200) - Flat Format
+
+```json
+{
+  "status": "success",
+  "message": "Sequential content retrieved successfully",
+  "data": {
+    "items": [
+      {
+        "order_index": 200,
+        "type": "division",
+        "content": {
+          "id": 376,
+          "slug": "federal-republic-of-nigeria-5LZnaids",
+          "order_index": 200,
+          "type_name": "part",
+          "number": "I",
+          "title": "Federal Republic of Nigeria",
+          "level": 2,
+          "status": "active",
+          "created_at": "2025-08-17 07:17:39",
+          "updated_at": "2025-10-27 04:31:19",
+          "subtitle": null,
+          "content": null,
+          "parent_division_id": 375,
+          "has_children": true,
+          "child_count": 3
+        }
+      },
+      {
+        "order_index": 300,
+        "type": "provision",
+        "content": {
+          "id": 79,
+          "slug": "supremacy-of-constitution-I5ENJmXK",
+          "order_index": 300,
+          "type_name": "section",
+          "number": "1",
+          "title": "Supremacy of constitution",
+          "level": 3,
+          "status": "active",
+          "created_at": "2025-08-17 07:18:28",
+          "updated_at": "2025-10-27 04:31:19",
+          "provision_text": "See subsections",
+          "parent_provision_id": null,
+          "parent_division_id": 376,
+          "has_children": true,
+          "child_count": 3
+        }
+      },
+      {
+        "order_index": 400,
+        "type": "provision",
+        "content": {
+          "id": 80,
+          "slug": "1-TayN0J8b",
+          "order_index": 400,
+          "type_name": "subsection",
+          "number": "(1)",
+          "title": null,
+          "level": 4,
+          "status": "active",
+          "created_at": "2025-08-17 07:18:34",
+          "updated_at": "2025-10-27 04:31:19",
+          "provision_text": "This Constitution is supreme...",
+          "parent_provision_id": 79,
+          "parent_division_id": 376,
+          "has_children": false,
+          "child_count": 0
+        }
+      }
+    ],
+    "meta": {
+      "format": "flat",
+      "direction": "before",
+      "from_order": 500,
+      "limit": 5,
+      "returned": 3,
+      "has_more": true,
+      "next_from_order": 200
+    }
+  }
+}
+```
+
+**Key Differences in Flat Format:**
+- No `childDivisions`, `provisions`, or `childProvisions` arrays
+- `parent_division_id` and `parent_provision_id` directly in content object
+- `child_count` is a number instead of an array
+- `format` field in meta indicates the response format
+
 ### Error Responses
 
 **422 Validation Error - Invalid parameters:**
@@ -670,6 +804,7 @@ Load a range of content by position indices. Useful for loading a "buffer" of co
 | `start_order` | integer | Yes | - | Start position (inclusive) |
 | `end_order` | integer | Yes | - | End position (inclusive) |
 | `include_children` | boolean | No | `true` | Include immediate children for divisions |
+| `format` | string | No | `"nested"` | Response format: `"nested"` or `"flat"` (same as sequential endpoint) |
 
 ### Validation Rules
 - `end_order` must be greater than or equal to `start_order`
@@ -851,6 +986,7 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/range?start_
 ### Sequential Navigation Meta
 | Field | Type | Description |
 |-------|------|-------------|
+| `format` | string | Response format used: `"nested"` or `"flat"` |
 | `direction` | string | Direction of navigation: `"before"` or `"after"` |
 | `from_order` | integer | Starting position requested |
 | `limit` | integer | Limit requested |
@@ -861,6 +997,7 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/range?start_
 ### Range Loading Meta
 | Field | Type | Description |
 |-------|------|-------------|
+| `format` | string | Response format used: `"nested"` or `"flat"` |
 | `start_order` | integer | Start position requested |
 | `end_order` | integer | End position requested |
 | `returned` | integer | Actual number of items returned |
@@ -1151,6 +1288,18 @@ curl -X GET "${BASE_URL}/statutes/the-statute/content/sequential?from_order=300&
 
 # Test 4: Range Loading
 curl -X GET "${BASE_URL}/statutes/the-statute/content/range?start_order=100&end_order=500" \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${TOKEN}"
+
+# Test 5: Sequential Navigation with Flat Format
+curl -X GET "${BASE_URL}/statutes/the-statute/content/sequential?from_order=300&direction=before&limit=5&format=flat" \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${TOKEN}"
+
+# Test 6: Range Loading with Flat Format
+curl -X GET "${BASE_URL}/statutes/the-statute/content/range?start_order=100&end_order=500&format=flat" \
   -H "Accept: application/json" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${TOKEN}"
