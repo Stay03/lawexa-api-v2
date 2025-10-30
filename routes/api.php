@@ -308,6 +308,7 @@ Route::middleware(['auth:sanctum', 'track.guest.activity'])->group(function () {
 
         // Lazy Loading Endpoints (Hash-First Navigation)
         // IMPORTANT: Specific routes must come BEFORE the catch-all {contentSlug} route
+        Route::get('{statute}/content/sequential-pure', [App\Http\Controllers\StatuteContentController::class, 'sequentialPure']);
         Route::get('{statute}/content/sequential', [App\Http\Controllers\StatuteContentController::class, 'sequential']);
         Route::get('{statute}/content/range', [App\Http\Controllers\StatuteContentController::class, 'range']);
         Route::get('{statute}/content/{contentSlug}', [App\Http\Controllers\StatuteContentController::class, 'lookup']);

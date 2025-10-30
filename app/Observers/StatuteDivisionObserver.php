@@ -54,7 +54,10 @@ class StatuteDivisionObserver
     {
         if ($statuteDivision->statute_id) {
             // Clear all caches related to this statute (breadcrumbs, position metadata, total items)
-            Cache::tags(["statute:{$statuteDivision->statute_id}"])->flush();
+            if (config('statute.cache.tags_enabled', false)) {
+                Cache::tags(["statute:{$statuteDivision->statute_id}"])->flush();
+            }
+            // If tags not enabled, cache entries will expire naturally via TTL
         }
     }
 }

@@ -191,6 +191,53 @@ class StatuteContentController extends Controller
     }
 
     /**
+     * Sequential content navigation in pure format (flat with all fields at root level)
+     *
+     * GET /api/statutes/{statute}/content/sequential-pure
+     *
+     * This endpoint is optimized for frontend lazy loading with:
+     * - All fields at root level (no content wrapper)
+     * - Both division and provision fields on every item (type-specific ones are null)
+     * - Optional breadcrumb on each item
+     * - Pure flat list structure
+     *
+     * @param Request $request
+     * @param Statute $statute
+     * @return JsonResponse
+     */
+    public function sequentialPure(Request $request, Statute $statute): JsonResponse
+    {
+        // Validate required parameters
+        $request->validate([
+            'from_order' => 'required|integer|min:0',
+            'direction' => 'required|in:before,after',
+            'limit' => 'nullable|integer|min:1',  // Max is enforced by service (clamped to 50)
+            'include_breadcrumb' => 'nullable|in:true,false,1,0'
+        ]);
+
+        $fromOrder = $request->integer('from_order');
+        $direction = $request->input('direction');
+        $limit = $request->integer('limit', 15);
+        $includeBreadcrumb = $request->boolean('include_breadcrumb', true);
+
+        try {
+            // Load sequential content in pure format
+            $result = $this->sequentialNavigator->loadSequentialPure(
+                $statute,
+                $fromOrder,
+                $direction,
+                $limit,
+                $includeBreadcrumb
+            );
+
+            return ApiResponse::success($result, 'Sequential content retrieved successfully');
+
+        } catch (\Exception $e) {
+            return ApiResponse::error('Error loading sequential content: ' . $e->getMessage(), null, 500);
+        }
+    }
+
+    /**
      * Load children for content
      *
      * @param mixed $content

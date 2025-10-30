@@ -694,4 +694,478 @@ class SequentialNavigatorService
 
         return $divisionsCount + $provisionsCount;
     }
+
+    /**
+     * Load sequential content in pure format (flat list with all fields at root level)
+     * This format is optimized for frontend lazy loading with optional breadcrumbs.
+     *
+     * @param Statute $statute
+     * @param int $fromOrder
+     * @param string $direction 'before' or 'after'
+     * @param int $limit
+     * @param bool $includeBreadcrumb
+     * @return array
+     */
+    public function loadSequentialPure(
+        Statute $statute,
+        int $fromOrder,
+        string $direction,
+        int $limit = 15,
+        bool $includeBreadcrumb = true
+    ): array {
+        $limit = min($limit, self::MAX_LIMIT);
+        $operator = $direction === 'before' ? '<' : '>';
+        $orderDirection = $direction === 'before' ? 'DESC' : 'ASC';
+
+        // Build UNION query for sequential content
+        $query = "
+            SELECT * FROM (
+                SELECT
+                    'division' as content_type,
+                    id,
+                    slug,
+                    order_index,
+                    division_type,
+                    division_number,
+                    division_title,
+                    division_subtitle,
+                    content,
+                    level,
+                    parent_division_id,
+                    NULL as parent_provision_id,
+                    NULL as division_id,
+                    NULL as provision_type,
+                    NULL as provision_number,
+                    NULL as provision_title,
+                    NULL as provision_text,
+                    NULL as marginal_note,
+                    NULL as interpretation_note,
+                    status,
+                    effective_date,
+                    created_at,
+                    updated_at
+                FROM statute_divisions
+                WHERE statute_id = ? AND order_index {$operator} ? AND status = 'active'
+
+                UNION ALL
+
+                SELECT
+                    'provision' as content_type,
+                    id,
+                    slug,
+                    order_index,
+                    NULL as division_type,
+                    NULL as division_number,
+                    NULL as division_title,
+                    NULL as division_subtitle,
+                    NULL as content,
+                    level,
+                    NULL as parent_division_id,
+                    parent_provision_id,
+                    division_id,
+                    provision_type,
+                    provision_number,
+                    provision_title,
+                    provision_text,
+                    marginal_note,
+                    interpretation_note,
+                    status,
+                    effective_date,
+                    created_at,
+                    updated_at
+                FROM statute_provisions
+                WHERE statute_id = ? AND order_index {$operator} ? AND status = 'active'
+            ) AS combined
+            ORDER BY order_index {$orderDirection}
+            LIMIT ?
+        ";
+
+        $results = DB::select($query, [
+            $statute->id,
+            $fromOrder,
+            $statute->id,
+            $fromOrder,
+            $limit
+        ]);
+
+        // Transform to pure format with breadcrumbs
+        $items = $this->transformResultsPure($results, $statute, $includeBreadcrumb);
+
+        // Check if there's more content
+        $hasMore = $direction === 'before'
+            ? $this->hasContentBeforePure($statute, $results)
+            : $this->hasContentAfterPure($statute, $results);
+
+        // Get next from_order for pagination
+        $nextFromOrder = null;
+        if ($hasMore && !empty($results)) {
+            $orderIndices = array_map(fn($r) => $r->order_index, $results);
+            $nextFromOrder = $direction === 'before' ? min($orderIndices) : max($orderIndices);
+        }
+
+        return [
+            'items' => $items,
+            'meta' => [
+                'format' => 'sequential_pure',
+                'direction' => $direction,
+                'from_order' => $fromOrder,
+                'limit' => $limit,
+                'returned' => count($items),
+                'has_more' => $hasMore,
+                'next_from_order' => $nextFromOrder
+            ]
+        ];
+    }
+
+    /**
+     * Transform results to pure format with all fields at root level
+     *
+     * @param array $results
+     * @param Statute $statute
+     * @param bool $includeBreadcrumb
+     * @return array
+     */
+    private function transformResultsPure(array $results, Statute $statute, bool $includeBreadcrumb): array
+    {
+        if (empty($results)) {
+            return [];
+        }
+
+        $items = [];
+
+        // Batch load breadcrumbs efficiently if needed
+        $breadcrumbs = [];
+        if ($includeBreadcrumb) {
+            $breadcrumbs = $this->batchLoadBreadcrumbs($results, $statute);
+        }
+
+        foreach ($results as $result) {
+            $item = [
+                // Identity
+                'id' => $result->id,
+                'slug' => $result->slug,
+                'type' => $result->content_type,
+
+                // Division fields (null if type=provision)
+                'division_type' => $result->division_type,
+                'division_number' => $result->division_number,
+                'division_title' => $result->division_title,
+                'division_subtitle' => $result->division_subtitle,
+                'content' => $result->content,
+
+                // Provision fields (null if type=division)
+                'provision_type' => $result->provision_type,
+                'provision_number' => $result->provision_number,
+                'provision_title' => $result->provision_title,
+                'provision_text' => $result->provision_text,
+                'marginal_note' => $result->marginal_note,
+                'interpretation_note' => $result->interpretation_note,
+
+                // Hierarchy
+                'level' => $result->level,
+                'parent_division_id' => $result->parent_division_id,
+                'parent_provision_id' => $result->parent_provision_id,
+
+                // Position & children info
+                'order_index' => $result->order_index,
+                'has_children' => $result->content_type === 'division'
+                    ? $this->divisionHasChildren($result->id)
+                    : $this->provisionHasChildren($result->id),
+                'child_count' => $result->content_type === 'division'
+                    ? $this->getDivisionChildCount($result->id)
+                    : $this->getProvisionChildCount($result->id),
+
+                // Metadata
+                'status' => $result->status,
+                'effective_date' => $result->effective_date,
+                'created_at' => $result->created_at,
+                'updated_at' => $result->updated_at
+            ];
+
+            // Add breadcrumb if included
+            if ($includeBreadcrumb) {
+                $breadcrumbKey = "{$result->content_type}:{$result->id}";
+                $item['breadcrumb'] = $breadcrumbs[$breadcrumbKey] ?? [];
+            }
+
+            $items[] = $item;
+        }
+
+        return $items;
+    }
+
+    /**
+     * Batch load breadcrumbs for multiple items efficiently
+     *
+     * @param array $results
+     * @param Statute $statute
+     * @return array Keyed by "type:id"
+     */
+    private function batchLoadBreadcrumbs(array $results, Statute $statute): array
+    {
+        $breadcrumbs = [];
+
+        // Group items by type
+        $divisionIds = [];
+        $provisionIds = [];
+
+        foreach ($results as $result) {
+            if ($result->content_type === 'division') {
+                $divisionIds[] = $result->id;
+            } else {
+                $provisionIds[] = $result->id;
+            }
+        }
+
+        // Load all divisions needed for breadcrumbs
+        $allDivisions = [];
+        if (!empty($divisionIds) || !empty($provisionIds)) {
+            $divisionIdsToLoad = array_unique(array_merge($divisionIds, $this->getParentDivisionIds($provisionIds)));
+            if (!empty($divisionIdsToLoad)) {
+                $divisions = StatuteDivision::whereIn('id', $divisionIdsToLoad)
+                    ->get(['id', 'slug', 'division_title', 'division_number', 'division_type', 'order_index', 'parent_division_id'])
+                    ->keyBy('id');
+                $allDivisions = $divisions->toArray();
+            }
+        }
+
+        // Load all provisions needed for breadcrumbs
+        $allProvisions = [];
+        if (!empty($provisionIds)) {
+            $provisionIdsToLoad = array_unique(array_merge($provisionIds, $this->getParentProvisionIds($provisionIds)));
+            $provisions = StatuteProvision::whereIn('id', $provisionIdsToLoad)
+                ->get(['id', 'slug', 'provision_title', 'provision_number', 'provision_type', 'order_index', 'parent_provision_id', 'division_id'])
+                ->keyBy('id');
+            $allProvisions = $provisions->toArray();
+        }
+
+        // Build breadcrumbs for each item
+        foreach ($results as $result) {
+            $breadcrumb = [];
+
+            // Start with statute root
+            $breadcrumb[] = [
+                'id' => $statute->id,
+                'type' => 'statute',
+                'slug' => $statute->slug,
+                'title' => $statute->title,
+                'order_index' => null
+            ];
+
+            if ($result->content_type === 'division') {
+                // Build division path
+                $divisionPath = $this->buildDivisionPathFromArray($result->id, $allDivisions);
+                $breadcrumb = array_merge($breadcrumb, $divisionPath);
+            } else {
+                // Build provision path (includes parent divisions first)
+                if ($result->division_id && isset($allDivisions[$result->division_id])) {
+                    $divisionPath = $this->buildDivisionPathFromArray($result->division_id, $allDivisions);
+                    $breadcrumb = array_merge($breadcrumb, $divisionPath);
+                }
+
+                $provisionPath = $this->buildProvisionPathFromArray($result->id, $allProvisions);
+                $breadcrumb = array_merge($breadcrumb, $provisionPath);
+            }
+
+            $breadcrumbKey = "{$result->content_type}:{$result->id}";
+            $breadcrumbs[$breadcrumbKey] = $breadcrumb;
+        }
+
+        return $breadcrumbs;
+    }
+
+    /**
+     * Get all parent division IDs for given provision IDs
+     *
+     * @param array $provisionIds
+     * @return array
+     */
+    private function getParentDivisionIds(array $provisionIds): array
+    {
+        if (empty($provisionIds)) {
+            return [];
+        }
+
+        $provisions = StatuteProvision::whereIn('id', $provisionIds)
+            ->whereNotNull('division_id')
+            ->pluck('division_id')
+            ->unique()
+            ->toArray();
+
+        // Recursively get parent divisions
+        $allDivisionIds = $provisions;
+        $currentLevel = $provisions;
+
+        while (!empty($currentLevel)) {
+            $parents = StatuteDivision::whereIn('id', $currentLevel)
+                ->whereNotNull('parent_division_id')
+                ->pluck('parent_division_id')
+                ->unique()
+                ->toArray();
+
+            if (empty($parents)) {
+                break;
+            }
+
+            $allDivisionIds = array_merge($allDivisionIds, $parents);
+            $currentLevel = $parents;
+        }
+
+        return array_unique($allDivisionIds);
+    }
+
+    /**
+     * Get all parent provision IDs for given provision IDs
+     *
+     * @param array $provisionIds
+     * @return array
+     */
+    private function getParentProvisionIds(array $provisionIds): array
+    {
+        if (empty($provisionIds)) {
+            return [];
+        }
+
+        $allProvisionIds = [];
+        $currentLevel = $provisionIds;
+
+        while (!empty($currentLevel)) {
+            $parents = StatuteProvision::whereIn('id', $currentLevel)
+                ->whereNotNull('parent_provision_id')
+                ->pluck('parent_provision_id')
+                ->unique()
+                ->toArray();
+
+            if (empty($parents)) {
+                break;
+            }
+
+            $allProvisionIds = array_merge($allProvisionIds, $parents);
+            $currentLevel = $parents;
+        }
+
+        return array_unique($allProvisionIds);
+    }
+
+    /**
+     * Build division path from preloaded array
+     *
+     * @param int $divisionId
+     * @param array $allDivisions
+     * @return array
+     */
+    private function buildDivisionPathFromArray(int $divisionId, array $allDivisions): array
+    {
+        $path = [];
+        $currentId = $divisionId;
+
+        while ($currentId && isset($allDivisions[$currentId])) {
+            $division = $allDivisions[$currentId];
+            array_unshift($path, [
+                'id' => $division['id'],
+                'type' => 'division',
+                'slug' => $division['slug'],
+                'division_type' => $division['division_type'],
+                'division_number' => $division['division_number'],
+                'division_title' => $division['division_title'],
+                'level' => $division['level'] ?? null,
+                'order_index' => $division['order_index']
+            ]);
+
+            $currentId = $division['parent_division_id'] ?? null;
+        }
+
+        return $path;
+    }
+
+    /**
+     * Build provision path from preloaded array
+     *
+     * @param int $provisionId
+     * @param array $allProvisions
+     * @return array
+     */
+    private function buildProvisionPathFromArray(int $provisionId, array $allProvisions): array
+    {
+        $path = [];
+        $currentId = $provisionId;
+
+        while ($currentId && isset($allProvisions[$currentId])) {
+            $provision = $allProvisions[$currentId];
+            array_unshift($path, [
+                'id' => $provision['id'],
+                'type' => 'provision',
+                'slug' => $provision['slug'],
+                'provision_type' => $provision['provision_type'],
+                'provision_number' => $provision['provision_number'],
+                'provision_title' => $provision['provision_title'],
+                'level' => $provision['level'] ?? null,
+                'order_index' => $provision['order_index']
+            ]);
+
+            $currentId = $provision['parent_provision_id'] ?? null;
+        }
+
+        return $path;
+    }
+
+    /**
+     * Check if there's more content before (for pure format)
+     *
+     * @param Statute $statute
+     * @param array $results
+     * @return bool
+     */
+    private function hasContentBeforePure(Statute $statute, array $results): bool
+    {
+        if (empty($results)) {
+            return false;
+        }
+
+        $minOrderIndex = min(array_map(fn($r) => $r->order_index, $results));
+
+        $hasDivisionBefore = StatuteDivision::where('statute_id', $statute->id)
+            ->where('order_index', '<', $minOrderIndex)
+            ->where('status', 'active')
+            ->exists();
+
+        if ($hasDivisionBefore) {
+            return true;
+        }
+
+        return StatuteProvision::where('statute_id', $statute->id)
+            ->where('order_index', '<', $minOrderIndex)
+            ->where('status', 'active')
+            ->exists();
+    }
+
+    /**
+     * Check if there's more content after (for pure format)
+     *
+     * @param Statute $statute
+     * @param array $results
+     * @return bool
+     */
+    private function hasContentAfterPure(Statute $statute, array $results): bool
+    {
+        if (empty($results)) {
+            return false;
+        }
+
+        $maxOrderIndex = max(array_map(fn($r) => $r->order_index, $results));
+
+        $hasDivisionAfter = StatuteDivision::where('statute_id', $statute->id)
+            ->where('order_index', '>', $maxOrderIndex)
+            ->where('status', 'active')
+            ->exists();
+
+        if ($hasDivisionAfter) {
+            return true;
+        }
+
+        return StatuteProvision::where('statute_id', $statute->id)
+            ->where('order_index', '>', $maxOrderIndex)
+            ->where('status', 'active')
+            ->exists();
+    }
 }
