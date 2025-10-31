@@ -212,7 +212,7 @@ class StatuteContentController extends Controller
         $request->validate([
             'from_order' => 'required_without:from_slug|integer|min:0',
             'from_slug' => 'required_without:from_order|string',
-            'direction' => 'required|in:before,after',
+            'direction' => 'required|in:before,after,at',
             'limit' => 'nullable|integer|min:1',  // Max is enforced by service (clamped to 50)
             'include_breadcrumb' => 'nullable|in:true,false,1,0'
         ]);

@@ -714,4 +714,152 @@ class SequentialPureApiTest extends TestCase
 
         $this->assertEquals($itemsFromOrder, $itemsFromSlug, 'Items loaded via from_slug should match items loaded via from_order');
     }
+
+    // ==================== direction: 'at' Parameter Tests ====================
+
+    /** @test */
+    public function it_loads_content_at_cursor_position_with_direction_at()
+    {
+        Sanctum::actingAs($this->user);
+
+        // Load content starting AT section-1 (order_index 300)
+        $response = $this->getJson("/api/statutes/{$this->statute->slug}/content/sequential-pure?from_order=300&direction=at&limit=5");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'status' => 'success',
+                'data' => [
+                    'meta' => [
+                        'direction' => 'at',
+                        'from_order' => 300
+                    ]
+                ]
+            ]);
+
+        $items = $response->json('data.items');
+        $this->assertGreaterThan(0, count($items));
+
+        // First item should BE the cursor item (order_index 300)
+        $this->assertEquals(300, $items[0]['order_index']);
+        $this->assertEquals('section-1', $items[0]['slug']);
+    }
+
+    /** @test */
+    public function it_includes_cursor_item_with_direction_at_using_from_slug()
+    {
+        Sanctum::actingAs($this->user);
+
+        // Load content starting AT section-1 using from_slug
+        $response = $this->getJson("/api/statutes/{$this->statute->slug}/content/sequential-pure?from_slug=section-1&direction=at&limit=5");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'status' => 'success',
+                'data' => [
+                    'meta' => [
+                        'direction' => 'at',
+                        'from_slug' => 'section-1',
+                        'resolved_order_index' => 300
+                    ]
+                ]
+            ]);
+
+        $items = $response->json('data.items');
+        $this->assertGreaterThan(0, count($items));
+
+        // First item should BE section-1 (the cursor item)
+        $this->assertEquals('section-1', $items[0]['slug']);
+        $this->assertEquals(300, $items[0]['order_index']);
+    }
+
+    /** @test */
+    public function it_validates_direction_at_is_accepted()
+    {
+        Sanctum::actingAs($this->user);
+
+        // Verify 'at' is a valid direction value
+        $response = $this->getJson("/api/statutes/{$this->statute->slug}/content/sequential-pure?from_order=100&direction=at&limit=5");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'status' => 'success'
+            ]);
+    }
+
+    /** @test */
+    public function it_returns_correct_items_with_direction_at_vs_after()
+    {
+        Sanctum::actingAs($this->user);
+
+        // Load using direction=at
+        $responseAt = $this->getJson("/api/statutes/{$this->statute->slug}/content/sequential-pure?from_order=300&direction=at&limit=5&include_breadcrumb=false");
+
+        // Load using direction=after
+        $responseAfter = $this->getJson("/api/statutes/{$this->statute->slug}/content/sequential-pure?from_order=300&direction=after&limit=5&include_breadcrumb=false");
+
+        $responseAt->assertStatus(200);
+        $responseAfter->assertStatus(200);
+
+        $itemsAt = $responseAt->json('data.items');
+        $itemsAfter = $responseAfter->json('data.items');
+
+        // 'at' should include the cursor item (order 300)
+        $this->assertEquals(300, $itemsAt[0]['order_index'], "First item with direction=at should be order 300");
+
+        // 'after' should NOT include the cursor item (should start after 300)
+        $this->assertGreaterThan(300, $itemsAfter[0]['order_index'], "First item with direction=after should be > 300");
+
+        // The second item from 'at' should match the first item from 'after'
+        if (count($itemsAt) > 1 && count($itemsAfter) > 0) {
+            $this->assertEquals($itemsAfter[0]['id'], $itemsAt[1]['id'], "Second item with direction=at should match first item with direction=after");
+        }
+    }
+
+    /** @test */
+    public function it_solves_hash_navigation_deep_linking_use_case()
+    {
+        Sanctum::actingAs($this->user);
+
+        // Simulate user visiting: /new-statutes/constitution-1999#section-1-subsection-1
+        // Frontend wants to show content starting FROM subsection (1) at order 400
+        $response = $this->getJson("/api/statutes/{$this->statute->slug}/content/sequential-pure?from_slug=section-1-subsection-1&direction=at&limit=5");
+
+        $response->assertStatus(200);
+
+        $items = $response->json('data.items');
+        $this->assertGreaterThan(0, count($items));
+
+        // First item should be the target subsection itself
+        $this->assertEquals('section-1-subsection-1', $items[0]['slug']);
+        $this->assertEquals(400, $items[0]['order_index']);
+        $this->assertEquals('subsection', $items[0]['provision_type']);
+
+        // User can now see the section they linked to, plus content that follows
+        // This solves the bug where the target section was missing from the view
+    }
+
+    /** @test */
+    public function it_returns_correct_pagination_metadata_with_direction_at()
+    {
+        Sanctum::actingAs($this->user);
+
+        $response = $this->getJson("/api/statutes/{$this->statute->slug}/content/sequential-pure?from_order=200&direction=at&limit=2");
+
+        $response->assertStatus(200);
+
+        $meta = $response->json('data.meta');
+
+        $this->assertEquals('sequential_pure', $meta['format']);
+        $this->assertEquals('at', $meta['direction']);
+        $this->assertEquals(200, $meta['from_order']);
+        $this->assertEquals(2, $meta['limit']);
+        $this->assertArrayHasKey('returned', $meta);
+        $this->assertArrayHasKey('has_more', $meta);
+        $this->assertArrayHasKey('next_from_order', $meta);
+
+        // has_more and next_from_order should work like 'after'
+        if ($meta['has_more']) {
+            $this->assertNotNull($meta['next_from_order']);
+        }
+    }
 }

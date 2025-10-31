@@ -714,7 +714,11 @@ class SequentialNavigatorService
         bool $includeBreadcrumb = true
     ): array {
         $limit = min($limit, self::MAX_LIMIT);
-        $operator = $direction === 'before' ? '<' : '>';
+        $operator = match($direction) {
+            'before' => '<',
+            'after' => '>',
+            'at' => '>='
+        };
         $orderDirection = $direction === 'before' ? 'DESC' : 'ASC';
 
         // Build UNION query for sequential content

@@ -77,8 +77,9 @@ Load statute content sequentially in a pure flat structure format, ideal for laz
 - Returns 404 error if slug not found
 
 **`direction`** (required)
-- `"after"`: Load items with order_index > from_order (scroll down, forward)
-- `"before"`: Load items with order_index < from_order (scroll up, backward)
+- `"after"`: Load items with order_index > from_order (scroll down, forward, excludes cursor)
+- `"before"`: Load items with order_index < from_order (scroll up, backward, excludes cursor)
+- `"at"`: Load items with order_index >= from_order (includes cursor item, then forward)
 
 **`limit`** (optional)
 - Default: `15` items
@@ -357,6 +358,25 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/sequential-p
 
 **Use Case:** Mobile device with limited bandwidth, load small batches
 
+### 7. Hash Navigation with Deep Linking (Using direction: 'at') - **RECOMMENDED**
+
+```bash
+curl -X GET "http://127.0.0.1:8000/api/statutes/constitution-1999/content/sequential-pure?from_slug=section-1&direction=at&limit=15" \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer {your_token}"
+```
+
+**Use Case:** User visits URL with hash `#section-1`, load content starting FROM that section (including it)
+**Benefits:**
+- Only 1 API call (no separate lookup needed)
+- Target section is included in results (not skipped)
+- Perfect for deep linking and bookmarks
+
+**Comparison with `direction: 'after'`:**
+- `direction: 'after'` - Excludes section-1, shows content AFTER it
+- `direction: 'at'` - Includes section-1, shows content FROM it onwards
+
 ---
 
 ## Error Responses
@@ -493,13 +513,22 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/sequential-p
 
 ### Recommended Usage Patterns
 
-**Initial Load / Hash Navigation:**
+**Initial Load from Beginning:**
 ```
-from_order: <hash position>
+from_order: 0
 direction: "after"
 limit: 15-20
 include_breadcrumb: true
 ```
+
+**Hash Navigation / Deep Linking (RECOMMENDED):**
+```
+from_slug: <target slug>
+direction: "at"
+limit: 15-20
+include_breadcrumb: true
+```
+Use `direction: "at"` to include the target section in results. This is the recommended approach for hash-based navigation and deep linking.
 
 **Scroll Down (Lazy Load):**
 ```
