@@ -497,4 +497,221 @@ class SequentialPureApiTest extends TestCase
             $this->assertEquals('statute', $breadcrumb[0]['type']);
         }
     }
+
+    // ==================== from_slug Parameter Tests ====================
+
+    /** @test */
+    public function it_loads_content_using_from_slug_parameter()
+    {
+        Sanctum::actingAs($this->user);
+
+        // Use from_slug instead of from_order
+        $response = $this->getJson("/api/statutes/{$this->statute->slug}/content/sequential-pure?from_slug=section-1&direction=after&limit=5");
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'status',
+                'message',
+                'data' => [
+                    'items',
+                    'meta' => [
+                        'format',
+                        'direction',
+                        'from_order',
+                        'from_slug',
+                        'resolved_order_index',
+                        'limit',
+                        'returned',
+                        'has_more',
+                        'next_from_order'
+                    ]
+                ]
+            ])
+            ->assertJson([
+                'status' => 'success',
+                'data' => [
+                    'meta' => [
+                        'from_slug' => 'section-1',
+                        'resolved_order_index' => 300
+                    ]
+                ]
+            ]);
+
+        $items = $response->json('data.items');
+        $this->assertGreaterThan(0, count($items));
+
+        // First item should be after order 300 (section-1's order_index)
+        $this->assertGreaterThan(300, $items[0]['order_index']);
+    }
+
+    /** @test */
+    public function it_loads_content_using_from_slug_with_division()
+    {
+        Sanctum::actingAs($this->user);
+
+        // Use slug of a division
+        $response = $this->getJson("/api/statutes/{$this->statute->slug}/content/sequential-pure?from_slug=chapter-i&direction=after&limit=3");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'status' => 'success',
+                'data' => [
+                    'meta' => [
+                        'from_slug' => 'chapter-i',
+                        'resolved_order_index' => 100
+                    ]
+                ]
+            ]);
+
+        $items = $response->json('data.items');
+        $this->assertGreaterThan(0, count($items));
+
+        // First item should be after order 100 (chapter-i's order_index)
+        $this->assertGreaterThan(100, $items[0]['order_index']);
+    }
+
+    /** @test */
+    public function it_loads_content_using_from_slug_with_direction_before()
+    {
+        Sanctum::actingAs($this->user);
+
+        // Load content before section-2 using slug
+        $response = $this->getJson("/api/statutes/{$this->statute->slug}/content/sequential-pure?from_slug=section-2&direction=before&limit=5");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'status' => 'success',
+                'data' => [
+                    'meta' => [
+                        'direction' => 'before',
+                        'from_slug' => 'section-2',
+                        'resolved_order_index' => 500
+                    ]
+                ]
+            ]);
+
+        $items = $response->json('data.items');
+
+        // All items should be before order 500 (section-2's order_index)
+        foreach ($items as $item) {
+            $this->assertLessThan(500, $item['order_index']);
+        }
+    }
+
+    /** @test */
+    public function it_returns_404_when_from_slug_not_found()
+    {
+        Sanctum::actingAs($this->user);
+
+        $response = $this->getJson("/api/statutes/{$this->statute->slug}/content/sequential-pure?from_slug=nonexistent-slug&direction=after&limit=5");
+
+        $response->assertStatus(404)
+            ->assertJson([
+                'status' => 'error',
+                'message' => "Content with slug 'nonexistent-slug' not found in this statute",
+                'errors' => [
+                    'from_slug' => ['The specified slug does not exist in this statute.']
+                ]
+            ]);
+    }
+
+    /** @test */
+    public function it_validates_cannot_use_both_from_order_and_from_slug()
+    {
+        Sanctum::actingAs($this->user);
+
+        // Try to provide both parameters
+        $response = $this->getJson("/api/statutes/{$this->statute->slug}/content/sequential-pure?from_order=100&from_slug=section-1&direction=after&limit=5");
+
+        $response->assertStatus(422)
+            ->assertJson([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => [
+                    'from_slug' => ['Cannot use both from_order and from_slug. Please provide only one.']
+                ]
+            ]);
+    }
+
+    /** @test */
+    public function it_validates_requires_either_from_order_or_from_slug()
+    {
+        Sanctum::actingAs($this->user);
+
+        // Omit both from_order and from_slug
+        $response = $this->getJson("/api/statutes/{$this->statute->slug}/content/sequential-pure?direction=after&limit=5");
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['from_order', 'from_slug']);
+    }
+
+    /** @test */
+    public function it_works_with_from_slug_and_include_breadcrumb_false()
+    {
+        Sanctum::actingAs($this->user);
+
+        $response = $this->getJson("/api/statutes/{$this->statute->slug}/content/sequential-pure?from_slug=part-i&direction=after&limit=3&include_breadcrumb=false");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'data' => [
+                    'meta' => [
+                        'from_slug' => 'part-i',
+                        'resolved_order_index' => 200
+                    ]
+                ]
+            ]);
+
+        $items = $response->json('data.items');
+
+        // Items should not have breadcrumb field
+        foreach ($items as $item) {
+            $this->assertArrayNotHasKey('breadcrumb', $item);
+        }
+    }
+
+    /** @test */
+    public function it_maintains_backward_compatibility_with_from_order()
+    {
+        Sanctum::actingAs($this->user);
+
+        // Using from_order should still work exactly as before
+        $response = $this->getJson("/api/statutes/{$this->statute->slug}/content/sequential-pure?from_order=200&direction=after&limit=5");
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'status' => 'success',
+                'data' => [
+                    'meta' => [
+                        'from_order' => 200
+                    ]
+                ]
+            ]);
+
+        // Should NOT include from_slug or resolved_order_index when using from_order
+        $meta = $response->json('data.meta');
+        $this->assertArrayNotHasKey('from_slug', $meta);
+        $this->assertArrayNotHasKey('resolved_order_index', $meta);
+    }
+
+    /** @test */
+    public function it_returns_same_results_for_from_slug_and_from_order()
+    {
+        Sanctum::actingAs($this->user);
+
+        // Load using from_slug
+        $responseSlug = $this->getJson("/api/statutes/{$this->statute->slug}/content/sequential-pure?from_slug=section-1&direction=after&limit=5&include_breadcrumb=false");
+
+        // Load using from_order (section-1 has order_index 300)
+        $responseOrder = $this->getJson("/api/statutes/{$this->statute->slug}/content/sequential-pure?from_order=300&direction=after&limit=5&include_breadcrumb=false");
+
+        $responseSlug->assertStatus(200);
+        $responseOrder->assertStatus(200);
+
+        // Items should be identical (excluding meta differences)
+        $itemsFromSlug = $responseSlug->json('data.items');
+        $itemsFromOrder = $responseOrder->json('data.items');
+
+        $this->assertEquals($itemsFromOrder, $itemsFromSlug, 'Items loaded via from_slug should match items loaded via from_order');
+    }
 }

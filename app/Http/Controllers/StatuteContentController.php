@@ -200,6 +200,7 @@ class StatuteContentController extends Controller
      * - Both division and provision fields on every item (type-specific ones are null)
      * - Optional breadcrumb on each item
      * - Pure flat list structure
+     * - Support for slug-based navigation (from_slug) as alternative to from_order
      *
      * @param Request $request
      * @param Statute $statute
@@ -209,13 +210,47 @@ class StatuteContentController extends Controller
     {
         // Validate required parameters
         $request->validate([
-            'from_order' => 'required|integer|min:0',
+            'from_order' => 'required_without:from_slug|integer|min:0',
+            'from_slug' => 'required_without:from_order|string',
             'direction' => 'required|in:before,after',
             'limit' => 'nullable|integer|min:1',  // Max is enforced by service (clamped to 50)
             'include_breadcrumb' => 'nullable|in:true,false,1,0'
         ]);
 
-        $fromOrder = $request->integer('from_order');
+        // Ensure only one of from_order or from_slug is provided
+        if ($request->filled('from_order') && $request->filled('from_slug')) {
+            return ApiResponse::error(
+                'Validation failed',
+                ['from_slug' => ['Cannot use both from_order and from_slug. Please provide only one.']],
+                422
+            );
+        }
+
+        // Resolve from_slug to from_order if provided
+        $fromOrder = null;
+        $fromSlug = null;
+        $resolvedOrderIndex = null;
+
+        if ($request->filled('from_slug')) {
+            $fromSlug = $request->input('from_slug');
+
+            try {
+                // Resolve slug to order_index using existing ContentResolverService
+                $resolution = $this->contentResolver->resolveBySlug($statute, $fromSlug);
+                $fromOrder = $resolution['order_index'];
+                $resolvedOrderIndex = $fromOrder;
+
+            } catch (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e) {
+                return ApiResponse::error(
+                    "Content with slug '{$fromSlug}' not found in this statute",
+                    ['from_slug' => ['The specified slug does not exist in this statute.']],
+                    404
+                );
+            }
+        } else {
+            $fromOrder = $request->integer('from_order');
+        }
+
         $direction = $request->input('direction');
         $limit = $request->integer('limit', 15);
         $includeBreadcrumb = $request->boolean('include_breadcrumb', true);
@@ -229,6 +264,12 @@ class StatuteContentController extends Controller
                 $limit,
                 $includeBreadcrumb
             );
+
+            // Add from_slug and resolved_order_index to meta if slug was used
+            if ($fromSlug !== null) {
+                $result['meta']['from_slug'] = $fromSlug;
+                $result['meta']['resolved_order_index'] = $resolvedOrderIndex;
+            }
 
             return ApiResponse::success($result, 'Sequential content retrieved successfully');
 

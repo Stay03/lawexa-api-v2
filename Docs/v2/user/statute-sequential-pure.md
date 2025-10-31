@@ -50,18 +50,31 @@ Load statute content sequentially in a pure flat structure format, ideal for laz
 
 | Parameter | Type | Required | Default | Max | Description |
 |-----------|------|----------|---------|-----|-------------|
-| `from_order` | integer | **Yes** | - | - | Starting order_index position |
+| `from_order` | integer | **Yes*** | - | - | Starting order_index position |
+| `from_slug` | string | **Yes*** | - | - | Starting content slug (alternative to from_order) |
 | `direction` | string | **Yes** | - | - | Navigation direction: `"before"` or `"after"` |
 | `limit` | integer | No | `15` | `50` | Number of items to return |
 | `include_breadcrumb` | boolean | No | `true` | - | Include full breadcrumb trail |
 
+**\* Required:** Either `from_order` OR `from_slug` must be provided (not both).
+
 #### Parameter Details
 
-**`from_order`** (required)
+**`from_order`** (conditionally required)
 - The `order_index` position to load content from
 - Use `0` to start from the beginning
 - Use the `order_index` from hash lookup to start from a specific position
 - Must be a non-negative integer
+- **Cannot be used together with `from_slug`**
+
+**`from_slug`** (conditionally required) - **NEW**
+- The slug of the content item to load from
+- Backend automatically resolves slug to order_index
+- Example: `"section-1"`, `"chapter-i"`, `"3-KPe5tDot"`
+- **Benefits:** Single API call instead of two (no need to lookup order_index first)
+- **Use case:** Hash-based navigation, deep linking
+- **Cannot be used together with `from_order`**
+- Returns 404 error if slug not found
 
 **`direction`** (required)
 - `"after"`: Load items with order_index > from_order (scroll down, forward)
@@ -242,6 +255,8 @@ For provisions, additional fields:
 | `format` | string | Always `"sequential_pure"` |
 | `direction` | string | Direction used: `"before"` or `"after"` |
 | `from_order` | integer | Starting position requested |
+| `from_slug` | string | (Optional) The slug used for navigation (only present when using `from_slug` parameter) |
+| `resolved_order_index` | integer | (Optional) The order_index resolved from the slug (only present when using `from_slug` parameter) |
 | `limit` | integer | Limit requested (capped at 50) |
 | `returned` | integer | Actual number of items returned |
 | `has_more` | boolean | Whether more content exists in this direction |
@@ -262,7 +277,7 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/sequential-p
 
 **Use Case:** User views statute from start, no hash in URL
 
-### 2. Hash Navigation (Load from Specific Position)
+### 2. Hash Navigation (Load from Specific Position - Using from_order)
 
 ```bash
 curl -X GET "http://127.0.0.1:8000/api/statutes/constitution-1999/content/sequential-pure?from_order=400&direction=after&limit=15" \
@@ -272,8 +287,44 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/constitution-1999/content/sequen
 ```
 
 **Use Case:** User visits URL with hash `#section-1`, load content from that position with full context
+**Note:** Requires 2 API calls - first lookup order_index, then load content
 
-### 3. Scroll Down (Infinite Scroll)
+### 3. Hash Navigation (Using from_slug) - **NEW & RECOMMENDED**
+
+```bash
+curl -X GET "http://127.0.0.1:8000/api/statutes/constitution-1999/content/sequential-pure?from_slug=section-1&direction=after&limit=15" \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer {your_token}"
+```
+
+**Use Case:** User visits URL with hash `#section-1`, load content directly using slug
+**Benefits:**
+- Only 1 API call (50% faster)
+- Backend resolves slug automatically
+- Simpler frontend code
+
+**Response includes:**
+```json
+{
+  "data": {
+    "items": [...],
+    "meta": {
+      "format": "sequential_pure",
+      "direction": "after",
+      "from_order": 400,
+      "from_slug": "section-1",
+      "resolved_order_index": 400,
+      "limit": 15,
+      "returned": 15,
+      "has_more": true,
+      "next_from_order": 1500
+    }
+  }
+}
+```
+
+### 4. Scroll Down (Infinite Scroll)
 
 ```bash
 curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/sequential-pure?from_order=500&direction=after&limit=15&include_breadcrumb=false" \
@@ -284,7 +335,7 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/sequential-p
 
 **Use Case:** User scrolls to bottom, load next batch without breadcrumb overhead
 
-### 4. Scroll Up (Reverse Infinite Scroll)
+### 5. Scroll Up (Reverse Infinite Scroll)
 
 ```bash
 curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/sequential-pure?from_order=400&direction=before&limit=10" \
@@ -295,7 +346,7 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/sequential-p
 
 **Use Case:** User scrolls to top, load previous batch
 
-### 5. Small Batch Load (Mobile)
+### 6. Small Batch Load (Mobile)
 
 ```bash
 curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/sequential-pure?from_order=300&direction=after&limit=5&include_breadcrumb=false" \
@@ -375,6 +426,54 @@ curl -X GET "http://127.0.0.1:8000/api/statutes/the-statute/content/sequential-p
   "status": "error",
   "message": "Unauthenticated.",
   "data": null
+}
+```
+
+### 404 Not Found - Slug Not Found (from_slug parameter)
+
+```json
+{
+  "status": "error",
+  "message": "Content with slug 'nonexistent-slug' not found in this statute",
+  "data": null,
+  "errors": {
+    "from_slug": [
+      "The specified slug does not exist in this statute."
+    ]
+  }
+}
+```
+
+### 422 Validation Error - Both from_order and from_slug Provided
+
+```json
+{
+  "status": "error",
+  "message": "Validation failed",
+  "data": null,
+  "errors": {
+    "from_slug": [
+      "Cannot use both from_order and from_slug. Please provide only one."
+    ]
+  }
+}
+```
+
+### 422 Validation Error - Neither from_order nor from_slug Provided
+
+```json
+{
+  "status": "error",
+  "message": "Validation failed",
+  "data": null,
+  "errors": {
+    "from_order": [
+      "The from order field is required when from slug is not present."
+    ],
+    "from_slug": [
+      "The from slug field is required when from order is not present."
+    ]
+  }
 }
 ```
 
