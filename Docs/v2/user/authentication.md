@@ -538,7 +538,7 @@ Authorization: Bearer {guest-token}
 {
   "user": {
     "role": "guest",
-    "view_stats": {
+    "guest_limits": {
       "total_views": 15,
       "remaining_views": 5,
       "view_limit": 20

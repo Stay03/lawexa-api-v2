@@ -49,7 +49,7 @@ class UserResource extends JsonResource
                 $this->relationLoaded('subscriptions') && $this->subscriptions, 
                 fn() => SubscriptionResource::collection($this->subscriptions)
             ),
-            'view_stats' => $this->when(
+            'guest_limits' => $this->when(
                 $this->isGuest(),
                 fn() => [
                     'total_views' => $this->getTotalViewsCount(),
