@@ -224,25 +224,30 @@ class AdminController extends Controller
         ], 'User statistics retrieved successfully');
     }
 
-    public function editUser(Request $request, User $targetUser): JsonResponse
+    public function editUser(Request $request, User $user): JsonResponse
     {
-        $user = $request->user();
+        $currentUser = $request->user();
 
-        if (! $user->hasAnyRole(['admin', 'superadmin'])) {
+        if (! $currentUser->hasAnyRole(['admin', 'superadmin'])) {
             return ApiResponse::error('Unauthorized. Only admins and superadmins can edit users.', 403);
         }
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|string|email|max:255|unique:users,email,'.$targetUser->id,
+            'email' => 'sometimes|string|email|max:255|unique:users,email,'.$user->id,
             'role' => 'sometimes|string|in:user,admin,researcher,superadmin',
             'avatar' => 'sometimes|nullable|string|max:255',
         ]);
 
+        // Normalize empty strings to null for nullable fields
+        if (isset($validated['avatar']) && $validated['avatar'] === '') {
+            $validated['avatar'] = null;
+        }
+
         if (isset($validated['role'])) {
             $requestedRole = $validated['role'];
 
-            $allowedRoles = match ($user->role) {
+            $allowedRoles = match ($currentUser->role) {
                 'admin' => ['user', 'researcher'],
                 'superadmin' => ['user', 'admin', 'researcher', 'superadmin'],
                 default => []
@@ -253,18 +258,50 @@ class AdminController extends Controller
             }
         }
 
-        if ($user->isAdmin()) {
-            if ($targetUser->hasAnyRole(['admin', 'superadmin'])) {
+        if ($currentUser->isAdmin()) {
+            if ($user->hasAnyRole(['admin', 'superadmin'])) {
                 return ApiResponse::error('Unauthorized. Admins can only edit regular users and researchers.', 403);
             }
         }
 
-        $targetUser->update($validated);
+        try {
+            \DB::beginTransaction();
 
-        return ApiResponse::resource(
-            new UserResource($targetUser->fresh()->load(['activeSubscription.plan', 'subscriptions'])),
-            'User updated successfully'
-        );
+            // Save the user ID before update in case the model gets cleared
+            $userId = $user->id;
+
+            $user->update($validated);
+
+            // Reload the user from database with relationships
+            $freshUser = User::with(['activeSubscription.plan', 'subscriptions'])
+                ->find($userId);
+
+            if (!$freshUser) {
+                \DB::rollBack();
+                \Log::error("User disappeared after update", [
+                    'user_id' => $userId,
+                    'validated_data' => $validated
+                ]);
+                return ApiResponse::error('User update failed - user no longer exists in database', 500);
+            }
+
+            \DB::commit();
+
+            return ApiResponse::resource(
+                new UserResource($freshUser),
+                'User updated successfully'
+            );
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            // Use saved userId if $user->id is null
+            $userId = $user->id ?? $userId ?? 'unknown';
+            \Log::error("User update failed: " . $e->getMessage(), [
+                'user_id' => $userId,
+                'validated_data' => $validated,
+                'exception' => $e
+            ]);
+            return ApiResponse::error('Failed to update user: ' . $e->getMessage(), 500);
+        }
     }
 
     public function getUser(Request $request, User $user): JsonResponse
