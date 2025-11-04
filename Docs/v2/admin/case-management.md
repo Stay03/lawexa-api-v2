@@ -3,6 +3,27 @@
 ## Overview
 The Case Management Admin API provides comprehensive CRUD operations for legal case records. These endpoints are restricted to users with administrative privileges (admin, superadmin, or researcher roles).
 
+This documentation also includes **Reference Data Endpoints** for retrieving unique case topics and tags, which are available to all authenticated users for populating filters, autocomplete fields, and dropdowns.
+
+## Table of Contents
+- [Base URL & Authentication](#base-url)
+- [Admin Endpoints](#endpoints)
+  - [Get Admin Cases List](#get-admin-cases-list)
+  - [Create New Case](#create-new-case)
+  - [Get Single Case](#get-single-case-admin)
+  - [Update Case](#update-case)
+  - [Delete Case](#delete-case)
+- [Reference Data Endpoints](#reference-data-endpoints)
+  - [Get Case Topics](#get-case-topics)
+  - [Get Case Tags](#get-case-tags)
+- [Advanced Features](#advanced-features)
+  - [Similar Cases Management](#similar-cases-management)
+  - [Cited Cases Management](#cited-cases-management)
+  - [File Attachments](#file-attachments)
+  - [Case Reports](#case-reports)
+- [Error Responses](#error-responses)
+- [Best Practices](#data-management-best-practices)
+
 ## Base URL
 ```
 https://rest.lawexa.com/api/admin
@@ -312,6 +333,165 @@ curl -X DELETE "https://rest.lawexa.com/api/admin/cases/7186" \
   "data": []
 }
 ```
+
+## Reference Data Endpoints
+
+### Get Case Topics
+Retrieve a paginated list of unique topics extracted from all cases. Topics with comma-separated values are intelligently split while respecting parentheses and quotes.
+
+**Endpoint:** `GET /reference/case-topics`
+
+**Access:** Authenticated users (all roles including guests)
+
+**Parameters:**
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `search` | string | No | - | Filter topics by keyword (case-insensitive) |
+| `per_page` | integer | No | 15 | Number of items per page |
+| `page` | integer | No | 1 | Page number |
+
+**Example Request:**
+```bash
+curl -X GET "https://rest.lawexa.com/api/reference/case-topics?search=contract&per_page=20" \
+  -H "Authorization: Bearer {access_token}" \
+  -H "Accept: application/json"
+```
+
+**Success Response (200):**
+```json
+{
+  "status": "success",
+  "message": "Case topics retrieved successfully",
+  "data": {
+    "topics": [
+      "Breach of Contract",
+      "Contract Formation",
+      "Contract Law",
+      "Contracts Required to be in Writing",
+      "Formation of Contracts through Correspondence",
+      "Privity of Contract",
+      "Remedies for Breach of Contract",
+      "Terms of a Contract",
+      "Validity of a Contract"
+    ],
+    "meta": {
+      "current_page": 1,
+      "from": 1,
+      "last_page": 1,
+      "per_page": 20,
+      "to": 9,
+      "total": 9
+    },
+    "links": {
+      "first": "https://rest.lawexa.com/api/reference/case-topics?search=contract&per_page=20&page=1",
+      "last": "https://rest.lawexa.com/api/reference/case-topics?search=contract&per_page=20&page=1",
+      "prev": null,
+      "next": null
+    }
+  }
+}
+```
+
+**Notes:**
+- Topics are extracted from the `topic` field of all cases
+- Comma-separated values are intelligently split
+- Parentheses and quotes are respected (e.g., `"Topic (subtopic, details)"` stays intact)
+- Results are deduplicated (case-insensitive)
+- Topics are sorted alphabetically
+- Useful for populating dropdown filters and autocomplete fields
+
+### Get Case Tags
+Retrieve a paginated list of unique tags extracted from all cases. Tags with comma-separated values are intelligently split while respecting parentheses and quotes.
+
+**Endpoint:** `GET /reference/case-tags`
+
+**Access:** Authenticated users (all roles including guests)
+
+**Parameters:**
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `search` | string | No | - | Filter tags by keyword (case-insensitive) |
+| `per_page` | integer | No | 15 | Number of items per page |
+| `page` | integer | No | 1 | Page number |
+
+**Example Request:**
+```bash
+curl -X GET "https://rest.lawexa.com/api/reference/case-tags?search=equity&per_page=20&page=1" \
+  -H "Authorization: Bearer {access_token}" \
+  -H "Accept: application/json"
+```
+
+**Success Response (200):**
+```json
+{
+  "status": "success",
+  "message": "Case tags retrieved successfully",
+  "data": {
+    "tags": [
+      "Clog on the equity of redemption",
+      "Common Law and Equity",
+      "Consideration in Equity",
+      "Equal Equities",
+      "Equality is equity",
+      "Equity",
+      "Equity Will Not Assist a Volunteer",
+      "Equity acts in personam",
+      "Equity and Beneficiary Rights",
+      "Equity follows the Law",
+      "Equity looks on that as done which ought to be done",
+      "Equity looks to the substance rather than the form",
+      "Equity of Redemption",
+      "Equity will not perfect an imperfect gift",
+      "Legal Estates",
+      "Maxim of Equity"
+    ],
+    "meta": {
+      "current_page": 1,
+      "from": 1,
+      "last_page": 2,
+      "per_page": 20,
+      "to": 20,
+      "total": 38
+    },
+    "links": {
+      "first": "https://rest.lawexa.com/api/reference/case-tags?search=equity&per_page=20&page=1",
+      "last": "https://rest.lawexa.com/api/reference/case-tags?search=equity&per_page=20&page=2",
+      "prev": null,
+      "next": "https://rest.lawexa.com/api/reference/case-tags?search=equity&per_page=20&page=2"
+    }
+  }
+}
+```
+
+**Notes:**
+- Tags are extracted from the `tag` field of all cases
+- Comma-separated values are intelligently split
+- Parentheses and quotes are respected during splitting
+- Example: `"Natural Justice (Nemo Judex in Causa Sua, Audi Alteram Patem)"` remains intact
+- Results are deduplicated (case-insensitive)
+- Tags are sorted alphabetically
+- Useful for populating tag selectors, filters, and autocomplete fields
+
+**Smart Splitting Behavior:**
+Both endpoints use intelligent CSV parsing that:
+- Respects commas within parentheses: `"Topic (A, B), Topic2"` → `["Topic (A, B)", "Topic2"]`
+- Respects commas within quotes: `"Topic \"A, B\", Topic2"` → `["Topic \"A, B\"", "Topic2"]`
+- Handles nested parentheses correctly
+- Trims whitespace from each value
+- Filters out empty values
+
+**Use Cases:**
+1. **Autocomplete Fields**: Load topics/tags as users type
+2. **Filter Dropdowns**: Populate filter options for case searches
+3. **Tag Suggestions**: Suggest tags when creating/editing cases
+4. **Analytics**: Analyze topic and tag distribution
+5. **Navigation**: Build topic/tag-based navigation menus
+
+**Pagination Behavior:**
+- Default: 15 items per page (consistent with other endpoints)
+- Always paginated (no flag required)
+- Standard Laravel pagination with `meta` and `links` objects
+- Use `links.next` and `links.prev` for navigation
 
 ## Advanced Features
 

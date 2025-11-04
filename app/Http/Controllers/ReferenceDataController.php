@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\University;
+use App\Models\CourtCase;
 use App\Http\Responses\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -193,5 +194,199 @@ class ReferenceDataController extends Controller
         return ApiResponse::success([
             'areas' => $uniqueAreas
         ], 'Areas of expertise retrieved successfully');
+    }
+
+    /**
+     * Smart split comma-separated values respecting parentheses and quotes
+     *
+     * @param string $value The comma-separated string to split
+     * @return array Array of split values
+     */
+    private function smartSplitCommaSeparatedValues(string $value): array
+    {
+        $result = [];
+        $current = '';
+        $parenthesesDepth = 0;
+        $inQuotes = false;
+        $length = strlen($value);
+
+        for ($i = 0; $i < $length; $i++) {
+            $char = $value[$i];
+
+            // Toggle quote state (handle escaped quotes)
+            if ($char === '"' && ($i === 0 || $value[$i - 1] !== '\\')) {
+                $inQuotes = !$inQuotes;
+                $current .= $char;
+                continue;
+            }
+
+            // Track parentheses depth only when not in quotes
+            if (!$inQuotes) {
+                if ($char === '(') {
+                    $parenthesesDepth++;
+                } elseif ($char === ')') {
+                    $parenthesesDepth--;
+                }
+            }
+
+            // Split on comma only if we're not inside parentheses or quotes
+            if ($char === ',' && $parenthesesDepth === 0 && !$inQuotes) {
+                $trimmed = trim($current);
+                if (!empty($trimmed)) {
+                    $result[] = $trimmed;
+                }
+                $current = '';
+            } else {
+                $current .= $char;
+            }
+        }
+
+        // Add the last segment
+        $trimmed = trim($current);
+        if (!empty($trimmed)) {
+            $result[] = $trimmed;
+        }
+
+        return $result;
+    }
+
+    public function getCaseTopics(Request $request): JsonResponse
+    {
+        // Get all non-null topics from database
+        $allTopics = CourtCase::whereNotNull('topic')
+            ->where('topic', '!=', '')
+            ->distinct()
+            ->pluck('topic');
+
+        // Split comma-separated values using smart split (respects parentheses and quotes)
+        $topics = collect();
+
+        foreach ($allTopics as $topicString) {
+            // Use smart split instead of simple explode
+            $individualTopics = $this->smartSplitCommaSeparatedValues($topicString);
+            foreach ($individualTopics as $topic) {
+                if (!empty($topic)) {
+                    $topics->push($topic);
+                }
+            }
+        }
+
+        // Apply search filter if provided
+        if ($request->has('search')) {
+            $search = strtolower($request->search);
+            $topics = $topics->filter(function ($topic) use ($search) {
+                return strpos(strtolower($topic), $search) !== false;
+            });
+        }
+
+        // Remove duplicates with case-insensitive consolidation
+        $uniqueTopics = $topics->mapToGroups(function ($topic) {
+                return [strtolower($topic) => $topic];
+            })
+            ->map(function ($group) {
+                return $group->first();
+            })
+            ->sort()
+            ->values();
+
+        // Use Laravel's LengthAwarePaginator for consistency with other controllers
+        $perPage = $request->get('per_page', 15);
+        $page = $request->get('page', 1);
+
+        $paginated = new \Illuminate\Pagination\LengthAwarePaginator(
+            $uniqueTopics->forPage($page, $perPage)->values(),
+            $uniqueTopics->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        return ApiResponse::success([
+            'topics' => $paginated->items(),
+            'meta' => [
+                'current_page' => $paginated->currentPage(),
+                'from' => $paginated->firstItem(),
+                'last_page' => $paginated->lastPage(),
+                'per_page' => $paginated->perPage(),
+                'to' => $paginated->lastItem(),
+                'total' => $paginated->total(),
+            ],
+            'links' => [
+                'first' => $paginated->url(1),
+                'last' => $paginated->url($paginated->lastPage()),
+                'prev' => $paginated->previousPageUrl(),
+                'next' => $paginated->nextPageUrl(),
+            ],
+        ], 'Case topics retrieved successfully');
+    }
+
+    public function getCaseTags(Request $request): JsonResponse
+    {
+        // Get all non-null tags from database
+        $allTags = CourtCase::whereNotNull('tag')
+            ->where('tag', '!=', '')
+            ->distinct()
+            ->pluck('tag');
+
+        // Split comma-separated values using smart split (respects parentheses and quotes)
+        $tags = collect();
+
+        foreach ($allTags as $tagString) {
+            // Use smart split instead of simple explode
+            $individualTags = $this->smartSplitCommaSeparatedValues($tagString);
+            foreach ($individualTags as $tag) {
+                if (!empty($tag)) {
+                    $tags->push($tag);
+                }
+            }
+        }
+
+        // Apply search filter if provided
+        if ($request->has('search')) {
+            $search = strtolower($request->search);
+            $tags = $tags->filter(function ($tag) use ($search) {
+                return strpos(strtolower($tag), $search) !== false;
+            });
+        }
+
+        // Remove duplicates with case-insensitive consolidation
+        $uniqueTags = $tags->mapToGroups(function ($tag) {
+                return [strtolower($tag) => $tag];
+            })
+            ->map(function ($group) {
+                return $group->first();
+            })
+            ->sort()
+            ->values();
+
+        // Use Laravel's LengthAwarePaginator for consistency with other controllers
+        $perPage = $request->get('per_page', 15);
+        $page = $request->get('page', 1);
+
+        $paginated = new \Illuminate\Pagination\LengthAwarePaginator(
+            $uniqueTags->forPage($page, $perPage)->values(),
+            $uniqueTags->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        return ApiResponse::success([
+            'tags' => $paginated->items(),
+            'meta' => [
+                'current_page' => $paginated->currentPage(),
+                'from' => $paginated->firstItem(),
+                'last_page' => $paginated->lastPage(),
+                'per_page' => $paginated->perPage(),
+                'to' => $paginated->lastItem(),
+                'total' => $paginated->total(),
+            ],
+            'links' => [
+                'first' => $paginated->url(1),
+                'last' => $paginated->url($paginated->lastPage()),
+                'prev' => $paginated->previousPageUrl(),
+                'next' => $paginated->nextPageUrl(),
+            ],
+        ], 'Case tags retrieved successfully');
     }
 }
