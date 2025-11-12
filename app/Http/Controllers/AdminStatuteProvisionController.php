@@ -6,6 +6,7 @@ use App\Models\Statute;
 use App\Models\StatuteProvision;
 use App\Models\StatuteDivision;
 use App\Http\Responses\ApiResponse;
+use App\Http\Resources\StatuteProvisionResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -13,8 +14,6 @@ class AdminStatuteProvisionController extends Controller
 {
     public function index(Request $request, Statute $statute): JsonResponse
     {
-        $statute = Statute::findOrFail($statuteId);
-        
         $query = $statute->provisions()->with(['division:id,division_title', 'parentProvision:id,provision_title']);
         
         if ($request->has('status')) {
@@ -58,14 +57,12 @@ class AdminStatuteProvisionController extends Controller
             'status' => 'sometimes|in:active,repealed,amended',
             'effective_date' => 'nullable|date'
         ]);
-        
-        $statute = Statute::findOrFail($statuteId);
-        
+
         try {
             $provision = $statute->provisions()->create($validated);
-            
+
             return ApiResponse::success([
-                'provision' => $provision
+                'provision' => new StatuteProvisionResource($provision)
             ], 'Provision created successfully', 201);
         } catch (\Exception $e) {
             return ApiResponse::error('Failed to create provision: ' . $e->getMessage(), 500);
@@ -102,10 +99,7 @@ class AdminStatuteProvisionController extends Controller
             'status' => 'sometimes|in:active,repealed,amended',
             'effective_date' => 'nullable|date'
         ]);
-        
-        $statute = Statute::findOrFail($statuteId);
-        $provision = $statute->provisions()->findOrFail($provisionId);
-        
+
         try {
             $provision->update($validated);
             
@@ -119,9 +113,6 @@ class AdminStatuteProvisionController extends Controller
     
     public function destroy(Statute $statute, StatuteProvision $provision): JsonResponse
     {
-        $statute = Statute::findOrFail($statuteId);
-        $provision = $statute->provisions()->findOrFail($provisionId);
-        
         try {
             $provision->delete();
             
@@ -133,11 +124,8 @@ class AdminStatuteProvisionController extends Controller
     
     public function children(Request $request, Statute $statute, StatuteProvision $provision): JsonResponse
     {
-        $statute = Statute::findOrFail($statuteId);
-        $parentProvision = $statute->provisions()->findOrFail($provisionId);
-        
         // Get child provisions with pagination
-        $query = StatuteProvision::where('parent_provision_id', $provisionId)
+        $query = StatuteProvision::where('parent_provision_id', $provision->id)
                                  ->with(['parentProvision:id,provision_title,provision_number']);
         
         // Apply filters
@@ -158,23 +146,23 @@ class AdminStatuteProvisionController extends Controller
                                 ->paginate($request->get('per_page', 15));
         
         // Build breadcrumb trail
-        $breadcrumb = $this->buildProvisionBreadcrumb($parentProvision);
-        
+        $breadcrumb = $this->buildProvisionBreadcrumb($provision);
+
         return ApiResponse::success([
             'parent' => [
-                'id' => $parentProvision->id,
-                'title' => $parentProvision->provision_title,
-                'number' => $parentProvision->provision_number,
-                'type' => $parentProvision->provision_type,
-                'level' => $parentProvision->level,
+                'id' => $provision->id,
+                'title' => $provision->provision_title,
+                'number' => $provision->provision_number,
+                'type' => $provision->provision_type,
+                'level' => $provision->level,
                 'breadcrumb' => $breadcrumb
             ],
             'children' => $childProvisions->items(),
             'meta' => [
                 'has_children' => $childProvisions->total() > 0,
-                'child_level' => $parentProvision->level + 1,
-                'parent_provision_id' => $provisionId,
-                'statute_id' => $statuteId,
+                'child_level' => $provision->level + 1,
+                'parent_provision_id' => $provision->id,
+                'statute_id' => $statute->id,
                 'current_page' => $childProvisions->currentPage(),
                 'from' => $childProvisions->firstItem(),
                 'last_page' => $childProvisions->lastPage(),

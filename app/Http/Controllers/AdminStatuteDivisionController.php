@@ -7,6 +7,7 @@ use App\Models\StatuteDivision;
 use App\Models\StatuteProvision;
 use App\Http\Responses\ApiResponse;
 use App\Http\Resources\StatuteDivisionCollection;
+use App\Http\Resources\StatuteDivisionResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -52,14 +53,12 @@ class AdminStatuteDivisionController extends Controller
             'status' => 'sometimes|in:active,repealed,amended',
             'effective_date' => 'nullable|date'
         ]);
-        
-        $statute = Statute::findOrFail($statuteId);
-        
+
         try {
             $division = $statute->divisions()->create($validated);
-            
+
             return ApiResponse::success([
-                'division' => $division
+                'division' => new StatuteDivisionResource($division)
             ], 'Division created successfully', 201);
         } catch (\Exception $e) {
             return ApiResponse::error('Failed to create division: ' . $e->getMessage(), 500);
