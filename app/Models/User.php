@@ -27,6 +27,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'google_id',
         'avatar',
         'role',
+        'is_creator',
         'customer_code',
         'guest_expires_at',
         'last_activity_at',
@@ -75,6 +76,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'guest_expires_at' => 'datetime',
             'last_activity_at' => 'datetime',
             'area_of_expertise' => 'array',
+            'is_creator' => 'boolean',
         ];
     }
 
@@ -154,6 +156,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isSuperAdmin(): bool
     {
         return $this->role === 'superadmin';
+    }
+
+    public function isCreator(): bool
+    {
+        return $this->is_creator === true;
     }
 
     public function hasRole(string $role): bool

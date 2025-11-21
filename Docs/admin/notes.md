@@ -37,7 +37,7 @@ Authorization: Bearer {token}
 **User Endpoints**: Use ID-based URLs for personal note management
 - `/api/notes/{id}` - Numeric IDs for user operations
 
-**Admin Endpoints**: Use ID-based URLs for administrative operations  
+**Admin Endpoints**: Use ID-based URLs for administrative operations
 - `/api/admin/notes/{id}` - Numeric IDs for admin operations
 
 ---
@@ -78,18 +78,56 @@ GET /notes?search=meeting&tag=work&is_private=false&page=1&per_page=10
       {
         "id": 1,
         "title": "Updated Test Note",
-        "content": "This is an updated test note",
+        "content_preview": null,
         "is_private": false,
         "tags": ["work", "important"],
         "tags_list": "work, important",
+        "price_ngn": null,
+        "price_usd": null,
+        "is_free": true,
+        "is_paid": false,
+        "has_access": true,
         "user": {
           "id": 2,
           "name": "Dr. Arturo Rogahn",
           "email": "Johnathon.Prohaska@hotmail.com",
-          "avatar": "https://example.com/avatars/user-2.jpg"
+          "avatar": "https://example.com/avatars/user-2.jpg",
+          "is_creator": false
         },
+        "comments_count": 0,
+        "views_count": 5,
+        "is_bookmarked": false,
+        "bookmark_id": null,
+        "bookmarks_count": 0,
         "created_at": "2025-07-27T02:09:05.000000Z",
         "updated_at": "2025-07-27T02:09:13.000000Z"
+      },
+      {
+        "id": 2,
+        "title": "Premium Legal Notes",
+        "content_preview": "This is a preview of the premium content...",
+        "is_private": false,
+        "tags": ["legal", "premium"],
+        "tags_list": "legal, premium",
+        "price_ngn": "500.00",
+        "price_usd": "5.00",
+        "is_free": false,
+        "is_paid": true,
+        "has_access": false,
+        "user": {
+          "id": 3,
+          "name": "Legal Creator",
+          "email": "creator@example.com",
+          "avatar": "https://example.com/avatars/user-3.jpg",
+          "is_creator": true
+        },
+        "comments_count": 2,
+        "views_count": 150,
+        "is_bookmarked": true,
+        "bookmark_id": 5,
+        "bookmarks_count": 25,
+        "created_at": "2025-07-27T02:10:00.000000Z",
+        "updated_at": "2025-07-27T02:10:00.000000Z"
       }
     ],
     "meta": {
@@ -97,8 +135,8 @@ GET /notes?search=meeting&tag=work&is_private=false&page=1&per_page=10
       "from": 1,
       "last_page": 1,
       "per_page": 15,
-      "to": 1,
-      "total": 1
+      "to": 2,
+      "total": 2
     },
     "links": {
       "first": "http://localhost:8000/api/notes?page=1",
@@ -144,16 +182,27 @@ GET /notes/my-notes?search=meeting&tag=work&page=1&per_page=10
       {
         "id": 1,
         "title": "My Personal Note",
-        "content": "This is my personal note content",
+        "content_preview": null,
         "is_private": true,
         "tags": ["personal", "important"],
         "tags_list": "personal, important",
+        "price_ngn": null,
+        "price_usd": null,
+        "is_free": true,
+        "is_paid": false,
+        "has_access": true,
         "user": {
           "id": 2,
           "name": "Dr. Arturo Rogahn",
           "email": "Johnathon.Prohaska@hotmail.com",
-          "avatar": "https://example.com/avatars/user-2.jpg"
+          "avatar": "https://example.com/avatars/user-2.jpg",
+          "is_creator": false
         },
+        "comments_count": 0,
+        "views_count": 3,
+        "is_bookmarked": false,
+        "bookmark_id": null,
+        "bookmarks_count": 0,
         "created_at": "2025-07-27T02:09:05.000000Z",
         "updated_at": "2025-07-27T02:09:13.000000Z"
       }
@@ -186,10 +235,11 @@ This endpoint is useful when users want to view exclusively their own notes, reg
 
 **GET** `/notes/{id}`
 
-Retrieves detailed information about a specific note owned by the authenticated user.
+Retrieves detailed information about a specific note. For paid notes, content is restricted based on access.
 
 #### Required Permissions
-- Authenticated user (can only view own notes)
+- Authenticated user (can view own notes or public notes)
+- Unauthenticated users can view public notes (with content restrictions for paid notes)
 
 #### Path Parameters
 
@@ -202,7 +252,7 @@ Retrieves detailed information about a specific note owned by the authenticated 
 GET /notes/1
 ```
 
-#### Success Response (200)
+#### Success Response - Free Note (200)
 ```json
 {
   "status": "success",
@@ -210,18 +260,110 @@ GET /notes/1
   "data": {
     "note": {
       "id": 1,
-      "title": "Updated Test Note",
-      "content": "This is an updated test note",
+      "title": "Free Public Note",
+      "content": "This is the full content of the free note...",
+      "content_preview": null,
       "is_private": false,
       "tags": ["work", "important"],
       "tags_list": "work, important",
+      "price_ngn": null,
+      "price_usd": null,
+      "is_free": true,
+      "is_paid": false,
+      "has_access": true,
       "user": {
         "id": 2,
         "name": "Dr. Arturo Rogahn",
-        "email": "Johnathon.Prohaska@hotmail.com"
+        "email": "Johnathon.Prohaska@hotmail.com",
+        "avatar": "https://example.com/avatars/user-2.jpg",
+        "is_creator": false
       },
+      "comments_count": 0,
+      "views_count": 10,
+      "is_bookmarked": false,
+      "bookmark_id": null,
+      "bookmarks_count": 2,
+      "comments": [],
       "created_at": "2025-07-27T02:09:05.000000Z",
       "updated_at": "2025-07-27T02:09:13.000000Z"
+    }
+  }
+}
+```
+
+#### Success Response - Paid Note (Owner or Purchased) (200)
+```json
+{
+  "status": "success",
+  "message": "Note retrieved successfully",
+  "data": {
+    "note": {
+      "id": 2,
+      "title": "Premium Legal Notes",
+      "content": "This is the FULL premium content visible to the owner or purchaser...",
+      "content_preview": null,
+      "is_private": false,
+      "tags": ["legal", "premium"],
+      "tags_list": "legal, premium",
+      "price_ngn": "500.00",
+      "price_usd": "5.00",
+      "is_free": false,
+      "is_paid": true,
+      "has_access": true,
+      "user": {
+        "id": 2,
+        "name": "Dr. Arturo Rogahn",
+        "email": "Johnathon.Prohaska@hotmail.com",
+        "avatar": "https://example.com/avatars/user-2.jpg",
+        "is_creator": true
+      },
+      "comments_count": 5,
+      "views_count": 150,
+      "is_bookmarked": true,
+      "bookmark_id": 3,
+      "bookmarks_count": 50,
+      "comments": [],
+      "created_at": "2025-07-27T02:10:00.000000Z",
+      "updated_at": "2025-07-27T02:10:00.000000Z"
+    }
+  }
+}
+```
+
+#### Success Response - Paid Note (No Access) (200)
+```json
+{
+  "status": "success",
+  "message": "Note retrieved successfully",
+  "data": {
+    "note": {
+      "id": 2,
+      "title": "Premium Legal Notes",
+      "content": null,
+      "content_preview": "This is the first ~200 characters of the content shown as a preview...",
+      "is_private": false,
+      "tags": ["legal", "premium"],
+      "tags_list": "legal, premium",
+      "price_ngn": "500.00",
+      "price_usd": "5.00",
+      "is_free": false,
+      "is_paid": true,
+      "has_access": false,
+      "user": {
+        "id": 3,
+        "name": "Legal Creator",
+        "email": "creator@example.com",
+        "avatar": "https://example.com/avatars/user-3.jpg",
+        "is_creator": true
+      },
+      "comments_count": 5,
+      "views_count": 150,
+      "is_bookmarked": false,
+      "bookmark_id": null,
+      "bookmarks_count": 50,
+      "comments": [],
+      "created_at": "2025-07-27T02:10:00.000000Z",
+      "updated_at": "2025-07-27T02:10:00.000000Z"
     }
   }
 }
@@ -231,7 +373,7 @@ GET /notes/1
 
 **POST** `/notes`
 
-Creates a new note for the authenticated user.
+Creates a new note for the authenticated user. Notes can be free or paid.
 
 #### Required Permissions
 - Authenticated user (any role)
@@ -241,11 +383,13 @@ Creates a new note for the authenticated user.
 | Field | Type | Required | Validation | Description |
 |-------|------|----------|------------|-------------|
 | `title` | string | Yes | max:255 | Note title |
-| `content` | string | Yes | max:65535 | Note content/body |
+| `content` | string | Yes | max:10,000,000 | Note content/body |
 | `is_private` | boolean | No | - | Privacy setting (default: false) |
 | `tags` | array | No | max:10 items, each max:50 chars | Array of tags |
+| `price_ngn` | decimal | No | min:0, max:99999999.99 | Price in Nigerian Naira (null = free) |
+| `price_usd` | decimal | No | min:0, max:99999999.99 | Price in US Dollars (null = free) |
 
-#### Example Request
+#### Example Request - Free Note
 ```json
 {
   "title": "Meeting Notes",
@@ -255,7 +399,19 @@ Creates a new note for the authenticated user.
 }
 ```
 
-#### Success Response (201)
+#### Example Request - Paid Note
+```json
+{
+  "title": "Premium Contract Law Guide",
+  "content": "Comprehensive guide to contract law in Nigeria...",
+  "is_private": false,
+  "tags": ["legal", "contract", "premium"],
+  "price_ngn": 500,
+  "price_usd": 5
+}
+```
+
+#### Success Response - Free Note (201)
 ```json
 {
   "status": "success",
@@ -265,14 +421,65 @@ Creates a new note for the authenticated user.
       "id": 2,
       "title": "Meeting Notes",
       "content": "Important points from today's team meeting...",
+      "content_preview": null,
       "is_private": false,
       "tags": ["meeting", "work", "important"],
       "tags_list": "meeting, work, important",
+      "price_ngn": null,
+      "price_usd": null,
+      "is_free": true,
+      "is_paid": false,
+      "has_access": true,
       "user": {
         "id": 2,
         "name": "Dr. Arturo Rogahn",
-        "email": "Johnathon.Prohaska@hotmail.com"
+        "email": "Johnathon.Prohaska@hotmail.com",
+        "avatar": "https://example.com/avatars/user-2.jpg",
+        "is_creator": false
       },
+      "comments_count": 0,
+      "views_count": 0,
+      "is_bookmarked": false,
+      "bookmark_id": null,
+      "bookmarks_count": 0,
+      "created_at": "2025-07-27T02:15:00.000000Z",
+      "updated_at": "2025-07-27T02:15:00.000000Z"
+    }
+  }
+}
+```
+
+#### Success Response - Paid Note (201)
+```json
+{
+  "status": "success",
+  "message": "Note created successfully",
+  "data": {
+    "note": {
+      "id": 3,
+      "title": "Premium Contract Law Guide",
+      "content": "Comprehensive guide to contract law in Nigeria...",
+      "content_preview": null,
+      "is_private": false,
+      "tags": ["legal", "contract", "premium"],
+      "tags_list": "legal, contract, premium",
+      "price_ngn": "500.00",
+      "price_usd": "5.00",
+      "is_free": false,
+      "is_paid": true,
+      "has_access": true,
+      "user": {
+        "id": 2,
+        "name": "Dr. Arturo Rogahn",
+        "email": "Johnathon.Prohaska@hotmail.com",
+        "avatar": "https://example.com/avatars/user-2.jpg",
+        "is_creator": true
+      },
+      "comments_count": 0,
+      "views_count": 0,
+      "is_bookmarked": false,
+      "bookmark_id": null,
+      "bookmarks_count": 0,
       "created_at": "2025-07-27T02:15:00.000000Z",
       "updated_at": "2025-07-27T02:15:00.000000Z"
     }
@@ -296,14 +503,22 @@ Updates an existing note owned by the authenticated user.
 | `id` | integer | Yes | Note ID to update |
 
 #### Request Body
-Same as Create Note endpoint (all fields optional for updates).
 
-#### Example Request
+| Field | Type | Required | Validation | Description |
+|-------|------|----------|------------|-------------|
+| `title` | string | No | max:255 | Note title |
+| `content` | string | No | max:10,000,000 | Note content/body |
+| `is_private` | boolean | No | - | Privacy setting |
+| `tags` | array | No | max:10 items, each max:50 chars | Array of tags |
+| `price_ngn` | decimal | No | min:0, max:99999999.99 | Price in Nigerian Naira |
+| `price_usd` | decimal | No | min:0, max:99999999.99 | Price in US Dollars |
+
+#### Example Request - Update Pricing
 ```json
 {
   "title": "Updated Meeting Notes",
-  "content": "Updated content with additional points...",
-  "tags": ["meeting", "work", "important", "updated"]
+  "price_ngn": 1000,
+  "price_usd": 10
 }
 ```
 
@@ -316,15 +531,28 @@ Same as Create Note endpoint (all fields optional for updates).
     "note": {
       "id": 2,
       "title": "Updated Meeting Notes",
-      "content": "Updated content with additional points...",
+      "content": "Important points from today's team meeting...",
+      "content_preview": null,
       "is_private": false,
-      "tags": ["meeting", "work", "important", "updated"],
-      "tags_list": "meeting, work, important, updated",
+      "tags": ["meeting", "work", "important"],
+      "tags_list": "meeting, work, important",
+      "price_ngn": "1000.00",
+      "price_usd": "10.00",
+      "is_free": false,
+      "is_paid": true,
+      "has_access": true,
       "user": {
         "id": 2,
         "name": "Dr. Arturo Rogahn",
-        "email": "Johnathon.Prohaska@hotmail.com"
+        "email": "Johnathon.Prohaska@hotmail.com",
+        "avatar": "https://example.com/avatars/user-2.jpg",
+        "is_creator": false
       },
+      "comments_count": 0,
+      "views_count": 5,
+      "is_bookmarked": false,
+      "bookmark_id": null,
+      "bookmarks_count": 0,
       "created_at": "2025-07-27T02:15:00.000000Z",
       "updated_at": "2025-07-27T02:20:00.000000Z"
     }
@@ -429,16 +657,27 @@ GET /admin/notes?search=meeting&user_id=2&page=1&per_page=15
       {
         "id": 1,
         "title": "Updated Test Note",
-        "content": "This is an updated test note",
+        "content_preview": null,
         "is_private": false,
         "tags": ["work", "important"],
         "tags_list": "work, important",
+        "price_ngn": null,
+        "price_usd": null,
+        "is_free": true,
+        "is_paid": false,
+        "has_access": true,
         "user": {
           "id": 2,
           "name": "Dr. Arturo Rogahn",
           "email": "Johnathon.Prohaska@hotmail.com",
-          "avatar": "https://example.com/avatars/user-2.jpg"
+          "avatar": "https://example.com/avatars/user-2.jpg",
+          "is_creator": false
         },
+        "comments_count": 0,
+        "views_count": 10,
+        "is_bookmarked": false,
+        "bookmark_id": null,
+        "bookmarks_count": 0,
         "created_at": "2025-07-27T02:09:05.000000Z",
         "updated_at": "2025-07-27T02:09:13.000000Z"
       }
@@ -491,14 +730,28 @@ GET /admin/notes/1
       "id": 1,
       "title": "Updated Test Note",
       "content": "This is an updated test note",
+      "content_preview": null,
       "is_private": false,
       "tags": ["work", "important"],
       "tags_list": "work, important",
+      "price_ngn": "500.00",
+      "price_usd": "5.00",
+      "is_free": false,
+      "is_paid": true,
+      "has_access": true,
       "user": {
         "id": 2,
         "name": "Dr. Arturo Rogahn",
-        "email": "Johnathon.Prohaska@hotmail.com"
+        "email": "Johnathon.Prohaska@hotmail.com",
+        "avatar": "https://example.com/avatars/user-2.jpg",
+        "is_creator": true
       },
+      "comments_count": 0,
+      "views_count": 15,
+      "is_bookmarked": false,
+      "bookmark_id": null,
+      "bookmarks_count": 3,
+      "comments": [],
       "created_at": "2025-07-27T02:09:05.000000Z",
       "updated_at": "2025-07-27T02:09:13.000000Z"
     }
@@ -520,19 +773,23 @@ Creates a new note for any user in the system.
 | Field | Type | Required | Validation | Description |
 |-------|------|----------|------------|-------------|
 | `title` | string | Yes | max:255 | Note title |
-| `content` | string | Yes | max:65535 | Note content/body |
+| `content` | string | Yes | max:10,000,000 | Note content/body |
 | `user_id` | integer | Yes | exists:users,id | ID of user who will own the note |
 | `is_private` | boolean | No | - | Privacy setting (default: false) |
 | `tags` | array | No | max:10 items, each max:50 chars | Array of tags |
+| `price_ngn` | decimal | No | min:0, max:99999999.99 | Price in Nigerian Naira |
+| `price_usd` | decimal | No | min:0, max:99999999.99 | Price in US Dollars |
 
 #### Example Request
 ```json
 {
-  "title": "Admin Created Note",
-  "content": "This note was created by an administrator for the user.",
+  "title": "Admin Created Paid Note",
+  "content": "This note was created by an administrator for the user with premium content.",
   "user_id": 3,
-  "is_private": true,
-  "tags": ["admin", "system", "important"]
+  "is_private": false,
+  "tags": ["admin", "system", "premium"],
+  "price_ngn": 2000,
+  "price_usd": 20
 }
 ```
 
@@ -544,17 +801,29 @@ Creates a new note for any user in the system.
   "data": {
     "note": {
       "id": 3,
-      "title": "Admin Created Note",
-      "content": "This note was created by an administrator for the user.",
-      "is_private": true,
-      "tags": ["admin", "system", "important"],
-      "tags_list": "admin, system, important",
+      "title": "Admin Created Paid Note",
+      "content": "This note was created by an administrator for the user with premium content.",
+      "content_preview": null,
+      "is_private": false,
+      "tags": ["admin", "system", "premium"],
+      "tags_list": "admin, system, premium",
+      "price_ngn": "2000.00",
+      "price_usd": "20.00",
+      "is_free": false,
+      "is_paid": true,
+      "has_access": true,
       "user": {
         "id": 3,
         "name": "John Doe",
         "email": "john@example.com",
-        "avatar": "https://example.com/avatars/user-3.jpg"
+        "avatar": "https://example.com/avatars/user-3.jpg",
+        "is_creator": true
       },
+      "comments_count": 0,
+      "views_count": 0,
+      "is_bookmarked": false,
+      "bookmark_id": null,
+      "bookmarks_count": 0,
       "created_at": "2025-07-27T02:25:00.000000Z",
       "updated_at": "2025-07-27T02:25:00.000000Z"
     }
@@ -578,13 +847,24 @@ Updates any note in the system.
 | `id` | integer | Yes | Note ID to update |
 
 #### Request Body
-Same as Admin Create Note endpoint (all fields optional for updates except user_id).
+
+| Field | Type | Required | Validation | Description |
+|-------|------|----------|------------|-------------|
+| `title` | string | No | max:255 | Note title |
+| `content` | string | No | max:10,000,000 | Note content/body |
+| `user_id` | integer | No | exists:users,id | Change note owner |
+| `is_private` | boolean | No | - | Privacy setting |
+| `tags` | array | No | max:10 items, each max:50 chars | Array of tags |
+| `price_ngn` | decimal | No | min:0, max:99999999.99 | Price in Nigerian Naira |
+| `price_usd` | decimal | No | min:0, max:99999999.99 | Price in US Dollars |
 
 #### Example Request
 ```json
 {
   "title": "Updated Admin Note",
   "content": "This note has been updated by an administrator.",
+  "price_ngn": 1500,
+  "price_usd": 15,
   "tags": ["admin", "system", "updated"]
 }
 ```
@@ -599,15 +879,27 @@ Same as Admin Create Note endpoint (all fields optional for updates except user_
       "id": 3,
       "title": "Updated Admin Note",
       "content": "This note has been updated by an administrator.",
-      "is_private": true,
+      "content_preview": null,
+      "is_private": false,
       "tags": ["admin", "system", "updated"],
       "tags_list": "admin, system, updated",
+      "price_ngn": "1500.00",
+      "price_usd": "15.00",
+      "is_free": false,
+      "is_paid": true,
+      "has_access": true,
       "user": {
         "id": 3,
         "name": "John Doe",
         "email": "john@example.com",
-        "avatar": "https://example.com/avatars/user-3.jpg"
+        "avatar": "https://example.com/avatars/user-3.jpg",
+        "is_creator": true
       },
+      "comments_count": 0,
+      "views_count": 5,
+      "is_bookmarked": false,
+      "bookmark_id": null,
+      "bookmarks_count": 1,
       "created_at": "2025-07-27T02:25:00.000000Z",
       "updated_at": "2025-07-27T02:30:00.000000Z"
     }
@@ -691,7 +983,9 @@ DELETE /admin/notes/3
   "errors": {
     "title": ["Note title is required"],
     "content": ["Note content is required"],
-    "user_id": ["The specified user does not exist"]
+    "user_id": ["The specified user does not exist"],
+    "price_ngn": ["Price in Naira must be a number"],
+    "price_usd": ["Price in USD cannot be negative"]
   }
 }
 ```
@@ -706,11 +1000,23 @@ DELETE /admin/notes/3
 |-------|------|----------|-------------|
 | `id` | integer | No | Unique note identifier |
 | `title` | string | No | Note title (max: 255 characters) |
-| `content` | string | No | Note content/body (max: 65535 characters) |
+| `content` | string | Yes | Note content/body (max: 10,000,000 characters). `null` for paid notes without access |
+| `content_preview` | string | Yes | First ~200 characters of content (shown for paid notes without access) |
 | `is_private` | boolean | No | Privacy setting (true = private, false = public) |
 | `tags` | array | Yes | Array of tags associated with the note |
 | `tags_list` | string | No | Comma-separated string of tags (computed attribute) |
+| `price_ngn` | decimal | Yes | Price in Nigerian Naira (null = free) |
+| `price_usd` | decimal | Yes | Price in US Dollars (null = free) |
+| `is_free` | boolean | No | Whether the note is free (computed: true if both prices are null/0) |
+| `is_paid` | boolean | No | Whether the note is paid (computed: opposite of is_free) |
+| `has_access` | boolean | No | Whether current user has access to full content |
 | `user` | object | No | User who owns the note |
+| `comments_count` | integer | No | Number of comments on the note |
+| `views_count` | integer | No | Number of views the note has received |
+| `is_bookmarked` | boolean | No | Whether current user has bookmarked the note |
+| `bookmark_id` | integer | Yes | Bookmark ID if bookmarked by current user |
+| `bookmarks_count` | integer | No | Total number of bookmarks |
+| `comments` | array | Yes | Array of comments (only in single note response) |
 | `created_at` | string | No | ISO timestamp of creation |
 | `updated_at` | string | No | ISO timestamp of last update |
 
@@ -722,6 +1028,7 @@ DELETE /admin/notes/3
 | `name` | string | No | User name |
 | `email` | string | No | User email address |
 | `avatar` | string | Yes | User avatar URL |
+| `is_creator` | boolean | No | Whether user is a content creator |
 
 ### Pagination Meta Object
 
@@ -782,6 +1089,46 @@ GET /notes?search=project&tag=work&is_private=false
 GET /admin/notes?search=important&user_id=2&tag=system&page=2&per_page=25
 ```
 
+### Create a Free Note
+```json
+POST /notes
+{
+  "title": "Free Study Notes",
+  "content": "These are free study notes available to everyone...",
+  "tags": ["study", "free"]
+}
+```
+
+### Create a Paid Note
+```json
+POST /notes
+{
+  "title": "Premium Legal Analysis",
+  "content": "In-depth analysis of recent Supreme Court rulings...",
+  "tags": ["legal", "premium", "supreme-court"],
+  "price_ngn": 1000,
+  "price_usd": 10
+}
+```
+
+### Convert Free Note to Paid
+```json
+PUT /notes/5
+{
+  "price_ngn": 500,
+  "price_usd": 5
+}
+```
+
+### Convert Paid Note to Free
+```json
+PUT /notes/5
+{
+  "price_ngn": null,
+  "price_usd": null
+}
+```
+
 ---
 
 ## HTTP Status Codes
@@ -804,7 +1151,30 @@ GET /admin/notes?search=important&user_id=2&tag=system&page=2&per_page=25
 - Notes can be marked as private (visible only to owner) or public
 - Default privacy setting is `false` (public)
 - Admins and superadmins can view all notes regardless of privacy setting
-- Regular users can only view their own notes
+- Regular users can only view their own notes and public notes from others
+
+### Pricing System
+- Notes support dual-currency pricing: Nigerian Naira (`price_ngn`) and US Dollars (`price_usd`)
+- A note is considered **free** if both prices are `null` or `0`
+- A note is considered **paid** if either price is greater than `0`
+- Prices are stored as decimal with 2 decimal places (e.g., "500.00")
+- Currently, prices are informational - payment integration will be added later
+
+### Content Access Control
+- **Free Notes**: Full content visible to everyone
+- **Paid Notes - Owner**: Full content always visible
+- **Paid Notes - Others Without Purchase**:
+  - `content` field is `null`
+  - `content_preview` shows first ~200 characters
+  - `has_access` is `false`
+- **Paid Notes - Purchasers**: Full content visible (to be implemented with payment system)
+- The `has_access` field indicates whether the current user can see the full content
+
+### Content Creator System
+- Users can be marked as content creators via the `is_creator` field
+- Content creators can monetize their notes by setting prices
+- The `is_creator` flag appears in user objects within note responses
+- Admin can manage creator status through user management endpoints
 
 ### Tagging System
 - Notes support multiple tags for categorization
@@ -823,10 +1193,11 @@ GET /admin/notes?search=important&user_id=2&tag=system&page=2&per_page=25
 - Users can only view, edit, and delete their own notes
 - Admin endpoints allow management of any user's notes
 - Researchers have read-only access (cannot create, edit, or delete)
-- All endpoints require authentication
+- All endpoints require authentication (except public note viewing)
 - Role-based access control enforced
 
 ### Content Limits
 - Title: Maximum 255 characters
-- Content: Maximum 65,535 characters (TEXT field)
+- Content: Maximum 10,000,000 characters (MEDIUMTEXT field)
 - Tags: Maximum 10 tags, each up to 50 characters
+- Price: Maximum 99,999,999.99 (per currency)

@@ -66,6 +66,7 @@ class UserResource extends JsonResource
             'level' => $this->level,
             'work_experience' => $this->work_experience,
             'formatted_profile' => $this->formatted_profile,
+            'is_creator' => $this->isCreator(),
             'is_student' => $this->isStudent(),
             'is_lawyer' => $this->isLawyer(),
             'is_law_student' => $this->isLawStudent(),

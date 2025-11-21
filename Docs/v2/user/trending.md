@@ -49,9 +49,15 @@ All trending endpoints return complete content data for each item, not just basi
 - `slug` - URL-friendly identifier (may be null)
 - `tags` - Associated tags
 - `is_private` - Privacy setting
+- `price_ngn` - Note price in Nigerian Naira (null if free)
+- `price_usd` - Note price in US Dollars (null if free)
+- `is_free` - Whether the note is free (boolean)
+- `is_paid` - Whether the note is paid (boolean)
+- `has_access` - Whether the current user has access to the full content (boolean)
+- `content_preview` - Preview text (first 200 chars) for paid notes when user doesn't have access (null otherwise)
 - `comments_count` - Number of approved comments on the note
 - `created_at`, `updated_at` - Timestamps
-- `user` - Note author (includes id, name, avatar)
+- `user` - Note author (includes id, name, avatar, is_creator)
 
 ### Divisions
 **Complete division content:**
@@ -144,13 +150,24 @@ GET /api/trending?time_range=month&per_page=3
         "slug": null,
         "tags": null,
         "is_private": false,
+        "price_ngn": null,
+        "price_usd": null,
+        "is_free": true,
+        "is_paid": false,
+        "has_access": true,
+        "content_preview": null,
         "comments_count": 7,
         "created_at": "2025-08-19T12:09:39.000000Z",
         "updated_at": "2025-08-19T12:09:39.000000Z",
         "user": {
           "id": 82,
-          "name": "Chidere"
+          "name": "Chidere",
+          "avatar": null,
+          "is_creator": false
         },
+        "is_bookmarked": false,
+        "bookmark_id": null,
+        "bookmarks_count": 2,
         "content_type": "notes",
         "trending_metrics": {
           "trending_score": 78.74,
@@ -296,17 +313,28 @@ GET /api/trending/notes
     "trending": [
       {
         "id": 14,
-        "title": "xxxx",
-        "slug": null,
-        "tags": [],
+        "title": "Contract Law Fundamentals",
+        "slug": "contract-law-fundamentals",
+        "tags": ["contracts", "law"],
         "is_private": false,
-        "comments_count": 0,
+        "price_ngn": "500.00",
+        "price_usd": "5.00",
+        "is_free": false,
+        "is_paid": true,
+        "has_access": false,
+        "content_preview": "This note covers the fundamental principles of contract law including offer, acceptance, consideration...",
+        "comments_count": 3,
         "created_at": "2025-09-01T18:32:31.000000Z",
         "updated_at": "2025-09-01T18:51:51.000000Z",
         "user": {
           "id": 2,
-          "name": "Stay Njokede"
+          "name": "Stay Njokede",
+          "avatar": "https://example.com/avatar.jpg",
+          "is_creator": true
         },
+        "is_bookmarked": false,
+        "bookmark_id": null,
+        "bookmarks_count": 5,
         "content_type": "notes",
         "trending_metrics": {
           "trending_score": 40.34,

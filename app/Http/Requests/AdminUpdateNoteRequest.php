@@ -28,6 +28,8 @@ class AdminUpdateNoteRequest extends FormRequest
             'is_private' => 'sometimes|boolean',
             'tags' => 'sometimes|array|max:10',
             'tags.*' => 'string|max:50',
+            'price_ngn' => 'sometimes|nullable|numeric|min:0|max:99999999.99',
+            'price_usd' => 'sometimes|nullable|numeric|min:0|max:99999999.99',
         ];
     }
 
@@ -47,6 +49,12 @@ class AdminUpdateNoteRequest extends FormRequest
             'tags.max' => 'You cannot have more than 10 tags',
             'tags.*.string' => 'Each tag must be a string',
             'tags.*.max' => 'Each tag cannot exceed 50 characters',
+            'price_ngn.numeric' => 'Price in Naira must be a number',
+            'price_ngn.min' => 'Price in Naira cannot be negative',
+            'price_ngn.max' => 'Price in Naira is too high',
+            'price_usd.numeric' => 'Price in USD must be a number',
+            'price_usd.min' => 'Price in USD cannot be negative',
+            'price_usd.max' => 'Price in USD is too high',
         ];
     }
 }

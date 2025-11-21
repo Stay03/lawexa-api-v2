@@ -68,7 +68,9 @@
       "Bash(./test-trending-api.sh:*)",
       "Bash(./test-cooldown.sh:*)",
       "Bash(./test-bot-filtering.sh:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(API_URL=\"http://127.0.0.1:8000/api\")",
+      "Bash(TOKEN=\"654|R3WNcecpGdadqR2HjNYZvMCVVT1Yky3bocJrBu9Kec16a94b\")"
     ],
     "deny": [],
     "additionalDirectories": [

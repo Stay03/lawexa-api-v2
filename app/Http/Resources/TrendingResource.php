@@ -213,12 +213,22 @@ class TrendingResource extends JsonResource
 
     private function getNoteData(Request $request): array
     {
+        $user = $request->user();
+        $isFree = $this->isFree();
+        $hasAccess = $this->userHasAccess($user);
+
         return [
             'id' => $this->id,
             'title' => $this->title,
             'slug' => $this->slug,
             'tags' => $this->tags,
             'is_private' => $this->is_private,
+            'price_ngn' => $this->price_ngn,
+            'price_usd' => $this->price_usd,
+            'is_free' => $isFree,
+            'is_paid' => !$isFree,
+            'has_access' => $hasAccess,
+            'content_preview' => !$hasAccess && !$isFree ? $this->getContentPreview() : null,
             'comments_count' => $this->commentCount(),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
@@ -227,6 +237,7 @@ class TrendingResource extends JsonResource
                     'id' => $this->user->id,
                     'name' => $this->user->name,
                     'avatar' => $this->user->avatar,
+                    'is_creator' => $this->user->isCreator(),
                 ];
             }),
             'files' => $this->whenLoaded('files', function () {
