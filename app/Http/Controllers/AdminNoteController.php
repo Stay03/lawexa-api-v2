@@ -8,6 +8,7 @@ use App\Http\Resources\NoteCollection;
 use App\Http\Resources\NoteResource;
 use App\Http\Responses\ApiResponse;
 use App\Models\Note;
+use App\Models\NoteVideo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -57,9 +58,19 @@ class AdminNoteController extends Controller
 
         $validated = $request->validated();
 
+        // Extract videos from validated data
+        $videos = $validated['videos'] ?? null;
+        unset($validated['videos']);
+
         try {
             $note = Note::create($validated);
-            $note->load('user:id,name,email');
+
+            // Sync videos if provided
+            if ($videos !== null) {
+                $this->syncVideos($note, $videos);
+            }
+
+            $note->load(['user:id,name,email', 'videos']);
 
             return ApiResponse::success([
                 'note' => new NoteResource($note)
@@ -71,8 +82,8 @@ class AdminNoteController extends Controller
 
     public function show(Note $note): JsonResponse
     {
-        $note->load('user:id,name,email');
-        
+        $note->load(['user:id,name,email', 'videos']);
+
         return ApiResponse::success([
             'note' => new NoteResource($note)
         ], 'Note retrieved successfully');
@@ -86,9 +97,19 @@ class AdminNoteController extends Controller
 
         $validated = $request->validated();
 
+        // Extract videos from validated data
+        $videos = $validated['videos'] ?? null;
+        unset($validated['videos']);
+
         try {
             $note->update($validated);
-            $note->load('user:id,name,email');
+
+            // Sync videos if provided (replaces existing videos)
+            if ($videos !== null) {
+                $this->syncVideos($note, $videos);
+            }
+
+            $note->load(['user:id,name,email', 'videos']);
 
             return ApiResponse::success([
                 'note' => new NoteResource($note)
@@ -110,6 +131,30 @@ class AdminNoteController extends Controller
             return ApiResponse::success([], 'Note deleted successfully');
         } catch (\Exception $e) {
             return ApiResponse::error('Failed to delete note: ' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Sync videos for a note.
+     * Deletes all existing videos and creates new ones.
+     *
+     * @param Note $note
+     * @param array $videos
+     * @return void
+     */
+    private function syncVideos(Note $note, array $videos): void
+    {
+        // Delete existing videos
+        $note->videos()->delete();
+
+        // Create new videos with auto-incremented sort_order if not provided
+        foreach ($videos as $index => $videoData) {
+            $note->videos()->create([
+                'video_url' => $videoData['video_url'],
+                'thumbnail_url' => $videoData['thumbnail_url'] ?? null,
+                'platform' => $videoData['platform'] ?? null,
+                'sort_order' => $videoData['sort_order'] ?? $index,
+            ]);
         }
     }
 }

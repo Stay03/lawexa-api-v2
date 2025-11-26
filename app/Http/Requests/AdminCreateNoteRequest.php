@@ -30,6 +30,12 @@ class AdminCreateNoteRequest extends FormRequest
             'tags.*' => 'string|max:50',
             'price_ngn' => 'sometimes|nullable|numeric|min:0|max:99999999.99',
             'price_usd' => 'sometimes|nullable|numeric|min:0|max:99999999.99',
+            // Video validation
+            'videos' => 'sometimes|array',
+            'videos.*.video_url' => 'required_with:videos|url|max:500',
+            'videos.*.thumbnail_url' => 'nullable|url|max:500',
+            'videos.*.platform' => 'nullable|in:youtube,dailymotion,other',
+            'videos.*.sort_order' => 'nullable|integer|min:0',
         ];
     }
 
@@ -58,6 +64,15 @@ class AdminCreateNoteRequest extends FormRequest
             'price_usd.numeric' => 'Price in USD must be a number',
             'price_usd.min' => 'Price in USD cannot be negative',
             'price_usd.max' => 'Price in USD is too high',
+            'videos.array' => 'Videos must be provided as an array',
+            'videos.*.video_url.required_with' => 'Video URL is required for each video',
+            'videos.*.video_url.url' => 'Video URL must be a valid URL',
+            'videos.*.video_url.max' => 'Video URL cannot exceed 500 characters',
+            'videos.*.thumbnail_url.url' => 'Thumbnail URL must be a valid URL',
+            'videos.*.thumbnail_url.max' => 'Thumbnail URL cannot exceed 500 characters',
+            'videos.*.platform.in' => 'Platform must be youtube, dailymotion, or other',
+            'videos.*.sort_order.integer' => 'Sort order must be an integer',
+            'videos.*.sort_order.min' => 'Sort order cannot be negative',
         ];
     }
 }

@@ -9,6 +9,7 @@ use App\Traits\Bookmarkable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Builder;
 
 class Note extends Model
@@ -40,6 +41,14 @@ class Note extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the videos associated with the note.
+     */
+    public function videos(): HasMany
+    {
+        return $this->hasMany(NoteVideo::class)->orderBy('sort_order');
     }
 
     public function scopePublic(Builder $query): Builder

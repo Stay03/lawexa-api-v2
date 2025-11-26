@@ -388,6 +388,11 @@ Creates a new note for the authenticated user. Notes can be free or paid.
 | `tags` | array | No | max:10 items, each max:50 chars | Array of tags |
 | `price_ngn` | decimal | No | min:0, max:99999999.99 | Price in Nigerian Naira (null = free) |
 | `price_usd` | decimal | No | min:0, max:99999999.99 | Price in US Dollars (null = free) |
+| `videos` | array | No | - | Array of video objects to attach to the note |
+| `videos.*.video_url` | string | Yes* | url, max:500 | Video URL (required if videos array is provided) |
+| `videos.*.thumbnail_url` | string | No | url, max:500 | Custom thumbnail URL |
+| `videos.*.platform` | string | No | youtube, dailymotion, other | Video platform (auto-detected if not provided) |
+| `videos.*.sort_order` | integer | No | min:0 | Display order (auto-assigned if not provided) |
 
 #### Example Request - Free Note
 ```json
@@ -408,6 +413,26 @@ Creates a new note for the authenticated user. Notes can be free or paid.
   "tags": ["legal", "contract", "premium"],
   "price_ngn": 500,
   "price_usd": 5
+}
+```
+
+#### Example Request - Note with Videos
+```json
+{
+  "title": "Contract Law Video Tutorial",
+  "content": "Comprehensive video-based guide to contract law...",
+  "is_private": false,
+  "tags": ["legal", "video", "tutorial"],
+  "videos": [
+    {
+      "video_url": "https://www.youtube.com/watch?v=abc123",
+      "thumbnail_url": "https://img.youtube.com/vi/abc123/maxresdefault.jpg"
+    },
+    {
+      "video_url": "https://www.dailymotion.com/video/xyz789",
+      "sort_order": 1
+    }
+  ]
 }
 ```
 
@@ -442,6 +467,8 @@ Creates a new note for the authenticated user. Notes can be free or paid.
       "is_bookmarked": false,
       "bookmark_id": null,
       "bookmarks_count": 0,
+      "videos": [],
+      "videos_count": 0,
       "created_at": "2025-07-27T02:15:00.000000Z",
       "updated_at": "2025-07-27T02:15:00.000000Z"
     }
@@ -480,6 +507,8 @@ Creates a new note for the authenticated user. Notes can be free or paid.
       "is_bookmarked": false,
       "bookmark_id": null,
       "bookmarks_count": 0,
+      "videos": [],
+      "videos_count": 0,
       "created_at": "2025-07-27T02:15:00.000000Z",
       "updated_at": "2025-07-27T02:15:00.000000Z"
     }
@@ -512,6 +541,11 @@ Updates an existing note owned by the authenticated user.
 | `tags` | array | No | max:10 items, each max:50 chars | Array of tags |
 | `price_ngn` | decimal | No | min:0, max:99999999.99 | Price in Nigerian Naira |
 | `price_usd` | decimal | No | min:0, max:99999999.99 | Price in US Dollars |
+| `videos` | array | No | - | Array of video objects (replaces all existing videos) |
+| `videos.*.video_url` | string | Yes* | url, max:500 | Video URL (required if videos array is provided) |
+| `videos.*.thumbnail_url` | string | No | url, max:500 | Custom thumbnail URL |
+| `videos.*.platform` | string | No | youtube, dailymotion, other | Video platform (auto-detected if not provided) |
+| `videos.*.sort_order` | integer | No | min:0 | Display order (auto-assigned if not provided) |
 
 #### Example Request - Update Pricing
 ```json
@@ -1017,8 +1051,20 @@ DELETE /admin/notes/3
 | `bookmark_id` | integer | Yes | Bookmark ID if bookmarked by current user |
 | `bookmarks_count` | integer | No | Total number of bookmarks |
 | `comments` | array | Yes | Array of comments (only in single note response) |
+| `videos` | array | Yes | Array of video objects attached to the note (only in single note response) |
+| `videos_count` | integer | No | Number of videos attached to the note |
 | `created_at` | string | No | ISO timestamp of creation |
 | `updated_at` | string | No | ISO timestamp of last update |
+
+### NoteVideo Object
+
+| Field | Type | Nullable | Description |
+|-------|------|----------|-------------|
+| `id` | integer | No | Unique video identifier |
+| `video_url` | string | No | URL to the video (YouTube, Dailymotion, or other) |
+| `thumbnail_url` | string | Yes | Custom thumbnail URL for the video |
+| `platform` | string | Yes | Video platform: `youtube`, `dailymotion`, `other`, or `null` (auto-detected) |
+| `sort_order` | integer | No | Display order of videos within the note |
 
 ### User Object (Note Owner)
 
@@ -1129,6 +1175,47 @@ PUT /notes/5
 }
 ```
 
+### Create Note with Videos
+```json
+POST /notes
+{
+  "title": "Video Tutorial Series",
+  "content": "This note includes multiple tutorial videos...",
+  "tags": ["video", "tutorial"],
+  "videos": [
+    {
+      "video_url": "https://www.youtube.com/watch?v=lesson1"
+    },
+    {
+      "video_url": "https://www.youtube.com/watch?v=lesson2"
+    }
+  ]
+}
+```
+
+### Add/Update Videos on Existing Note
+```json
+PUT /notes/5
+{
+  "videos": [
+    {
+      "video_url": "https://www.youtube.com/watch?v=newvideo",
+      "thumbnail_url": "https://example.com/custom-thumb.jpg",
+      "platform": "youtube",
+      "sort_order": 0
+    }
+  ]
+}
+```
+
+### Remove All Videos from Note
+```json
+PUT /notes/5
+{
+  "videos": []
+}
+```
+
 ---
 
 ## HTTP Status Codes
@@ -1201,3 +1288,18 @@ PUT /notes/5
 - Content: Maximum 10,000,000 characters (MEDIUMTEXT field)
 - Tags: Maximum 10 tags, each up to 50 characters
 - Price: Maximum 99,999,999.99 (per currency)
+- Video URL: Maximum 500 characters
+- Thumbnail URL: Maximum 500 characters
+
+### Video System
+- Notes can have multiple videos attached (0, 1, or many)
+- Videos support YouTube, Dailymotion, and other platforms
+- Platform is auto-detected from URL patterns:
+  - **YouTube**: URLs containing `youtube.com`, `youtu.be`, or `youtube-nocookie.com`
+  - **Dailymotion**: URLs containing `dailymotion.com` or `dai.ly`
+  - **Other**: All other URLs (platform set to `null` unless manually specified)
+- Users can manually override platform detection by providing the `platform` field
+- Videos are ordered by `sort_order` (auto-assigned based on array order if not provided)
+- When updating a note with videos, the entire videos array is replaced (delete + recreate)
+- To remove all videos from a note, send `"videos": []` in the update request
+- Videos are automatically deleted when the parent note is deleted (cascade)
