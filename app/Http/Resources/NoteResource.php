@@ -25,6 +25,7 @@ class NoteResource extends JsonResource
             // Show full content only if user has access, otherwise show preview
             'content' => $hasAccess ? $this->content : null,
             'content_preview' => !$hasAccess ? $this->resource->getContentPreview() : null,
+            'status' => $this->status,
             'is_private' => $this->is_private,
             'tags' => $this->tags ?? [],
             'tags_list' => $this->tags_list ?? '',

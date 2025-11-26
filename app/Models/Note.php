@@ -20,6 +20,7 @@ class Note extends Model
         'title',
         'content',
         'user_id',
+        'status',
         'is_private',
         'tags',
         'price_ngn',
@@ -29,6 +30,7 @@ class Note extends Model
     protected function casts(): array
     {
         return [
+            'status' => 'string',
             'is_private' => 'boolean',
             'tags' => 'array',
             'price_ngn' => 'decimal:2',
@@ -69,9 +71,24 @@ class Note extends Model
     public function scopeAccessibleByUser(Builder $query, int $userId): Builder
     {
         return $query->where(function ($q) use ($userId) {
+            // Own notes (any status)
             $q->where('user_id', $userId)
-              ->orWhere('is_private', false);
+              // OR published public notes
+              ->orWhere(function ($q2) {
+                  $q2->where('status', 'published')
+                     ->where('is_private', false);
+              });
         });
+    }
+
+    public function scopePublished(Builder $query): Builder
+    {
+        return $query->where('status', 'published');
+    }
+
+    public function scopeDraft(Builder $query): Builder
+    {
+        return $query->where('status', 'draft');
     }
 
     public function scopeSearch(Builder $query, string $search): Builder
@@ -100,6 +117,16 @@ class Note extends Model
     public function isPublic(): bool
     {
         return !$this->is_private;
+    }
+
+    public function isDraft(): bool
+    {
+        return $this->status === 'draft';
+    }
+
+    public function isPublished(): bool
+    {
+        return $this->status === 'published';
     }
 
     public function getTagsListAttribute(): string

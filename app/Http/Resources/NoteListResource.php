@@ -25,6 +25,7 @@ class NoteListResource extends JsonResource
             'title' => $this->title,
             // In list view, always show preview for paid content, never full content
             'content_preview' => !$isFree ? $this->resource->getContentPreview() : null,
+            'status' => $this->status,
             'is_private' => $this->is_private,
             'tags' => $this->tags ?? [],
             'tags_list' => $this->tags_list ?? '',

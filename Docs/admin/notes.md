@@ -40,6 +40,64 @@ Authorization: Bearer {token}
 **Admin Endpoints**: Use ID-based URLs for administrative operations
 - `/api/admin/notes/{id}` - Numeric IDs for admin operations
 
+## Publication System
+
+Notes support two publication states: **draft** and **published**.
+
+### Status Behavior
+
+| Status | Owner Access | Admin Access | Public Access | Privacy Controlled By |
+|--------|-------------|--------------|---------------|----------------------|
+| `draft` | ✅ Always | ✅ Always | ❌ Never | Status only (ignores `is_private`) |
+| `published` | ✅ Always | ✅ Always | ✅ If `is_private=false` | Both `status` and `is_private` |
+
+### Key Rules
+
+1. **Draft Notes**:
+   - Only visible to the note owner and admins/researchers
+   - Privacy setting (`is_private`) is ignored for drafts
+   - Useful for preparing content before public release
+
+2. **Published Notes**:
+   - Visibility controlled by `is_private` field
+   - If `is_private=false`: Visible to everyone
+   - If `is_private=true`: Only visible to owner and admins
+
+3. **Default Behavior**:
+   - New notes default to `status="draft"`
+   - Prevents accidental publication of incomplete notes
+
+### Common Use Cases
+
+**Create a draft note**:
+```json
+{
+  "title": "Work in Progress",
+  "content": "Still editing...",
+  "status": "draft"
+}
+```
+
+**Publish a note publicly**:
+```json
+{
+  "title": "Complete Guide",
+  "content": "Finished content...",
+  "status": "published",
+  "is_private": false
+}
+```
+
+**Publish a note privately**:
+```json
+{
+  "title": "Personal Notes",
+  "content": "Only for me...",
+  "status": "published",
+  "is_private": true
+}
+```
+
 ---
 
 ## User Endpoints
@@ -59,6 +117,7 @@ Retrieves a paginated list of notes belonging to the authenticated user with fil
 |-----------|------|----------|---------|-------------|
 | `search` | string | No | - | Search in title and content (excludes private notes from other users) |
 | `tag` | string | No | - | Filter by specific tag |
+| `status` | string | No | - | Filter by status (draft/published) |
 | `is_private` | boolean | No | - | Filter by privacy (true/false) |
 | `page` | integer | No | 1 | Page number |
 | `per_page` | integer | No | 15 | Items per page (max: 100) |
@@ -79,6 +138,7 @@ GET /notes?search=meeting&tag=work&is_private=false&page=1&per_page=10
         "id": 1,
         "title": "Updated Test Note",
         "content_preview": null,
+        "status": "published",
         "is_private": false,
         "tags": ["work", "important"],
         "tags_list": "work, important",
@@ -106,6 +166,7 @@ GET /notes?search=meeting&tag=work&is_private=false&page=1&per_page=10
         "id": 2,
         "title": "Premium Legal Notes",
         "content_preview": "This is a preview of the premium content...",
+        "status": "published",
         "is_private": false,
         "tags": ["legal", "premium"],
         "tags_list": "legal, premium",
@@ -163,6 +224,7 @@ Retrieves a paginated list of notes that belong exclusively to the authenticated
 |-----------|------|----------|---------|-------------|
 | `search` | string | No | - | Search in title and content |
 | `tag` | string | No | - | Filter by specific tag |
+| `status` | string | No | - | Filter by status (draft/published) |
 | `is_private` | boolean | No | - | Filter by privacy (true/false) |
 | `page` | integer | No | 1 | Page number |
 | `per_page` | integer | No | 15 | Items per page (max: 100) |
@@ -183,6 +245,7 @@ GET /notes/my-notes?search=meeting&tag=work&page=1&per_page=10
         "id": 1,
         "title": "My Personal Note",
         "content_preview": null,
+        "status": "published",
         "is_private": true,
         "tags": ["personal", "important"],
         "tags_list": "personal, important",
@@ -384,6 +447,7 @@ Creates a new note for the authenticated user. Notes can be free or paid.
 |-------|------|----------|------------|-------------|
 | `title` | string | Yes | max:255 | Note title |
 | `content` | string | Yes | max:10,000,000 | Note content/body |
+| `status` | string | No | draft, published | Publication status (default: draft) |
 | `is_private` | boolean | No | - | Privacy setting (default: false) |
 | `tags` | array | No | max:10 items, each max:50 chars | Array of tags |
 | `price_ngn` | decimal | No | min:0, max:99999999.99 | Price in Nigerian Naira (null = free) |
@@ -394,11 +458,23 @@ Creates a new note for the authenticated user. Notes can be free or paid.
 | `videos.*.platform` | string | No | youtube, dailymotion, other | Video platform (auto-detected if not provided) |
 | `videos.*.sort_order` | integer | No | min:0 | Display order (auto-assigned if not provided) |
 
-#### Example Request - Free Note
+#### Example Request - Free Note (Draft)
 ```json
 {
   "title": "Meeting Notes",
   "content": "Important points from today's team meeting...",
+  "status": "draft",
+  "is_private": false,
+  "tags": ["meeting", "work", "important"]
+}
+```
+
+#### Example Request - Free Note (Published)
+```json
+{
+  "title": "Meeting Notes",
+  "content": "Important points from today's team meeting...",
+  "status": "published",
   "is_private": false,
   "tags": ["meeting", "work", "important"]
 }
@@ -671,6 +747,7 @@ Retrieves a paginated list of all notes in the system with admin-specific filter
 |-----------|------|----------|---------|-------------|
 | `search` | string | No | - | Search in title and content |
 | `tag` | string | No | - | Filter by specific tag |
+| `status` | string | No | - | Filter by status (draft/published) |
 | `user_id` | integer | No | - | Filter by note owner user ID (admin only) |
 | `is_private` | boolean | No | - | Filter by privacy (true/false) |
 | `page` | integer | No | 1 | Page number |
@@ -692,6 +769,7 @@ GET /admin/notes?search=meeting&user_id=2&page=1&per_page=15
         "id": 1,
         "title": "Updated Test Note",
         "content_preview": null,
+        "status": "published",
         "is_private": false,
         "tags": ["work", "important"],
         "tags_list": "work, important",

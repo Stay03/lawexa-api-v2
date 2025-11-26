@@ -39,6 +39,14 @@ class AdminNoteController extends Controller
             }
         }
 
+        if ($request->has('status')) {
+            if ($request->status === 'draft') {
+                $query->draft();
+            } elseif ($request->status === 'published') {
+                $query->published();
+            }
+        }
+
         $notes = $query->orderByLatest()
                       ->paginate($request->get('per_page', 15));
 
@@ -70,6 +78,8 @@ class AdminNoteController extends Controller
                 $this->syncVideos($note, $videos);
             }
 
+            // Refresh to get database default values (like status='draft')
+            $note->refresh();
             $note->load(['user:id,name,email', 'videos']);
 
             return ApiResponse::success([

@@ -93,6 +93,14 @@ class NoteController extends Controller
             }
         }
 
+        if ($request->has('status')) {
+            if ($request->status === 'draft') {
+                $query->draft();
+            } elseif ($request->status === 'published') {
+                $query->published();
+            }
+        }
+
         $notes = $query->orderByLatest()
                       ->paginate($request->get('per_page', 15));
 
@@ -132,6 +140,8 @@ class NoteController extends Controller
                 $this->syncVideos($note, $videos);
             }
 
+            // Refresh to get database default values (like status='draft')
+            $note->refresh();
             $note->load(['user:id,name,email,avatar', 'videos']);
 
             return ApiResponse::success([
@@ -146,8 +156,18 @@ class NoteController extends Controller
     {
 
         $user = $request->user();
-        if (!$note->isOwnedBy($user) && !$note->isPublic()) {
-            return ApiResponse::forbidden('You can only view your own notes or public notes');
+
+        // Check if note is a draft
+        if ($note->isDraft()) {
+            // Draft notes are only visible to owner and admins
+            if (!$user || (!$note->isOwnedBy($user) && !in_array($user->role, ['admin', 'superadmin', 'researcher']))) {
+                return ApiResponse::forbidden('Draft notes are only visible to their owners');
+            }
+        } else {
+            // Published notes follow privacy rules
+            if (!$note->isOwnedBy($user) && !$note->isPublic()) {
+                return ApiResponse::forbidden('You can only view your own notes or public notes');
+            }
         }
 
         $with = [
