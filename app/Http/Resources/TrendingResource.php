@@ -221,6 +221,7 @@ class TrendingResource extends JsonResource
             'id' => $this->id,
             'title' => $this->title,
             'slug' => $this->slug,
+            'status' => $this->status,
             'tags' => $this->tags,
             'is_private' => $this->is_private,
             'price_ngn' => $this->price_ngn,
