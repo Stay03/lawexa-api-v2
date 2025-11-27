@@ -25,12 +25,12 @@ class NoteController extends Controller
                     ->withViewsCount()
                     ->withCount('bookmarks')
                     ->withUserBookmark($request->user())
-                    ->accessibleByUser($request->user()->id);
+                    ->accessibleByUser($request->user()->id)
+                    ->where('status', 'published') // Exclude draft notes from listing
+                    ->where('is_private', false); // Exclude private notes from listing
 
         if ($request->has('search')) {
             $query->search($request->search);
-            // When searching, only show published public notes (exclude private and draft notes)
-            $query->where('status', 'published')->where('is_private', false);
         }
 
         if ($request->has('tag')) {
