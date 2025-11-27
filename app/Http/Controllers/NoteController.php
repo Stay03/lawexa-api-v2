@@ -29,8 +29,8 @@ class NoteController extends Controller
 
         if ($request->has('search')) {
             $query->search($request->search);
-            // When searching, only show public notes (exclude private notes from other users)
-            $query->public();
+            // When searching, only show published public notes (exclude private and draft notes)
+            $query->where('status', 'published')->where('is_private', false);
         }
 
         if ($request->has('tag')) {

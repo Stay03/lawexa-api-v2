@@ -67,6 +67,35 @@ Notes support two publication states: **draft** and **published**.
    - New notes default to `status="draft"`
    - Prevents accidental publication of incomplete notes
 
+### Where Draft Filtering Applies
+
+Draft visibility rules are enforced across ALL notes endpoints to maintain privacy and prevent premature exposure of work-in-progress content:
+
+1. **Notes List (`GET /notes`)**:
+   - Shows user's own notes (any status) OR published public notes from other users
+   - When searching: ONLY published public notes are returned (excludes all private and draft notes)
+
+2. **Trending Endpoints (`GET /trending/notes`, `GET /trending`)**:
+   - Draft notes are completely excluded from trending results
+   - Only published public notes appear in trending
+   - User's own published notes may appear in their personalized trending
+
+3. **Folders (`GET /folders/{folder}`)**:
+   - Draft notes in public folders are hidden from users who don't own them
+   - Other users only see published notes that respect privacy settings
+   - Folder owners see all their notes regardless of status
+
+4. **Search Functionality**:
+   - Search queries filter by both `status='published'` AND `is_private=false`
+   - This ensures no draft or private content leaks through search results
+
+5. **Admin/Researcher Exemption**:
+   - Roles: admin, researcher, and superadmin can view ALL notes including drafts
+   - This allows for content moderation, quality review, and system management
+   - Regular users cannot see drafts from other users under any circumstance
+
+**Security Note:** These visibility rules are enforced at the query level to prevent draft notes from appearing in any public-facing endpoint, ensuring user privacy and preventing accidental exposure of unfinished work.
+
 ### Common Use Cases
 
 **Create a draft note**:
@@ -115,7 +144,7 @@ Retrieves a paginated list of notes belonging to the authenticated user with fil
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `search` | string | No | - | Search in title and content (excludes private notes from other users) |
+| `search` | string | No | - | Search in title and content (only returns published public notes when searching) |
 | `tag` | string | No | - | Filter by specific tag |
 | `status` | string | No | - | Filter by status (draft/published) |
 | `is_private` | boolean | No | - | Filter by privacy (true/false) |

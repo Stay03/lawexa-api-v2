@@ -167,7 +167,19 @@ class FolderController extends Controller
         ])->loadCount('bookmarks');
 
         // Handle folder items with pagination and filtering separately
-        $itemsQuery = $folder->items()->with('folderable');
+        $itemsQuery = $folder->items()->with(['folderable' => function ($query) use ($request) {
+            // Apply visibility filters for Note models
+            if ($query->getModel() instanceof \App\Models\Note) {
+                $user = $request->user();
+                if ($user) {
+                    // Authenticated users: show their own notes or published public notes
+                    $query->accessibleByUser($user->id);
+                } else {
+                    // Guest users: only published public notes
+                    $query->where('status', 'published')->where('is_private', false);
+                }
+            }
+        }]);
 
         // Filter by item type if specified
         if ($request->has('item_type')) {

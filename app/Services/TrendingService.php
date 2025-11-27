@@ -153,6 +153,15 @@ class TrendingService
         }
 
         $models = $modelClass::whereIn('id', $modelIds)
+            ->when($modelClass === Note::class, function ($query) use ($user) {
+                // For notes, only show published public notes (or user's own notes if authenticated)
+                if ($user) {
+                    $query->accessibleByUser($user->id);
+                } else {
+                    // Guest users: only published public notes
+                    $query->where('status', 'published')->where('is_private', false);
+                }
+            })
             ->with($this->getModelRelations($modelClass))
             ->withCount($countsToLoad)
             ->when($user, function ($query) use ($user) {

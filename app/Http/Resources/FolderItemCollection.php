@@ -20,7 +20,10 @@ class FolderItemCollection extends ResourceCollection
                     'updated_at' => $item->updated_at,
                     'folderable' => $this->formatFolderableItem($item->folderable),
                 ];
-            }),
+            })->filter(function ($item) {
+                // Filter out items where folderable was null (filtered by visibility rules)
+                return !empty($item['folderable']);
+            })->values(),
             'meta' => [
                 'current_page' => $this->resource->currentPage(),
                 'from' => $this->resource->firstItem(),

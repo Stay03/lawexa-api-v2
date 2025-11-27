@@ -47,6 +47,7 @@ All trending endpoints return complete content data for each item, not just basi
 **Full note content:**
 - `title` - Note title (content field excluded for performance)
 - `slug` - URL-friendly identifier (may be null)
+- `status` - Publication status ('draft' or 'published')
 - `tags` - Associated tags
 - `is_private` - Privacy setting
 - `price_ngn` - Note price in Nigerian Naira (null if free)
@@ -58,6 +59,12 @@ All trending endpoints return complete content data for each item, not just basi
 - `comments_count` - Number of approved comments on the note
 - `created_at`, `updated_at` - Timestamps
 - `user` - Note author (includes id, name, avatar, is_creator)
+
+**Visibility Rules:**
+- Only **published** notes appear in trending (draft notes are filtered out)
+- Published public notes (`status='published'` AND `is_private=false`) are visible to everyone
+- Draft notes are excluded to maintain privacy and prevent premature exposure of work-in-progress content
+- Admins, researchers, and superadmins can view all notes through admin endpoints (not through trending)
 
 ### Divisions
 **Complete division content:**
@@ -148,6 +155,7 @@ GET /api/trending?time_range=month&per_page=3
         "id": 11,
         "title": "Comments System Test Note",
         "slug": null,
+        "status": "published",
         "tags": null,
         "is_private": false,
         "price_ngn": null,
@@ -315,6 +323,7 @@ GET /api/trending/notes
         "id": 14,
         "title": "Contract Law Fundamentals",
         "slug": "contract-law-fundamentals",
+        "status": "published",
         "tags": ["contracts", "law"],
         "is_private": false,
         "price_ngn": "500.00",
@@ -835,6 +844,8 @@ The trending score is calculated using:
 - **Recency Boost**: Recent views are weighted more heavily (3x for last 24 hours, 2x for last 3 days)
 - **Engagement Diversity**: Higher scores for content viewed by multiple unique users
 - **Time Decay**: Content viewed more recently gets higher trending scores
+
+**Note Visibility:** Only published notes (`status='published'`) are included in trending calculations. Draft notes are completely excluded to maintain privacy and prevent premature exposure of work-in-progress content. This filtering is applied before the trending score calculation, ensuring draft notes never appear in trending results regardless of view counts.
 
 ## Response Structure
 
